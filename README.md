@@ -4,7 +4,7 @@ Tired of wasting time clicking through a maze of broken pages, ugly CSS, and con
 
 So were we.
 
-**FLIP** is the student-built, one-click interface that replaces your university's digital disaster (aka CLIP) with something that *actually works*. It's fast. It's automated. And it's powered by pure frustration and Python.
+**FLIP** is the student-built, one-click interface that replaces your university's digital disaster (aka CLIP) with something that *actually works*. It's fast. It's automated. And it's powered by pure frustration and Next.js.
 
 ## What FLIP does:
 - Logs in automatically (no more "session expired")
