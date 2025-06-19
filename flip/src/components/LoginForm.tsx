@@ -2,29 +2,35 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function LoginForm() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
+  
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    const res = await fetch('/api/login', {
+    const res = await fetch('/api/scrape/login', {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
     });
 
-    // Redireciona para o dashboard se login for bem-sucedido
-    if (res.ok) {
-        window.location.href = '/dashboard';
-    } else {
-      //alert('Credenciais inválidas');
-    }
+    const data = await res.json();
 
-    window.location.href = '/dashboard';
+    if (res.ok) {
+      //console.log('Scraped HTML:', data.html);
+      // Do something: store session info, redirect, etc
+      router.push('/dashboard');
+
+    } else {
+      alert(data.error || 'Login failed');
+    }
 
     setLoading(false);
   };

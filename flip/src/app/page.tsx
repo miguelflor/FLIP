@@ -1,6 +1,5 @@
 // src/app/page.tsx
 'use client';
-import {ReactNode} from 'react';
 import LoginForm from '../components/LoginForm';
 
 export default function Home() {

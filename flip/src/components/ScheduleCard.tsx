@@ -11,7 +11,7 @@ export default function ScheduleCard() {
       <ul className="space-y-1">
         {schedule.map((item, idx) => (
           <li key={idx} className="text-sm">
-            <strong>{item.dia}</strong> – {item.hora} ({item.aula})
+            <strong>{item.dia}</strong> - {item.hora} ({item.aula})
           </li>
         ))}
       </ul>
