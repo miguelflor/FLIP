@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect} from 'react';
-import { Chair } from '@/lib/scrappers/types';
+import { ChairsByPeriod } from '@/lib/scrappers/types';
+import { PeriodType } from '@/lib/clipVars';
+import Class from './Chair';
 
 export default function PDFList() {
 
   const [loading, setLoading] = useState(false);
-  const [chairs, setChairs] = useState<Chair[]>([]);
+  const [chairs, setChairs] = useState<ChairsByPeriod>({});
   const [error, setError] = useState<string | null>(null);
 
   const handleChairs = async () => {
@@ -33,9 +35,20 @@ export default function PDFList() {
     }
 
   };
+
   useEffect(() => {
     handleChairs();
   }, []);
+
+  const getPeriodName = (periodKey: string) => {
+    if (periodKey === PeriodType.S+'1') return '1º Semestre';
+    if (periodKey === PeriodType.S+'2') return '2º Semestre';
+    if (periodKey === PeriodType.T+'1') return '1º Trimestre';
+    if (periodKey === PeriodType.T+'2') return '2º Trimestre';
+    return periodKey;
+  };
+
+  const hasAnyChairs = Object.values(chairs).some(cs => cs.length > 0);
 
 
   return (
@@ -76,21 +89,21 @@ export default function PDFList() {
               Tentar novamente
             </button>
           </div>
-        ) : chairs.length > 0 ? (
-          // Display chairs
-          chairs.map((chair, idx) => (
-            <li key={idx} className="transition-all duration-200 hover:translate-x-1">
-              <a 
-                href={chair.href} 
-                className="flex items-center text-blue-600 hover:text-blue-800"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <span className="mr-2">📄</span>
-                <span className="truncate">{chair.text}</span>
-              </a>
-            </li>
-          ))
+        ) : hasAnyChairs ? (
+          <div className="space-y-4">
+          {Object.entries(chairs).map(([periodKey, cs]) => 
+            cs.length > 0 ? (
+              <div key={periodKey}>
+                <h4 className="font-medium text-gray-700 mb-2">{getPeriodName(periodKey)}</h4>
+                <ul className="space-y-2 pl-2">
+                  {cs.map((chair, idx) => (
+                    <Class key={idx} chair={chair} idx={idx} />
+                  ))}
+                </ul>
+              </div>
+            ) : null
+          )}
+        </div>
         ) : (
           // Empty state
           <div className="text-gray-500 py-6 text-center">
