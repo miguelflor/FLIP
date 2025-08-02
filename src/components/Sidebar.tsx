@@ -22,13 +22,6 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className="p-4 space-y-2">
-        <a 
-          href="/dashboard" 
-          className="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-700 hover:bg-white hover:shadow-sm transition-all duration-200 group"
-        >
-          <Calendar className="w-5 h-5 text-slate-500 group-hover:text-blue-600" />
-          <span className="font-medium">Horário</span>
-        </a>
         
         <a 
           href="/dashboard#pdfs" 
@@ -42,27 +35,13 @@ export default function Sidebar() {
           href="/dashboard#notas" 
           className="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-700 hover:bg-white hover:shadow-sm transition-all duration-200 group relative"
         >
-          <BookOpen className="w-5 h-5 text-slate-500 group-hover:text-blue-600" />
-          <span className="font-medium">Notas</span>
+          <Calendar className="w-5 h-5 text-slate-500 group-hover:text-blue-600" />
+          <span className="font-medium">Horário</span>
           <span className="absolute right-2 top-1/2 -translate-y-1/2 bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-full font-medium">
             Em breve
           </span>
         </a>
       </nav>
-
-      {/* Footer */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-200 bg-white">
-        <div className="flex items-center space-x-3 px-3 py-2">
-          <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center">
-            <User className="w-4 h-4 text-slate-600" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-slate-900 truncate">Estudante</p>
-            <p className="text-xs text-slate-500">Online</p>
-          </div>
-          <Settings className="w-4 h-4 text-slate-400 hover:text-slate-600 cursor-pointer" />
-        </div>
-      </div>
     </aside>
   );
 }

@@ -36,6 +36,7 @@ We built FLIP because in 2025, students shouldn't have to:
 - 🚫 Deal with "server unavailable" errors every other minute
 - 📱 Be completely unable to access academic resources on mobile
 - 🔙 Experience a user interface that feels like a time capsule from 1995
+
 FLIP exists because your academic journey should be about learning, not fighting with outdated technology.
 
 ## ✨ Features
@@ -100,7 +101,7 @@ FLIP exists because your academic journey should be about learning, not fighting
 - 🔍 **Impossible navigation** - Finding anything requires memorizing complex menu paths
 
 **Real example**: To download course materials on CLIP:
-1. Login (30s loading) → 2. Navigate to "Academic" (15s) → 3. Click "Courses" (20s) → 4. Find your course (scroll through unorganized list) → 5. Click course (25s loading) → 6. Navigate to "Documents" → 7. Hope the download works
+1. Login (30s loading) → 2. Navigate to "Academic" (15s) → 3. Click "Courses" (20s) → 4. Find your course (scroll through unorganized list) → 5. Click course (25s loading) → 6. Navigate to "Documents" → 7. Download
 
 **With FLIP**: Login → Done. Everything is there instantly.
 
@@ -198,29 +199,6 @@ FLIP follows modern design principles:
 - **Accessibility**: WCAG compliant design
 - **Performance**: Optimized for speed and efficiency
 - **User-Centric**: Designed with student needs in mind
-
-## 🌟 Key Components
-
-### ScheduleCard
-The heart of the application - displays weekly schedules with:
-- Color-coded class types
-- Google Calendar export functionality
-- Responsive grid layout
-- Today highlighting
-
-### Sidebar Navigation
-Professional sidebar featuring:
-- Course chair listings
-- Download functionality
-- Modern gradient design
-- Lucide React icons
-
-### Notification System
-Elegant toast notifications with:
-- Smooth fade animations
-- Progress indicators
-- Success/error states
-- Auto-dismissal
 
 ## 🤝 Contributing
 
