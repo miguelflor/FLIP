@@ -24,7 +24,6 @@ export default function LoginForm() {
     const data = await res.json();
 
     if (res.ok) {
-      //console.log('Scraped HTML:', data.html);
       // Do something: store session info, redirect, etc
       router.push('/dashboard');
 

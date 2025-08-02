@@ -1,4 +1,4 @@
-import { PERIOD_N, PERIOD_TYPE, TYPE_FILE } from '../clipVars';
+import { PERIOD_N, PERIOD_TYPE, TYPE_FILE, UNIDADE, YEAR } from '../clipVars';
 export const CLIP_URL = 'https://clip.fct.unl.pt';
 
 export const HEADERS = {
@@ -11,7 +11,7 @@ export const HEADERS = {
 export const CLIP_HOME = `${CLIP_URL}/utente/eu`;
 export const CLIP_STUDENT = `${CLIP_HOME}/aluno`
 export const CLIP_YEARS = `${CLIP_STUDENT}/ano_lectivo`;
-export const CLIP_DOCUMENTS = `${CLIP_STUDENT}/unidades/unidade_curricular/actividade/documentos`;
+export const CLIP_DOCUMENTS = `${CLIP_YEARS}/unidades/unidade_curricular/actividade/documentos`;
 
 /**
  * Generates the URL for the academic year page in CLIP.
@@ -20,8 +20,8 @@ export const CLIP_DOCUMENTS = `${CLIP_STUDENT}/unidades/unidade_curricular/activ
  */
 export const CLIP_YEAR = (year: string) => `${CLIP_YEARS}?ano_lectivo=${year}`;
 
-export const CLIP_DOCS_CLASS = (year: string, period: string, unitId: string, docType: string) =>
-  `${CLIP_DOCUMENTS}?${PERIOD_N}=${period}&${PERIOD_TYPE}=s&ano_lectivo=${year}&${PERIOD_N}=${period}&unidade=${unitId}&${TYPE_FILE}=${docType}`;
+export const CLIP_DOCS_CLASS = (year: string, period: string,type_period:string, unitId: string, docType: string) =>
+  `${CLIP_DOCUMENTS}?${PERIOD_N}=${period}&${PERIOD_TYPE}=${type_period}&${YEAR}=${year}&${UNIDADE}=${unitId}&${TYPE_FILE}=${docType}`;
 
 export const CLIP_OBJ = `${CLIP_URL}/objecto`;
 export const CLIP_OBJ_DOWNLOAD = (id: string, name : string) => `${CLIP_OBJ}?oid=${id}&oin=${name}`;

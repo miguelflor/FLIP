@@ -22,7 +22,6 @@ export default function PDFList() {
 
       const data = await res.json();
       if (res.ok) {
-        console.log('Chairs:', data.chairs);
         setChairs(data.chairs);
       } else {
         alert(data.error || 'Failed to fetch chairs');

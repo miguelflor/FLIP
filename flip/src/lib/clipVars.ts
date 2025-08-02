@@ -1,12 +1,14 @@
 export const PERIOD_N = "per%EDodo_lectivo";
 export const PERIOD_TYPE = "tipo_de_per%EDodo_lectivo";
 export const TYPE_FILE = "tipo_de_documento_de_unidade";
+export const YEAR = "ano_lectivo";
+export const UNIDADE  = "unidade"
 
 export enum PeriodType {
     S = "s",
     T = "t",
 }
-
+export const FileTypeAll = "all" 
 export enum FileType {
     MULTIMEDIA = "0ac",
     PROBLEMS = "1e",

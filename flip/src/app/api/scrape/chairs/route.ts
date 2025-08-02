@@ -17,7 +17,6 @@ export async function GET(req: NextRequest) {
   
   try {
     const chairs = await getChairs(session.client);
-    console.log('Chairs fetched successfully:', chairs);
 
     return NextResponse.json({ chairs });
   } catch (err: any) {

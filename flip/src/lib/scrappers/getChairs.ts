@@ -37,6 +37,5 @@ export async function getChairs(client: AxiosInstance){
         [PeriodType.T + "1"]: getChairLinks("1", PeriodType.T),
         [PeriodType.T + "2"]: getChairLinks("2", PeriodType.T),
     };
-    console.log('Found chair links:', chairLinks);
     return chairLinks;
 }

@@ -1,33 +1,35 @@
 import { AxiosInstance } from 'axios';
-import { CLIP_DOCS_CLASS, CLIP_DOCUMENTS, HEADERS } from './urls';
+import { CLIP_DOCS_CLASS, CLIP_DOCUMENTS, CLIP_URL, HEADERS } from './urls';
 import { FileType, typeToRealName } from '../clipVars';
 import * as cheerio from 'cheerio';
 import { getCurrentAcademicYear } from '../academic';
 import JSZip  from 'jszip';
 
-export async function getFiles(client: AxiosInstance,period:string,unitId:string,name:string, types: FileType[] = [FileType.MULTIMEDIA]) {
+export async function getFiles(client: AxiosInstance,period:string,type_period:string,year:string,unitId:string,name:string, types: FileType[] = [FileType.MULTIMEDIA]) {
     const zip = new JSZip();
     const classFolder = zip.folder(`${getCurrentAcademicYear()}-${name}`);
+    
     const typesByFiles = types.map(type => async () => {
 
         if (!Object.values(FileType).includes(type as FileType)) {
             throw new Error(`Invalid file type: ${type}`);
         }
 
-        const filesPage = await client.get(CLIP_DOCS_CLASS(getCurrentAcademicYear(),period,unitId,type), {
+        const filesPage = await client.get(CLIP_DOCS_CLASS(year,period,type_period,unitId,type), {
             headers: HEADERS,
         });
+
 
         if (filesPage.status !== 200) {
             throw new Error(`Failed to fetch files page: ${filesPage.status}`);
         }
 
         const $ = cheerio.load(filesPage.data);
-        const files = $('a[href*="/objecto?="]');
+        const files = $('a[href*="/objecto?"]');
         const filteredUrls = files
             .map((_, el) => {
                 const href = $(el).attr('href')?.trim();
-                return href
+                return CLIP_URL+href
             })
             .toArray();
 
@@ -52,7 +54,7 @@ export async function getFiles(client: AxiosInstance,period:string,unitId:string
         await Promise.all(filteredFiles);
     });
     
-    await Promise.all(typesByFiles);
+    await Promise.all(typesByFiles.map(fn => fn())); // Execute the functions
 
     return await zip.generateAsync({ type: 'nodebuffer' });
 }
