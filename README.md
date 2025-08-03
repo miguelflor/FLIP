@@ -1,15 +1,16 @@
-# 🎓 FLIP - NOVA FCT Student Dashboard
+# 🎓 FLIP - NOVA FCT Student Desktop App
 
 <div align="center">
 
+![Electron](https://img.shields.io/badge/Electron-47848F?style=for-the-badge&logo=electron&logoColor=white)
 ![Next.js](https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
 ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 
-**A lightning-fast wrapper for NOVA FCT's CLIP platform - because your time is valuable**
+**A lightning-fast desktop app for NOVA FCT's CLIP platform - because your time is valuable**
 
-*Web scraper that eliminates CLIP's 20+ click workflows and gives you instant access to everything*
+*Desktop application that eliminates CLIP's 20+ click workflows and gives you instant access to everything*
 
 [Features](#-features) • [Installation](#-installation) • [Usage](#-usage)
 
@@ -19,12 +20,13 @@
 
 ## 🎯 What is FLIP?
 
-FLIP is a **lightning-fast web scraper and wrapper** for NOVA FCT's CLIP platform. CLIP is painfully slow and requires 20+ clicks for simple tasks. FLIP solves this by:
+FLIP is a **lightning-fast desktop application and web scraper** for NOVA FCT's CLIP platform. CLIP is painfully slow and requires 20+ clicks for simple tasks. FLIP solves this by:
 
-- ⚡ **One-click access** to what takes 20+ slow clicks on CLIP
-- 🚀 **Instant loading** - no more waiting for CLIP's sluggish pages
+- ⚡ **Desktop app convenience** - Native desktop experience with system integration
+- 🚀 **One-click access** to what takes 20+ slow clicks on CLIP
+- � **Instant loading** - no more waiting for CLIP's sluggish pages
 - 🔄 **Smart data scraping** that bypasses CLIP's terrible navigation
-- 📱 **Actually works on mobile** (CLIP completely fails on phones)
+- 📱 **Cross-platform support** - Works on Windows, macOS, and Linux
 
 ## 🔥 Why FLIP Exists
 
@@ -34,7 +36,6 @@ We built FLIP because in 2025, students shouldn't have to:
 - ⏱️ Watch loading spinners for half their study session
 - 🖱️ Click through 20+ nested menus for basic information
 - 🚫 Deal with "server unavailable" errors every other minute
-- 📱 Be completely unable to access academic resources on mobile
 - 🔙 Experience a user interface that feels like a time capsule from 1995
 
 FLIP exists because your academic journey should be about learning, not fighting with outdated technology.
@@ -45,7 +46,7 @@ FLIP exists because your academic journey should be about learning, not fighting
 - **Instant schedule view**: See your entire week in 2 seconds vs 2+ minutes on CLIP
 - **One-click Google export**: Export your schedule vs impossible on CLIP
 - **No navigation maze**: Direct access vs clicking through 10+ menu levels
-- **Mobile-friendly**: Check schedule on your phone vs CLIP's mobile impossibility
+- **Offline access**: View your schedule even without internet connection
 
 ### 📅 **Google Calendar Integration**
 - **One-click export**: Your entire schedule exported instantly vs CLIP's zero export options
@@ -74,16 +75,15 @@ FLIP exists because your academic journey should be about learning, not fighting
 ### 🚀 **What FLIP Does Better Than CLIP**
 - **⚡ SPEED**: One click vs 20+ slow CLIP clicks for basic tasks
 - **🏃‍♂️ Navigation**: Direct access vs CLIP's maze of nested menus
-- **📱 Mobile**: Actually works on phones (CLIP is completely broken on mobile)
-- **💾 Downloads**: Reliable file downloads (CLIP fails constantly)
+- **� Desktop Experience**: Native app vs clunky web interface
 - **⏱️ Time Saving**: Get your schedule in 2 seconds vs 2 minutes on CLIP
 - **🔄 No Timeouts**: Background processing vs CLIP's constant "server unavailable" errors
 - **📤 Export**: Google Calendar integration vs CLIP's zero export options
-
 ## 🛠️ Tech Stack
 
 | Technology | Purpose | Version |
 |------------|---------|---------|
+| **Electron** | Desktop Framework | Latest |
 | **Next.js** | React Framework | 14.x |
 | **TypeScript** | Type Safety | 5.x |
 | **Tailwind CSS** | Styling | 3.x |
@@ -95,9 +95,8 @@ FLIP exists because your academic journey should be about learning, not fighting
 
 - 🐌 **Painfully slow** - Every page takes 10-30 seconds to load
 - 🖱️ **Click hell** - Need 20+ clicks through nested menus for simple tasks
-- ⏰ **Constant timeouts** - "Server unavailable" errors happen multiple times
-- 📱 **Zero mobile support** - Completely unusable on phones (2025!)
 - 🔍 **Slow navigation** - Finding anything requires slowly navigating through a complex maze of nested menus
+- 💻 **No desktop app** - Forces students to use outdated web interfaces in 2025
 
 ## 🚀 Installation
 
@@ -105,12 +104,22 @@ FLIP exists because your academic journey should be about learning, not fighting
 - Node.js 18.x or higher
 - npm, yarn, pnpm, or bun
 
-### Quick Start
+### Desktop App Installation
+
+#### Option 1: Download Pre-built App (Recommended)
+1. Go to the [Releases page](https://github.com/miguelflor/FLIP/releases)
+2. Download the latest version for your operating system:
+   - **Windows**: `FLIP-Setup-x.x.x.exe`
+   - **macOS**: `FLIP-x.x.x.dmg`
+   - **Linux**: `FLIP-x.x.x.AppImage`
+3. Install and run the application
+
+#### Option 2: Build from Source
 
 ```bash
 # Clone the repository
 git clone https://github.com/miguelflor/FLIP.git
-cd FLIP/flip
+cd FLIP
 
 # Install dependencies
 npm install
@@ -119,7 +128,25 @@ yarn install
 # or
 pnpm install
 
-# Run the development server
+# Run the development version
+npm run electron:dev
+# or
+yarn electron:dev
+# or
+pnpm electron:dev
+
+# Build the desktop app
+npm run electron:build
+# or
+yarn electron:build
+# or
+pnpm electron:build
+```
+
+### Development Server (Web Version)
+
+```bash
+# Run the web development server
 npm run dev
 # or
 yarn dev
@@ -127,12 +154,12 @@ yarn dev
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
+Open [http://localhost:3000](http://localhost:3000) in your browser to see the web version.
 
 ## 📖 Usage
 
-### 🏠 **Dashboard Access**
-1. Navigate to FLIP's login page
+### 🏠 **Desktop App Access**
+1. Launch the FLIP desktop application
 2. Enter your **CLIP credentials** (same username/password)
 3. FLIP authenticates with CLIP and scrapes your data
 4. Access your improved dashboard with all CLIP data
@@ -143,14 +170,8 @@ Open [http://localhost:3000](http://localhost:3000) in your browser to see the a
 - Hover over individual classes to export them separately
 - Classes are automatically color-coded by type (CLIP doesn't do this)
 
-### 📄 **File Downloads**
-- Browse course materials with **actually working downloads** 
-- Get notifications when downloads succeed (CLIP gives no feedback)
-- Files organized clearly by subject (vs CLIP's confusing structure)
-- Download all available files together
+### 📄 **Download all the files with one click**
 
-### 🔧 **Customization**
-The application supports Portuguese localization and could be adapted for other universities with similar outdated platforms.
 
 ## ⚠️ **Important Notes**
 
@@ -162,9 +183,11 @@ The application supports Portuguese localization and could be adapted for other 
 ## 🏗️ Project Structure
 
 ```
-flip/
+FLIP/
+├── electron/
+│   └── main.js              # Electron main process
 ├── src/
-│   ├── app/                  # Next.js App Router
+│   ├── app/                 # Next.js App Router
 │   │   ├── api/             # API routes
 │   │   ├── dashboard/       # Dashboard pages
 │   │   └── layout.tsx       # Root layout
@@ -186,11 +209,13 @@ flip/
 
 FLIP follows modern design principles:
 
+- **Native Experience**: True desktop app feel with system integration
 - **Minimalism**: Clean, uncluttered interface
 - **Consistency**: Unified design language throughout
 - **Accessibility**: WCAG compliant design
 - **Performance**: Optimized for speed and efficiency
 - **User-Centric**: Designed with student needs in mind
+- **Cross-Platform**: Consistent experience across all operating systems
 
 ## 🤝 Contributing
 
@@ -209,7 +234,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - **NOVA FCT students** who inspired this project by complaining about CLIP
-- Built with [Next.js](https://nextjs.org/) and [Tailwind CSS](https://tailwindcss.com/)
+- Built with [Electron](https://electronjs.org/), [Next.js](https://nextjs.org/) and [Tailwind CSS](https://tailwindcss.com/)
 - Icons by [Lucide](https://lucide.dev/)
 - **Special thanks** to everyone who tested FLIP and provided feedback
 
@@ -220,11 +245,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 FLIP is **made by students who were fed up with CLIP's slowness**, for students who value their time.
 
 - ✅ **Save 20+ minutes per session** - No more click marathons
-- ✅ **Actually works on mobile** - Check your schedule anywhere
+- ✅ **Desktop app convenience** - Native experience with system integration
 - ✅ **Instant everything** - No more 30-second page loads
-- ✅ **Reliable downloads** - Files that actually download
+- ✅ **Reliable downloads** - Files that actually download to proper folders
 - ✅ **One-click exports** - Google Calendar integration
 - ✅ **Zero timeouts** - Background processing handles CLIP's instability
+- ✅ **Always available** - Quick access from your system tray
+- ✅ **Cross-platform** - Works on Windows, macOS, and Linux
 
 **Time comparison:**
 - **CLIP**: 2-5 minutes to check schedule, 20+ clicks, multiple timeouts
