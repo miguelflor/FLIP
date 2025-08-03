@@ -3,6 +3,7 @@
 import { useState, useEffect} from 'react';
 import { ChairsByPeriod } from '@/lib/scrappers/types';
 import { PeriodType } from '@/lib/clipVars';
+import { FolderOpen } from 'lucide-react';
 import Class from './Chair';
 
 export default function PDFList() {
@@ -52,7 +53,10 @@ export default function PDFList() {
 
   return (
     <div className="bg-white rounded-xl shadow p-4" id="pdfs">
-      <h3 className="text-lg font-bold mb-2">📁 Ficheiros Recentes</h3>
+      <div className="flex items-center space-x-2 mb-2">
+        <FolderOpen className="w-5 h-5 text-slate-600" />
+        <h3 className="text-lg font-bold text-slate-900">Ficheiros Recentes</h3>
+      </div>
       
       {/* Refresh button */}
       <button 
