@@ -95,17 +95,9 @@ FLIP exists because your academic journey should be about learning, not fighting
 
 - 🐌 **Painfully slow** - Every page takes 10-30 seconds to load
 - 🖱️ **Click hell** - Need 20+ clicks through nested menus for simple tasks
-- ⏰ **Constant timeouts** - "Server unavailable" errors happen multiple times per session
+- ⏰ **Constant timeouts** - "Server unavailable" errors happen multiple times
 - 📱 **Zero mobile support** - Completely unusable on phones (2025!)
-- 💾 **Broken downloads** - PDF downloads fail 50% of the time
-- 🔍 **Impossible navigation** - Finding anything requires memorizing complex menu paths
-
-**Real example**: To download course materials on CLIP:
-1. Login (30s loading) → 2. Navigate to "Academic" (15s) → 3. Click "Courses" (20s) → 4. Find your course (scroll through unorganized list) → 5. Click course (25s loading) → 6. Navigate to "Documents" → 7. Download
-
-**With FLIP**: Login → Done. Everything is there instantly.
-
-**FLIP eliminates the pain** while keeping full CLIP compatibility.
+- 🔍 **Slow navigation** - Finding anything requires slowly navigating through a complex maze of nested menus
 
 ## 🚀 Installation
 
@@ -155,7 +147,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser to see the a
 - Browse course materials with **actually working downloads** 
 - Get notifications when downloads succeed (CLIP gives no feedback)
 - Files organized clearly by subject (vs CLIP's confusing structure)
-- **Reliable downloads** - no more CLIP timeout errors
+- Download all available files together
 
 ### 🔧 **Customization**
 The application supports Portuguese localization and could be adapted for other universities with similar outdated platforms.
