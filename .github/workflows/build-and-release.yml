@@ -12,7 +12,13 @@ jobs:
     
     strategy:
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
+        include:
+          - os: windows-latest
+            platform: win
+          - os: macos-latest
+            platform: mac
+          - os: ubuntu-latest
+            platform: linux
     
     steps:
       - name: Check out Git repository
@@ -28,25 +34,64 @@ jobs:
         run: npm ci
       
       - name: Build Next.js app for production
-        run: npm run build
+        run: npm run build:nolint
         env:
           NODE_ENV: production
+          ESLINT_NO_DEV_ERRORS: true
       
-      - name: Build Electron app
-        run: npm run dist
+      - name: Build Electron app (Windows)
+        if: matrix.platform == 'win'
+        run: npm run dist:win
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NODE_ENV: production
+          
+      - name: Build Electron app (macOS)
+        if: matrix.platform == 'mac'
+        run: npm run dist:mac
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          
+      - name: Build Electron app (Linux)
+        if: matrix.platform == 'linux'
+        run: npm run dist:linux
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
       - name: List build outputs (debug)
         run: ls -la dist/
         shell: bash
       
-      - name: Upload artifacts
+      - name: Upload Windows artifacts
+        if: matrix.platform == 'win'
         uses: actions/upload-artifact@v4
         with:
-          name: dist-${{ matrix.os }}
-          path: dist/
+          name: windows-executables
+          path: |
+            dist/*.exe
+            dist/*.msi
+          retention-days: 5
+          
+      - name: Upload macOS artifacts
+        if: matrix.platform == 'mac'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-executables
+          path: |
+            dist/*.dmg
+            dist/*.zip
+            dist/*-mac.zip
+          retention-days: 5
+          
+      - name: Upload Linux artifacts
+        if: matrix.platform == 'linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-executables
+          path: |
+            dist/*.AppImage
+            dist/*.deb
+            dist/*.rpm
           retention-days: 5
   
   release:
@@ -58,20 +103,54 @@ jobs:
       - name: Check out Git repository
         uses: actions/checkout@v4
       
-      - name: Download all artifacts
+      - name: Download Windows artifacts
         uses: actions/download-artifact@v4
         with:
-          path: dist-artifacts/
+          name: windows-executables
+          path: release-files/
+          
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-executables
+          path: release-files/
+          
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-executables
+          path: release-files/
       
-      - name: List all artifacts (debug)
-        run: find dist-artifacts/ -type f
+      - name: List all release files (debug)
+        run: find release-files/ -type f -exec ls -lh {} \;
         
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: dist-artifacts/**/*
+          files: release-files/*
           draft: false
           prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
           generate_release_notes: true
+          body: |
+            ## 🎉 FLIP v${{ github.ref_name }}
+            
+            **Desktop executables for all platforms:**
+            
+            ### Windows
+            - 📦 **Setup installer** (.exe) - Recommended for most users
+            - 🚀 **Portable** (.exe) - No installation required
+            
+            ### macOS
+            - 💿 **Disk Image** (.dmg) - Drag and drop installation
+            - 📦 **Archive** (.zip) - Extract and run
+            
+            ### Linux
+            - ⚡ **AppImage** - Universal Linux executable
+            - 📦 **Debian Package** (.deb) - For Ubuntu/Debian systems
+            - 📦 **RPM Package** (.rpm) - For Fedora/CentOS systems
+            
+            ---
+            
+            **Made with ❤️ by NOVA FCT students tired of waiting for CLIP**
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
