@@ -21,25 +21,33 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
       
       - name: Install dependencies
         run: npm ci
       
-      - name: Build Next.js app
+      - name: Build Next.js app for production
         run: npm run build
+        env:
+          NODE_ENV: production
       
       - name: Build Electron app
         run: npm run dist
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_ENV: production
+      
+      - name: List build outputs (debug)
+        run: ls -la dist/
+        shell: bash
       
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: dist-${{ matrix.os }}
           path: dist/
+          retention-days: 5
   
   release:
     needs: build
@@ -55,14 +63,15 @@ jobs:
         with:
           path: dist-artifacts/
       
+      - name: List all artifacts (debug)
+        run: find dist-artifacts/ -type f
+        
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            dist-artifacts/dist-windows-latest/**/*
-            dist-artifacts/dist-macos-latest/**/*
-            dist-artifacts/dist-ubuntu-latest/**/*
+          files: dist-artifacts/**/*
           draft: false
           prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
