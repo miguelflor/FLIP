@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect} from 'react';
-import { ChairsByPeriod } from '@/lib/scrappers/types';
-import { PeriodType } from '@/lib/clipVars';
+import { useState, useEffect } from 'react';
+import { ChairsByPeriod } from '../lib/scrappers/types';
+import { PeriodType } from '../lib/clipVars';
 import { FolderOpen } from 'lucide-react';
 import Class from './Chair';
 
@@ -13,9 +13,9 @@ export default function PDFList() {
   const [error, setError] = useState<string | null>(null);
 
   const handleChairs = async () => {
-      setLoading(true);
-      setError(null);
-      try{
+    setLoading(true);
+    setError(null);
+    try {
       const res = await fetch('/api/scrape/chairs', {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
@@ -30,7 +30,7 @@ export default function PDFList() {
     } catch (err) {
       console.error('Error fetching chairs:', err);
       setError('Erro ao carregar ficheiros recentes. Por favor, tente novamente mais tarde.');
-    }finally{
+    } finally {
       setLoading(false);
     }
 
@@ -41,10 +41,10 @@ export default function PDFList() {
   }, []);
 
   const getPeriodName = (periodKey: string) => {
-    if (periodKey === PeriodType.S+'1') return '1º Semestre';
-    if (periodKey === PeriodType.S+'2') return '2º Semestre';
-    if (periodKey === PeriodType.T+'1') return '1º Trimestre';
-    if (periodKey === PeriodType.T+'2') return '2º Trimestre';
+    if (periodKey === PeriodType.S + '1') return '1º Semestre';
+    if (periodKey === PeriodType.S + '2') return '2º Semestre';
+    if (periodKey === PeriodType.T + '1') return '1º Trimestre';
+    if (periodKey === PeriodType.T + '2') return '2º Trimestre';
     return periodKey;
   };
 
@@ -57,9 +57,9 @@ export default function PDFList() {
         <FolderOpen className="w-5 h-5 text-slate-600" />
         <h3 className="text-lg font-bold text-slate-900">Ficheiros Recentes</h3>
       </div>
-      
+
       {/* Refresh button */}
-      <button 
+      <button
         onClick={handleChairs}
         disabled={loading}
         className="text-xs text-gray-500 hover:text-gray-700 mb-2 flex items-center"
@@ -69,7 +69,7 @@ export default function PDFList() {
         </svg>
         {loading ? 'Carregando...' : 'Atualizar'}
       </button>
-      
+
       <ul className="space-y-2 text-sm">
         {loading ? (
           // Enhanced loading skeleton
@@ -77,7 +77,7 @@ export default function PDFList() {
             {[...Array(5)].map((_, i) => (
               <div key={i} className="flex items-center">
                 <div className="h-4 w-4 bg-gray-200 rounded mr-2"></div>
-                <div className="h-4 bg-gray-200 rounded" style={{width: `${Math.floor(Math.random() * 30) + 60}%`}}></div>
+                <div className="h-4 bg-gray-200 rounded" style={{ width: `${Math.floor(Math.random() * 30) + 60}%` }}></div>
               </div>
             ))}
           </div>
@@ -85,8 +85,8 @@ export default function PDFList() {
           // Error state
           <div className="text-red-500 py-2">
             <p>{error}</p>
-            <button 
-              onClick={handleChairs} 
+            <button
+              onClick={handleChairs}
               className="text-blue-500 hover:underline mt-1"
             >
               Tentar novamente
@@ -94,19 +94,19 @@ export default function PDFList() {
           </div>
         ) : hasAnyChairs ? (
           <div className="space-y-4">
-          {Object.entries(chairs).map(([periodKey, cs]) => 
-            cs.length > 0 ? (
-              <div key={periodKey}>
-                <h4 className="font-medium text-gray-700 mb-2">{getPeriodName(periodKey)}</h4>
-                <ul className="space-y-2 pl-2">
-                  {cs.map((chair, idx) => (
-                    <Class key={idx} chair={chair} idx={idx} />
-                  ))}
-                </ul>
-              </div>
-            ) : null
-          )}
-        </div>
+            {Object.entries(chairs).map(([periodKey, cs]) =>
+              cs.length > 0 ? (
+                <div key={periodKey}>
+                  <h4 className="font-medium text-gray-700 mb-2">{getPeriodName(periodKey)}</h4>
+                  <ul className="space-y-2 pl-2">
+                    {cs.map((chair, idx) => (
+                      <Class key={idx} chair={chair} idx={idx} />
+                    ))}
+                  </ul>
+                </div>
+              ) : null
+            )}
+          </div>
         ) : (
           // Empty state
           <div className="text-gray-500 py-6 text-center">

@@ -1,6 +1,10 @@
-const { app, BrowserWindow } = require('electron')
-const path = require('path')
-const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
+const { app, BrowserWindow, ipcMain } = require('electron');
+const { join } = require('path');
+const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+
+
+// Import loginHandler from your handlers folder
+const { loginHandler } = require(join(__dirname, '../dist/src/lib/handlers/loginHandler'));
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -8,7 +12,8 @@ function createWindow() {
     height: 800,
     webPreferences: {
       nodeIntegration: false,
-      contextIsolation: true
+      contextIsolation: true,
+      preload: join(__dirname, 'preload.js') // If you use a preload script
     }
   })
 
@@ -23,7 +28,7 @@ function createWindow() {
       mainWindow.loadURL('http://localhost:3000')
     }, 1000)
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../out/index.html'))
+    mainWindow.loadFile(join(__dirname, '../out/index.html'))
   }
 
   // Handle navigation errors
@@ -37,5 +42,10 @@ function createWindow() {
     }
   })
 }
+
+// IPC handler for login
+ipcMain.handle('login', async (event, { username, password }) => {
+  return await loginHandler(username, password);
+});
 
 app.whenReady().then(createWindow)

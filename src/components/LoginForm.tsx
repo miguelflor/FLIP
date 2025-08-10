@@ -9,28 +9,28 @@ export default function LoginForm() {
   const [password, setPassword] = useState('');
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    const res = await fetch('/api/scrape/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    });
+    try {
+      // @ts-ignore
+      if (!window.electron || !window.electron.ipcRenderer) {
+        throw new Error('Electron IPC not available');
+      }
+      const res = await window.electron.ipcRenderer.invoke('login', { username, password });
 
-    const data = await res.json();
-
-    if (res.ok) {
-      // Do something: store session info, redirect, etc
-      router.push('/dashboard');
-
-    } else {
-      alert(data.error || 'Login failed');
+      if (res.success) {
+        // Optionally store session info if needed
+        router.push('/dashboard');
+      } else {
+        alert(res.error || 'Login failed');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Login failed');
     }
-
     setLoading(false);
   };
 

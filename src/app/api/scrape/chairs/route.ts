@@ -5,16 +5,16 @@ import { getChairs } from '@/lib/scrappers/getChairs';
 
 export async function GET(req: NextRequest) {
   const sessionId = (await cookies()).get('clipSession')?.value;
-    
+
   if (!sessionId) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
-  
+
   const session = getSession(sessionId);
   if (!session) {
     return NextResponse.json({ error: 'Session expired' }, { status: 401 });
   }
-  
+
   try {
     const chairs = await getChairs(session.client);
 
