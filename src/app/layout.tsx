@@ -2,6 +2,7 @@
 import './globals.css';
 import { ReactNode } from 'react';
 
+
 export const metadata = {
   title: 'FLIP - F*** the CLIP',
   description: 'Uma alternativa rápida e limpa ao desastre do CLIP.',

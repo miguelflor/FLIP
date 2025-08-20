@@ -24,3 +24,143 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@keyframes magma1 {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate(80px, 60px) scale(1.15);
+  }
+}
+
+@keyframes colorChange1 {
+
+  0%,
+  100% {
+    background-color: #ec4899;
+  }
+
+  33% {
+    background-color: #a78bfa;
+  }
+
+  66% {
+    background-color: #38bdf8;
+  }
+}
+
+.animate-magma1 {
+  animation: magma1 14s ease-in-out infinite, colorChange1 12s linear infinite;
+}
+
+@keyframes magma2 {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate(-100px, 40px) scale(1.1);
+  }
+}
+
+@keyframes colorChange2 {
+
+  0%,
+  100% {
+    background-color: #a78bfa;
+  }
+
+  /* purple-400 */
+  33% {
+    background-color: #38bdf8;
+  }
+
+  /* sky-400 */
+  66% {
+    background-color: #fbbf24;
+  }
+
+  /* yellow-400 */
+}
+
+.animate-magma2 {
+  animation: magma2 18s ease-in-out infinite, colorChange2 15s linear infinite;
+}
+
+@keyframes magma3 {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate(60px, -40px) scale(1.2);
+  }
+}
+
+@keyframes colorChange3 {
+
+  0%,
+  100% {
+    background-color: #fbbf24;
+  }
+
+  /* yellow-400 */
+  33% {
+    background-color: #38bdf8;
+  }
+
+  /* sky-400 */
+  66% {
+    background-color: #ec4899;
+  }
+
+  /* pink-500 */
+}
+
+.animate-magma3 {
+  animation: magma3 16s ease-in-out infinite, colorChange3 13s linear infinite;
+}
+
+@keyframes magma4 {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate(-40px, 60px) scale(1.1);
+  }
+}
+
+@keyframes colorChange4 {
+
+  0%,
+  100% {
+    background-color: #38bdf8;
+  }
+
+  /* sky-400 */
+  33% {
+    background-color: #ec4899;
+  }
+
+  /* pink-500 */
+  66% {
+    background-color: #a78bfa;
+  }
+
+  /* purple-400 */
+}
+
+.animate-magma4 {
+  animation: magma4 20s ease-in-out infinite, colorChange4 17s linear infinite;
+}

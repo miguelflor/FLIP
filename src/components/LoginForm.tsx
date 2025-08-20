@@ -2,6 +2,7 @@
 'use client';
 
 import { useState } from 'react';
+import ButtonWithAnimatedBG from './ButtonWithAnimatedBG';
 import { useRouter } from 'next/navigation';
 
 export default function LoginForm() {
@@ -9,8 +10,6 @@ export default function LoginForm() {
   const [password, setPassword] = useState('');
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -33,15 +32,17 @@ export default function LoginForm() {
     }
     setLoading(false);
   };
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-5 bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl px-8 py-8"
+    >
       <input
         type="text"
-        placeholder="Número de estudante"
+        placeholder="Identificador de estudante"
         value={username}
         onChange={(e) => setUsername(e.target.value)}
-        className="w-full p-2 border rounded"
+        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 transition placeholder-gray-400 bg-white/80 shadow"
         required
       />
       <input
@@ -49,16 +50,11 @@ export default function LoginForm() {
         placeholder="Senha"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        className="w-full p-2 border rounded"
+        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition placeholder-gray-400 bg-white/80 shadow"
         required
       />
-      <button
-        type="submit"
-        className="w-full bg-black text-white py-2 rounded hover:bg-gray-800 transition"
-        disabled={loading}
-      >
-        {loading ? 'A entrar...' : 'Entrar'}
-      </button>
+      <ButtonWithAnimatedBG loading={loading} />
     </form>
   );
+
 }
