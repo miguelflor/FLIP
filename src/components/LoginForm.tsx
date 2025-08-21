@@ -11,6 +11,7 @@ export default function LoginForm() {
   const [password, setPassword] = useState('');
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -33,29 +34,64 @@ export default function LoginForm() {
     }
     setLoading(false);
   };
-  return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex flex-col items-center justify-center space-y-5 bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl px-8 py-8"
-    >
-      <AnimatedInput
-        type="text"
-        placeholder="Identificador de estudante"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-        color="pink"
-        required
-      />
-      <AnimatedInput
-        type="password"
-        placeholder="Senha"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        color="blue"
-        required
-      />
-      <ButtonWithAnimatedBG loading={loading} />
-    </form>
-  );
 
+  return (
+    <div className="relative">
+      {/* Beautiful Glassmorphism Background */}
+      <div
+        className="absolute inset-0 -z-10"
+        style={{
+          background: `
+            linear-gradient(135deg, 
+              rgba(255, 255, 255, 0.15) 0%, 
+              rgba(255, 255, 255, 0.08) 50%, 
+              rgba(147, 197, 253, 0.12) 100%
+            )
+          `,
+          backdropFilter: 'blur(20px)',
+          borderRadius: '20px',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          boxShadow: `
+            0 8px 32px rgba(0, 0, 0, 0.1),
+            inset 0 1px 0 rgba(255, 255, 255, 0.3),
+            0 0 60px rgba(147, 197, 253, 0.15)
+          `
+        }}
+      />
+
+      {/* Subtle shimmer animation */}
+      <div
+        className="absolute inset-0 -z-5 pointer-events-none"
+        style={{
+          background: 'linear-gradient(135deg, transparent 30%, rgba(255,255,255,0.15) 50%, transparent 70%)',
+          backgroundSize: '200% 200%',
+          animation: 'formShimmer 10s linear infinite',
+          borderRadius: '20px'
+        }}
+      />
+
+      <form
+        onSubmit={handleSubmit}
+        className="flex flex-col items-center justify-center space-y-5 px-8 py-8 relative z-10"
+      >
+        <AnimatedInput
+          type="text"
+          placeholder="Identificador de estudante"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          color="pink"
+          required
+        />
+        <AnimatedInput
+          type="password"
+          placeholder="Senha"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          color="blue"
+          required
+        />
+        <ButtonWithAnimatedBG loading={loading} />
+      </form>
+    </div>
+  );
 }
