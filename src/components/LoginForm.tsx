@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import ButtonWithAnimatedBG from './ButtonWithAnimatedBG';
+import AnimatedInput from './AnimatedInput';
 import { useRouter } from 'next/navigation';
 
 export default function LoginForm() {
@@ -35,22 +36,22 @@ export default function LoginForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-5 bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl px-8 py-8"
+      className="flex flex-col items-center justify-center space-y-5 bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl px-8 py-8"
     >
-      <input
+      <AnimatedInput
         type="text"
         placeholder="Identificador de estudante"
         value={username}
         onChange={(e) => setUsername(e.target.value)}
-        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 transition placeholder-gray-400 bg-white/80 shadow"
+        color="pink"
         required
       />
-      <input
+      <AnimatedInput
         type="password"
         placeholder="Senha"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition placeholder-gray-400 bg-white/80 shadow"
+        color="blue"
         required
       />
       <ButtonWithAnimatedBG loading={loading} />

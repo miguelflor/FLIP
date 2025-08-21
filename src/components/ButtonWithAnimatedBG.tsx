@@ -1,117 +1,165 @@
+import React, { useState } from "react";
 
-import React, { useRef, useEffect, useState } from 'react';
+// ButtonWithAnimatedBG: Artful, conic-gradient, glowing, glassy button
+export default function ButtonWithAnimatedBG({ loading }: { loading: boolean }) {
+    const [clicked, setClicked] = useState(false);
 
-interface ButtonWithAnimatedBGProps {
-    loading: boolean;
-}
-
-export default function ButtonWithAnimatedBG({ loading }: ButtonWithAnimatedBGProps) {
-    const btnRef = useRef<HTMLButtonElement>(null);
-    const [pos, setPos] = useState({ x: 50, y: 50 });
-    const [hovered, setHovered] = useState(false);
-    const [shine, setShine] = useState(false);
-
-    // Animate idle background pulse
-    useEffect(() => {
-        if (hovered) return;
-        let frame: number;
-        let t = 0;
-        const animate = () => {
-            t += 0.02;
-            setPos({
-                x: 50 + Math.sin(t) * 10,
-                y: 50 + Math.cos(t * 1.2) * 10,
-            });
-            frame = requestAnimationFrame(animate);
-        };
-        animate();
-        return () => cancelAnimationFrame(frame);
-    }, [hovered]);
-
-    // Mouse move for interactive background
-    useEffect(() => {
-        const btn = btnRef.current;
-        if (!btn) return;
-        const handleMove = (e: MouseEvent) => {
-            const rect = btn.getBoundingClientRect();
-            const x = ((e.clientX - rect.left) / rect.width) * 100;
-            const y = ((e.clientY - rect.top) / rect.height) * 100;
-            setPos({ x, y });
-        };
-        if (hovered) {
-            btn.addEventListener('mousemove', handleMove);
+    const handleClick = () => {
+        if (!loading) {
+            setClicked(true);
         }
-        return () => {
-            btn.removeEventListener('mousemove', handleMove);
-        };
-    }, [hovered]);
+    };
 
-    // Shine sweep effect on hover
-    useEffect(() => {
-        if (!hovered) return;
-        setShine(true);
-        const timeout = setTimeout(() => setShine(false), 700);
-        return () => clearTimeout(timeout);
-    }, [hovered]);
+    // Remove clicked state after animation
+    React.useEffect(() => {
+        if (clicked) {
+            const timeout = setTimeout(() => setClicked(false), 500);
+            return () => clearTimeout(timeout);
+        }
+    }, [clicked]);
 
     return (
-        <button
-            ref={btnRef}
-            type="submit"
-            className="w-full relative overflow-hidden text-white py-3 rounded-xl font-semibold shadow-xl transition disabled:opacity-60 bg-neutral-900 border-2 border-transparent focus:outline-none group"
-            style={{
-                background: `radial-gradient(circle at ${pos.x}% ${pos.y}%, rgba(60,65,80,0.95) 0%, #18181b 80%)`,
-                transition: hovered ? 'background 0.2s cubic-bezier(.4,2,.6,1)' : 'background 1.2s cubic-bezier(.4,2,.6,1)',
-                boxShadow: hovered
-                    ? '0 0 32px 0 rgba(80,120,255,0.18), 0 2px 8px 0 rgba(0,0,0,0.10)'
-                    : '0 0 16px 0 rgba(80,120,255,0.10), 0 2px 8px 0 rgba(0,0,0,0.08)'
-            }}
-            onMouseEnter={() => setHovered(true)}
-            onMouseLeave={() => setHovered(false)}
-            disabled={loading}
-        >
-            {/* Animated border */}
-            <span
-                className="pointer-events-none absolute inset-0 rounded-xl z-0 border-2 border-transparent group-hover:border-blue-400 group-focus:border-blue-400"
-                style={{
-                    background:
-                        'conic-gradient(from 90deg at 50% 50%, #60a5fa 0deg, #818cf8 90deg, #a78bfa 180deg, #818cf8 270deg, #60a5fa 360deg)',
-                    opacity: hovered ? 0.35 : 0.18,
-                    filter: hovered ? 'blur(0.5px)' : 'blur(1.5px)',
-                    transition: 'opacity 0.3s, filter 0.5s',
-                }}
-                aria-hidden
-            />
-            {/* Shine sweep */}
-            {shine && (
-                <span
-                    className="pointer-events-none absolute left-[-40%] top-0 w-2/3 h-full z-10"
-                    style={{
-                        background:
-                            'linear-gradient(120deg, rgba(255,255,255,0.0) 0%, rgba(255,255,255,0.18) 50%, rgba(255,255,255,0.0) 100%)',
-                        filter: 'blur(2px)',
-                        animation: 'shineSweep 0.7s cubic-bezier(.4,2,.6,1) forwards',
-                    }}
-                />
-            )}
-            <span className="relative z-10">
-                {loading ? (
-                    <span className="flex items-center justify-center">
-                        <svg className="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                        </svg>
-                        A entrar...
-                    </span>
-                ) : 'Entrar'}
-            </span>
+        <div className="art-btn-container">
+            <button
+                type="submit"
+                className={`art-btn${clicked ? " clicked" : ""}`}
+                disabled={loading}
+                onClick={handleClick}
+            >
+                <span>{loading ? "A entrar..." : "Entrar"}</span>
+            </button>
             <style jsx global>{`
-                @keyframes shineSweep {
-                    0% { left: -40%; opacity: 0.1; }
-                    40% { opacity: 0.7; }
-                    100% { left: 110%; opacity: 0; }
+                :root {
+                    --border: 0.35em;
+                    --radius: 1.7em;
+                }
+                .art-btn-container {
+                    width: 220px;
+                    height: 56px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    position: relative;
+                }
+                .art-btn {
+                    width: 200px;
+                    height: 48px;
+                    padding: 0;
+                    background: #000;
+                    color: #fff;
+                    font-family: monospace;
+                    border-radius: var(--radius);
+                    border: none;
+                    cursor: pointer;
+                    overflow: hidden;
+                    animation: glow linear 2s infinite;
+                    position: relative;
+                    outline: none;
+                    box-shadow: 0 0 18px 0 #a78bfa55, 0 0 0 0 #4094;
+                    transition: box-shadow 0.3s;
+                }
+                .art-btn:focus {
+                    box-shadow: 0 0 0 8px #60a5fa55, 0 0 24px 0 #a78bfa55;
+                }
+                .art-btn::before {
+                    content: '';
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    aspect-ratio: 1/1;
+                    width: 120%;
+                    height: auto;
+                    border-radius: 50%;
+                    background: conic-gradient(#fff 0%, #60a5fa 10%, #818cf8 60%, #a78bfa 90%, #fff 100%);
+                    animation: spin linear 2.5s infinite;
+                    filter: blur(2px) brightness(1.2) saturate(1.2);
+                    opacity: 0.7;
+                    transform: translate(-50%, -50%);
+                    z-index: 0;
+                }
+                .art-btn.clicked::before {
+                    animation: spin-click 0.5s cubic-bezier(0.4,2,0.6,1) forwards;
+                }
+                .art-btn::after {
+                    content: '';
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    width: calc(100% - var(--border));
+                    height: calc(100% - var(--border));
+                    background: #000c;
+                    transform: translate(-50%, -50%);
+                    border-radius: var(--radius);
+                    backdrop-filter: blur(0.7em);
+                    z-index: 1;
+                }
+                .art-btn span {
+                    display: block;
+                    width: 100%;
+                    position: absolute;
+                    z-index: 2;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    font-family: 'Geo', monospace;
+                    font-size: 1.1em;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                    pointer-events: none;
+                    text-shadow: 0 2px 8px #a78bfa88, 0 0 2px #fff;
+                }
+                .art-btn.clicked span {
+                    animation: pop 0.5s cubic-bezier(0.4,2,0.6,1);
+                }
+                @keyframes spin {
+                    0% {
+                        transform: translate(-50%, -50%) rotate(0deg);
+                    }
+                    100% {
+                        transform: translate(-50%, -50%) rotate(360deg);
+                    }
+                }
+                @keyframes spin-click {
+                    0% {
+                        transform: translate(-50%, -50%) rotate(0deg) scale(1);
+                    }
+                    80% {
+                        transform: translate(-50%, -50%) rotate(720deg) scale(1.15);
+                    }
+                    100% {
+                        transform: translate(-50%, -50%) rotate(720deg) scale(1);
+                    }
+                }
+                @keyframes pop {
+                    0% {
+                        transform: translate(-50%, -50%) scale(1);
+                    }
+                    60% {
+                        transform: translate(-50%, -50%) scale(1.18);
+                    }
+                    100% {
+                        transform: translate(-50%, -50%) scale(1);
+                    }
+                }
+                @keyframes glow {
+                    0% {
+                        box-shadow: 0 0 24px 0 #a78bfa55, 0 0 0 0 #4094;
+                    }
+                    25% {
+                        box-shadow: 0 0 32px 8px #60a5fa44, 0 0 0 0 #4094;
+                    }
+                    50% {
+                        box-shadow: 0 0 40px 16px #818cf844, 0 0 0 0 #4094;
+                    }
+                    100% {
+                        box-shadow: 0 0 24px 0 #a78bfa55, 0 0 0 0 #4094;
+                    }
                 }
             `}</style>
-        </button>
+            {/* Geo font for artful look */}
+            <link rel="preconnect" href="https://fonts.googleapis.com" />
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+            <link href="https://fonts.googleapis.com/css2?family=Geo&display=swap" rel="stylesheet" />
+        </div>
     );
 }
