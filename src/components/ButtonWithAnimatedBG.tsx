@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-// ButtonWithAnimatedBG: Artful, conic-gradient, glowing, glassy button
+// ButtonWithAnimatedBG: Angelic, heavenly, elegant button
 export default function ButtonWithAnimatedBG({ loading }: { loading: boolean }) {
     const [clicked, setClicked] = useState(false);
 
@@ -13,153 +13,267 @@ export default function ButtonWithAnimatedBG({ loading }: { loading: boolean }) 
     // Remove clicked state after animation
     React.useEffect(() => {
         if (clicked) {
-            const timeout = setTimeout(() => setClicked(false), 500);
+            const timeout = setTimeout(() => setClicked(false), 600);
             return () => clearTimeout(timeout);
         }
     }, [clicked]);
 
     return (
-        <div className="art-btn-container">
+        <div className="angelic-btn-container">
             <button
                 type="submit"
-                className={`art-btn${clicked ? " clicked" : ""}`}
+                className={`angelic-btn${clicked ? " clicked" : ""}${loading ? " loading" : ""}`}
                 disabled={loading}
                 onClick={handleClick}
             >
-                <span>{loading ? "A entrar..." : "Entrar"}</span>
+                {loading ? (
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%" }}>
+                        <div className="loading-animation" style={{ left: "50%", transform: "translate(-50%, -50%)" }}>
+                            <div className="orb orb-1"></div>
+                            <div className="orb orb-2"></div>
+                            <div className="orb orb-3"></div>
+                        </div>
+                    </span>
+                ) : (
+                    <span>
+                        <span className="text fade-in">Entrar</span>
+                    </span>
+                )}
             </button>
             <style jsx global>{`
-                :root {
-                    --border: 0.35em;
-                    --radius: 1.7em;
-                }
-                .art-btn-container {
+                .angelic-btn-container {
                     width: 220px;
-                    height: 56px;
+                    height: 60px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     position: relative;
                 }
-                .art-btn {
+                
+                .angelic-btn {
                     width: 200px;
-                    height: 48px;
+                    height: 52px;
                     padding: 0;
-                    background: #000;
+                    background: rgba(255, 255, 255, 0.08);
                     color: #fff;
-                    font-family: monospace;
-                    border-radius: var(--radius);
-                    border: none;
+                    font-family: 'Playfair Display', serif;
+                    border-radius: 16px;
+                    border: 1px solid rgba(255, 255, 255, 0.2);
                     cursor: pointer;
                     overflow: hidden;
-                    animation: glow linear 2s infinite;
                     position: relative;
                     outline: none;
-                    box-shadow: 0 0 18px 0 #a78bfa55, 0 0 0 0 #4094;
-                    transition: box-shadow 0.3s;
+                    backdrop-filter: blur(20px);
+                    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                    box-shadow: 
+                        0 8px 32px rgba(0, 0, 0, 0.1),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+                        0 0 40px rgba(255, 255, 255, 0.15);
                 }
-                .art-btn:focus {
-                    box-shadow: 0 0 0 8px #60a5fa55, 0 0 24px 0 #a78bfa55;
+                
+                .angelic-btn:hover:not(:disabled) {
+                    transform: translateY(-2px);
+                    box-shadow: 
+                        0 12px 40px rgba(0, 0, 0, 0.15),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.4),
+                        0 0 60px rgba(255, 255, 255, 0.25);
+                    background: rgba(255, 255, 255, 0.12);
+                    border-color: rgba(255, 255, 255, 0.3);
                 }
-                .art-btn::before {
-                    content: '';
+                
+                .angelic-btn:disabled {
+                    opacity: 1;
+                    cursor: not-allowed;
+                    background: rgba(255, 255, 255, 0.06);
+                }
+
+                .angelic-btn.loading::before {
+                    animation: heavenlyGlow 3s linear infinite;
+                    opacity: 1;
+                    filter: blur(6px);
+                }
+
+                /* Loading Animation - Floating Orbs */
+                .loading-animation {
                     position: absolute;
+                    left: 20px;
                     top: 50%;
-                    left: 50%;
-                    aspect-ratio: 1/1;
-                    width: 120%;
-                    height: auto;
+                    transform: translateY(-50%);
+                    display: flex;
+                    gap: 4px;
+                    z-index: 3;
+                }
+
+                .orb {
+                    width: 8px;
+                    height: 8px;
                     border-radius: 50%;
-                    background: conic-gradient(#fff 0%, #60a5fa 10%, #818cf8 60%, #a78bfa 90%, #fff 100%);
-                    animation: spin linear 2.5s infinite;
-                    filter: blur(2px) brightness(1.2) saturate(1.2);
-                    opacity: 0.7;
-                    transform: translate(-50%, -50%);
-                    z-index: 0;
+                    background: radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(147,197,253,0.6) 100%);
+                    box-shadow: 
+                        0 0 10px rgba(255, 255, 255, 0.8),
+                        0 0 20px rgba(147, 197, 253, 0.4);
+                    animation: angelicFloat 2s ease-in-out infinite;
                 }
-                .art-btn.clicked::before {
-                    animation: spin-click 0.5s cubic-bezier(0.4,2,0.6,1) forwards;
+
+                .orb-1 {
+                    animation-delay: 0s;
                 }
-                .art-btn::after {
+
+                .orb-2 {
+                    animation-delay: 0.3s;
+                }
+
+                .orb-3 {
+                    animation-delay: 0.6s;
+                }
+
+                .text {
+                    transition: opacity 0.4s ease, transform 0.4s ease;
+                }
+
+                .text.fade-out {
+                    opacity: 0.8;
+                    transform: translateX(15px);
+                }
+
+                .text.fade-in {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
+
+                /* Gentle rotating halo */
+                .angelic-btn::before {
                     content: '';
                     position: absolute;
-                    top: 50%;
-                    left: 50%;
-                    width: calc(100% - var(--border));
-                    height: calc(100% - var(--border));
-                    background: #000c;
-                    transform: translate(-50%, -50%);
-                    border-radius: var(--radius);
-                    backdrop-filter: blur(0.7em);
-                    z-index: 1;
+                    top: -4px;
+                    left: -4px;
+                    right: -4px;
+                    bottom: -4px;
+                    border-radius: 20px;
+                    background: linear-gradient(45deg, 
+                        rgba(255, 255, 255, 0.3) 0%, 
+                        rgba(147, 197, 253, 0.4) 25%,
+                        rgba(255, 183, 197, 0.4) 50%,
+                        rgba(196, 181, 253, 0.4) 75%,
+                        rgba(255, 255, 255, 0.3) 100%);
+                    animation: heavenlyGlow 8s linear infinite;
+                    opacity: 0.6;
+                    z-index: -1;
+                    filter: blur(4px);
                 }
-                .art-btn span {
-                    display: block;
-                    width: 100%;
+                
+                .angelic-btn:hover::before {
+                    opacity: 0.8;
+                    animation-duration: 4s;
+                }
+
+                .angelic-btn.clicked::before {
+                    animation: heavenlyPulse 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+
+                /* Soft inner glow */
+                .angelic-btn::after {
+                    content: '';
                     position: absolute;
+                    inset: 2px;
+                    border-radius: 14px;
+                    background: linear-gradient(135deg, 
+                        rgba(255, 255, 255, 0.1) 0%, 
+                        rgba(255, 255, 255, 0.05) 50%,
+                        rgba(147, 197, 253, 0.08) 100%);
+                    z-index: 0;
+                    opacity: 0.8;
+                }
+                
+                .angelic-btn span {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    position: relative;
                     z-index: 2;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    font-family: 'Geo', monospace;
+                    font-weight: 600;
                     font-size: 1.1em;
-                    text-transform: uppercase;
-                    letter-spacing: 0.05em;
-                    pointer-events: none;
-                    text-shadow: 0 2px 8px #a78bfa88, 0 0 2px #fff;
+                    letter-spacing: 0.5px;
+                    text-shadow: 
+                        0 2px 10px rgba(255, 255, 255, 0.3),
+                        0 1px 3px rgba(0, 0, 0, 0.2);
+                    transition: all 0.3s ease;
                 }
-                .art-btn.clicked span {
-                    animation: pop 0.5s cubic-bezier(0.4,2,0.6,1);
+
+                .angelic-btn:disabled span {
+                    opacity: 0.9;
                 }
-                @keyframes spin {
-                    0% {
-                        transform: translate(-50%, -50%) rotate(0deg);
+                
+                .angelic-btn:hover span {
+                    text-shadow: 
+                        0 3px 15px rgba(255, 255, 255, 0.5),
+                        0 1px 5px rgba(0, 0, 0, 0.1);
+                    transform: scale(1.02);
+                }
+                
+                .angelic-btn.clicked span {
+                    animation: angelicPop 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+
+                /* Heavenly shimmer effect */
+                .angelic-btn:not(:disabled)::after {
+                    background: 
+                        linear-gradient(90deg, transparent 30%, rgba(255,255,255,0.2) 50%, transparent 70%),
+                        linear-gradient(135deg, 
+                            rgba(255, 255, 255, 0.1) 0%, 
+                            rgba(255, 255, 255, 0.05) 50%,
+                            rgba(147, 197, 253, 0.08) 100%);
+                    background-size: 200% 100%, 100% 100%;
+                    animation: angelicShimmer 6s linear infinite;
+                }
+
+                @keyframes heavenlyGlow {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+
+                @keyframes heavenlyPulse {
+                    0% { 
+                        transform: rotate(0deg) scale(1);
+                        opacity: 0.6;
                     }
-                    100% {
-                        transform: translate(-50%, -50%) rotate(360deg);
+                    50% { 
+                        transform: rotate(180deg) scale(1.1);
+                        opacity: 1;
+                    }
+                    100% { 
+                        transform: rotate(360deg) scale(1);
+                        opacity: 0.6;
                     }
                 }
-                @keyframes spin-click {
-                    0% {
-                        transform: translate(-50%, -50%) rotate(0deg) scale(1);
+
+                @keyframes angelicPop {
+                    0% { transform: scale(1); }
+                    50% { transform: scale(1.05); }
+                    100% { transform: scale(1); }
+                }
+
+                @keyframes angelicFloat {
+                    0%, 100% { 
+                        transform: translateY(0px);
+                        opacity: 0.6;
+                        filter: blur(0px);
                     }
-                    80% {
-                        transform: translate(-50%, -50%) rotate(720deg) scale(1.15);
-                    }
-                    100% {
-                        transform: translate(-50%, -50%) rotate(720deg) scale(1);
+                    50% { 
+                        transform: translateY(-12px);
+                        opacity: 1;
+                        filter: blur(0.5px);
                     }
                 }
-                @keyframes pop {
-                    0% {
-                        transform: translate(-50%, -50%) scale(1);
-                    }
-                    60% {
-                        transform: translate(-50%, -50%) scale(1.18);
-                    }
-                    100% {
-                        transform: translate(-50%, -50%) scale(1);
-                    }
-                }
-                @keyframes glow {
-                    0% {
-                        box-shadow: 0 0 24px 0 #a78bfa55, 0 0 0 0 #4094;
-                    }
-                    25% {
-                        box-shadow: 0 0 32px 8px #60a5fa44, 0 0 0 0 #4094;
-                    }
-                    50% {
-                        box-shadow: 0 0 40px 16px #818cf844, 0 0 0 0 #4094;
-                    }
-                    100% {
-                        box-shadow: 0 0 24px 0 #a78bfa55, 0 0 0 0 #4094;
-                    }
+
+                @keyframes angelicShimmer {
+                    0% { background-position: -100% center, center; }
+                    100% { background-position: 100% center, center; }
                 }
             `}</style>
-            {/* Geo font for artful look */}
             <link rel="preconnect" href="https://fonts.googleapis.com" />
             <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-            <link href="https://fonts.googleapis.com/css2?family=Geo&display=swap" rel="stylesheet" />
+            <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet" />
         </div>
     );
 }
