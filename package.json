@@ -2,146 +2,18 @@
   "name": "flip",
   "version": "0.1.0-alpha.1",
   "private": true,
-  "main": "electron/main.js",
-  "homepage": "./",
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "electron": "electron .",
-    "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && NODE_ENV=development electron .\"",
-    "build-electron": "npm run build && electron-builder",
-    "dist": "npm run build && electron-builder --publish=never",
-    "dist:win": "npm run build && electron-builder --win --publish=never",
-    "dist:mac": "npm run build && electron-builder --mac --publish=never",
-    "dist:linux": "npm run build && electron-builder --linux --publish=never",
-    "release": "npm run build && electron-builder --publish=always",
-    "dev:electron": "concurrently \"npm run dev\" \"tsc --watch\" \"wait-on http://localhost:3000 && nodemon --yes --watch dist --exec electron electron/main.js\""
+    "dev": "cd vue-app && npm run dev",
+    "build": "cd vue-app && npm run build",
+    "preview": "cd vue-app && npm run preview",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
   },
   "dependencies": {
-    "axios": "^1.10.0",
-    "axios-cookiejar-support": "^6.0.2",
-    "cheerio": "^1.1.0",
-    "jszip": "^3.10.1",
-    "lucide-react": "^0.518.0",
-    "next": "^15.5.11",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "tough-cookie": "^5.1.2",
-    "uuid": "^11.1.0"
+    "@tauri-apps/api": "^2.10.1"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4.1.12",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "autoprefixer": "^10.4.21",
-    "concurrently": "^9.2.0",
-    "electron": "^37.2.5",
-    "electron-builder": "^26.0.12",
-    "eslint": "^9",
-    "eslint-config-next": "15.3.3",
-    "nodemon": "^3.1.10",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^4.1.12",
-    "typescript": "^5",
-    "wait-on": "^8.0.4"
-  },
-  "build": {
-    "appId": "com.miguelflor.flip",
-    "productName": "FLIP",
-    "directories": {
-      "output": "dist"
-    },
-    "files": [
-      "out/**/*",
-      "electron/**/*",
-      "node_modules/**/*",
-      "package.json"
-    ],
-    "extraResources": [
-      {
-        "from": "public",
-        "to": "public"
-      }
-    ],
-    "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64",
-            "ia32"
-          ]
-        },
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "icon": "src/app/favicon.ico",
-      "publish": {
-        "provider": "github"
-      }
-    },
-    "mac": {
-      "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        },
-        {
-          "target": "zip",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        }
-      ],
-      "icon": "src/app/favicon.ico",
-      "category": "public.app-category.education",
-      "publish": {
-        "provider": "github"
-      }
-    },
-    "linux": {
-      "target": [
-        {
-          "target": "AppImage",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "deb",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "rpm",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "icon": "src/app/favicon.ico",
-      "category": "Education",
-      "publish": {
-        "provider": "github"
-      }
-    },
-    "publish": {
-      "provider": "github",
-      "owner": "miguelflor",
-      "repo": "FLIP"
-    }
+    "@tauri-apps/cli": "^2.10.1"
   }
 }
