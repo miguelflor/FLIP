@@ -1,6 +1,7 @@
 // src/components/Sidebar.tsx
 import { Calendar, FolderOpen, BookOpen, Home, User, Settings } from 'lucide-react';
 
+
 export default function Sidebar() {
   return (
     <aside className="w-64 bg-gradient-to-b from-slate-50 to-slate-100 border-r border-slate-200 hidden md:block">

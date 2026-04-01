@@ -46,7 +46,7 @@ export async function loginToClip(username: string, password: string) {
   });
 
   // Step 5 – Check login success (redirect = success)
-  if (response.status === 302) {
+  if (response.status === 200        ) {
     console.log('✅ Login successful');
     return { client, jar };
   } else {

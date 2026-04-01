@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-
 // ButtonWithAnimatedBG: Angelic, heavenly, elegant button
 export default function ButtonWithAnimatedBG({ loading }: { loading: boolean }) {
     const [clicked, setClicked] = useState(false);
