@@ -65,7 +65,7 @@ function ScheduleCard() {
     };
     const exportToGoogleCalendar = (item) => {
         const dayOfWeek = getDayOfWeek(item.dia);
-        const [startTime, endTime] = item.hora.split(' - ');
+        const [, endTime] = item.hora.split(' - ');
         const startDate = getNextOccurrence(dayOfWeek, item.hora);
         const [endHours, endMinutes] = endTime.split(':').map(Number);
         const endDate = new Date(startDate);
@@ -108,7 +108,7 @@ function ScheduleCard() {
 
       {/* Calendar Grid - Only weekdays */}
       <div className="grid grid-cols-5 gap-3">
-        {weekDays.map((day, index) => {
+        {weekDays.map((day) => {
             const daySchedule = getScheduleForDay(day);
             const isCurrentDay = isToday(day);
             return (<div key={day} className="min-h-[140px]">

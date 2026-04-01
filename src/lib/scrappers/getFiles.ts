@@ -1,5 +1,5 @@
 import { AxiosInstance } from 'axios';
-import { CLIP_DOCS_CLASS, CLIP_DOCUMENTS, CLIP_URL, HEADERS } from './urls';
+import { CLIP_DOCS_CLASS, CLIP_URL, HEADERS } from './urls';
 import { FileType, typeToRealName } from '../clipVars';
 import * as cheerio from 'cheerio';
 import { getCurrentAcademicYear } from '../academic';

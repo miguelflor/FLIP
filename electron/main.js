@@ -2,9 +2,19 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const { join } = require('path');
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
+// Disable sandbox for Linux development (sandbox requires root-owned chrome-sandbox)
+if (process.platform === 'linux') {
+  app.commandLine.appendSwitch('--no-sandbox');
+  app.commandLine.appendSwitch('--disable-dev-shm-usage');
+  app.commandLine.appendSwitch('--disable-gpu');
+  app.commandLine.appendSwitch('--disable-software-rasterizer');
+}
 
-// Import loginHandler from your handlers folder
+
+// Import handlers from your handlers folder
 const { loginHandler } = require(join(__dirname, '../dist/src/lib/handlers/loginHandler'));
+const { chairsHandler } = require(join(__dirname, '../dist/src/lib/handlers/chairsHandler'));
+const { fileHandler } = require(join(__dirname, '../dist/src/lib/handlers/fileHandler'));
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -46,6 +56,16 @@ function createWindow() {
 // IPC handler for login
 ipcMain.handle('login', async (event, { username, password }) => {
   return await loginHandler(username, password);
+});
+
+// IPC handler for chairs
+ipcMain.handle('get-chairs', async (event, { sessionId }) => {
+  return await chairsHandler(sessionId);
+});
+
+// IPC handler for file download
+ipcMain.handle('get-file', async (event, params) => {
+  return await fileHandler(params);
 });
 
 app.whenReady().then(createWindow)

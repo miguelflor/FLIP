@@ -1,5 +1,5 @@
 // src/components/Sidebar.tsx
-import { Calendar, FolderOpen, BookOpen, Home, User, Settings } from 'lucide-react';
+import { Calendar, FolderOpen } from 'lucide-react';
 
 
 export default function Sidebar() {

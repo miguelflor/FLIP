@@ -16,16 +16,27 @@ export default function PDFList() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/scrape/chairs', {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-      });
+      if (!window.electron || !window.electron.ipcRenderer) {
+        throw new Error('Electron IPC not available');
+      }
+      
+      const sessionId = localStorage.getItem('clipSessionId');
+      if (!sessionId) {
+        setError('Not authenticated. Please log in again.');
+        setLoading(false);
+        return;
+      }
 
-      const data = await res.json();
-      if (res.ok) {
-        setChairs(data.chairs);
+      const res = await window.electron.ipcRenderer.invoke('get-chairs', { sessionId }) as { 
+        success: boolean; 
+        chairs?: Record<string, { href: string; text: string }[]>; 
+        error?: string 
+      };
+
+      if (res.success) {
+        setChairs(res.chairs || {});
       } else {
-        alert(data.error || 'Failed to fetch chairs');
+        setError(res.error || 'Failed to fetch chairs');
       }
     } catch (err) {
       console.error('Error fetching chairs:', err);

@@ -8,67 +8,74 @@ exports.default = Chair;
 const lucide_react_1 = require("lucide-react");
 const react_1 = require("react");
 const Notification_1 = __importDefault(require("./Notification"));
+const clipVars_1 = require("../lib/clipVars");
 function Chair({ chair, idx }) {
     const [loading, setLoading] = (0, react_1.useState)(false);
     const [notification, setNotification] = (0, react_1.useState)(null);
     const handleDownload = async () => {
         setLoading(true);
-        const queryStart = chair.href.indexOf('?');
-        let finalHref = '';
-        if (queryStart !== -1) {
-            const existingQuery = chair.href.substring(queryStart + 1);
-            const encodedName = encodeURIComponent(chair.text);
-            finalHref = `${existingQuery}&name=${encodedName}&type=all`;
-        }
-        else {
-            const encodedName = encodeURIComponent(chair.text);
-            finalHref = `name=${encodedName}&type=all`;
-        }
         try {
-            const res = await fetch("/api/scrape/file?" + finalHref, {
-                method: 'GET',
-                headers: { 'Content-Type': 'application/zip' },
-            });
-            if (!res.ok) {
-                let errorMessage = 'Failed to download file';
-                // Check if response is JSON before trying to parse
-                const contentType = res.headers.get('content-type');
-                if (contentType && contentType.includes('application/json')) {
-                    try {
-                        const errorData = await res.json();
-                        errorMessage = errorData.error || errorMessage;
-                    }
-                    catch (parseError) {
-                        console.error('Failed to parse error response as JSON:', parseError);
-                    }
-                }
-                else {
-                    // If it's not JSON, try to get the text content
-                    try {
-                        const errorText = await res.text();
-                        console.log('Non-JSON error response:', errorText);
-                        errorMessage = `Server error (${res.status})`;
-                    }
-                    catch (textError) {
-                        console.error('Failed to read error response:', textError);
-                    }
-                }
+            if (!window.electron || !window.electron.ipcRenderer) {
+                throw new Error('Electron IPC not available');
+            }
+            const sessionId = localStorage.getItem('clipSessionId');
+            if (!sessionId) {
                 setNotification({
                     type: 'error',
-                    message: errorMessage
+                    message: 'Not authenticated. Please log in again.'
+                });
+                setLoading(false);
+                return;
+            }
+            // Parse params from the href
+            const parseHrefParams = (href) => {
+                const params = {};
+                const queryStart = href.indexOf('?');
+                if (queryStart === -1)
+                    return params;
+                const query = href.substring(queryStart + 1);
+                const pairs = query.split('&');
+                for (const pair of pairs) {
+                    const [key, value] = pair.split('=');
+                    if (key && value !== undefined) {
+                        params[key] = decodeURIComponent(value);
+                    }
+                }
+                return params;
+            };
+            const hrefParams = parseHrefParams(chair.href);
+            const res = await window.electron.ipcRenderer.invoke('get-file', {
+                sessionId,
+                period: hrefParams[clipVars_1.PERIOD_N],
+                unitId: hrefParams[clipVars_1.UNIDADE],
+                type: 'all',
+                name: chair.text,
+                year: hrefParams[clipVars_1.YEAR],
+                type_period: hrefParams[clipVars_1.PERIOD_TYPE]
+            });
+            if (!res.success || !res.data) {
+                setNotification({
+                    type: 'error',
+                    message: res.error || 'Failed to download file'
                 });
             }
             else {
-                const blob = await res.blob();
+                // Convert base64 back to blob and download
+                const byteCharacters = atob(res.data);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], { type: 'application/zip' });
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = chair.href.split('=')[1] || 'download.zip'; // Extract filename
+                a.download = res.filename || 'download.zip';
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
                 window.URL.revokeObjectURL(url);
-                setLoading(false);
                 setNotification({
                     type: 'success',
                     message: 'File downloaded successfully!'
@@ -81,7 +88,6 @@ function Chair({ chair, idx }) {
                 type: 'error',
                 message: 'Error downloading file.'
             });
-            return;
         }
         finally {
             setLoading(false);

@@ -2,8 +2,8 @@ declare global {
     interface Window {
         electron?: {
             ipcRenderer: {
-                invoke: (...args: any[]) => Promise<any>;
-                on: (...args: any[]) => void;
+                invoke: (...args: unknown[]) => Promise<unknown>;
+                on: (...args: unknown[]) => void;
             };
         };
     }

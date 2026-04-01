@@ -1,4 +1,4 @@
-// src/app/api/scrape/route.ts
+// src/lib/handlers/loginHandler.ts
 
 // This function can be imported and used in Electron's main process
 import { loginToClip } from '../scrappers/clipLogin';
@@ -18,10 +18,10 @@ export async function loginHandler(username: string, password: string) {
       sessionId,
       html: protectedPage.data,
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
     return {
       success: false,
-      error: err.message,
+      error: err instanceof Error ? err.message : 'Unknown error',
     };
 
   }

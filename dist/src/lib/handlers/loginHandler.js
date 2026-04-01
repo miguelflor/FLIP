@@ -1,5 +1,5 @@
 "use strict";
-// src/app/api/scrape/route.ts
+// src/lib/handlers/loginHandler.ts
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.loginHandler = loginHandler;
 // This function can be imported and used in Electron's main process
@@ -23,7 +23,7 @@ async function loginHandler(username, password) {
     catch (err) {
         return {
             success: false,
-            error: err.message,
+            error: err instanceof Error ? err.message : 'Unknown error',
         };
     }
 }

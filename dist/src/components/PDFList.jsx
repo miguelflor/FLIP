@@ -17,16 +17,21 @@ function PDFList() {
         setLoading(true);
         setError(null);
         try {
-            const res = await fetch('/api/scrape/chairs', {
-                method: 'GET',
-                headers: { 'Content-Type': 'application/json' },
-            });
-            const data = await res.json();
-            if (res.ok) {
-                setChairs(data.chairs);
+            if (!window.electron || !window.electron.ipcRenderer) {
+                throw new Error('Electron IPC not available');
+            }
+            const sessionId = localStorage.getItem('clipSessionId');
+            if (!sessionId) {
+                setError('Not authenticated. Please log in again.');
+                setLoading(false);
+                return;
+            }
+            const res = await window.electron.ipcRenderer.invoke('get-chairs', { sessionId });
+            if (res.success) {
+                setChairs(res.chairs || {});
             }
             else {
-                alert(data.error || 'Failed to fetch chairs');
+                setError(res.error || 'Failed to fetch chairs');
             }
         }
         catch (err) {

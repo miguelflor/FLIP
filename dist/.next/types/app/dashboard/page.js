@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-// File: /home/miguel/Desktop/side/FLIP/src/app/dashboard/page.tsx
+// File: /home/miguel/projects/FLIP/src/app/dashboard/page.tsx
 const entry = __importStar(require("../../../../src/app/dashboard/page.js"));
 // Check that the entry is a valid entry
 checkFields();

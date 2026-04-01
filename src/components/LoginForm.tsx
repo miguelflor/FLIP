@@ -17,20 +17,25 @@ export default function LoginForm() {
     setLoading(true);
 
     try {
-      // @ts-ignore
       if (!window.electron || !window.electron.ipcRenderer) {
         throw new Error('Electron IPC not available');
       }
-      const res = await window.electron.ipcRenderer.invoke('login', { username, password });
+      const res = await window.electron.ipcRenderer.invoke('login', { username, password }) as { 
+        success: boolean; 
+        sessionId?: string; 
+        error?: string 
+      };
 
-      if (res.success) {
-        // Optionally store session info if needed
+      if (res.success && res.sessionId) {
+        // Store session ID for use in other IPC calls
+        localStorage.setItem('clipSessionId', res.sessionId);
         router.push('/dashboard');
       } else {
         alert(res.error || 'Login failed');
       }
-    } catch (err: any) {
-      alert(err.message || 'Login failed');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Login failed';
+      alert(message);
     }
     setLoading(false);
   };

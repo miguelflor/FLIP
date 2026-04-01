@@ -1,7 +1,7 @@
 // src/components/Navbar.tsx
 'use client'
 import React from 'react';
-import { LogOut, Bell, Search, Menu } from 'lucide-react';
+import { LogOut, Menu } from 'lucide-react';
 
 export default function Navbar() {
   return (

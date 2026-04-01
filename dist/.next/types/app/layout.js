@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-// File: /home/miguel/Desktop/side/FLIP/src/app/layout.tsx
+// File: /home/miguel/projects/FLIP/src/app/layout.tsx
 const entry = __importStar(require("../../../src/app/layout.js"));
 // Check that the entry is a valid entry
 checkFields();

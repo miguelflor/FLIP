@@ -1,7 +1,6 @@
 // src/components/ScheduleCard.tsx
 "use client";
-import { Calendar, Clock, MapPin, Download, ExternalLink } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Calendar, Clock, MapPin } from 'lucide-react';
 
 interface ScheduleItem {
   dia: string;
@@ -83,7 +82,7 @@ export default function ScheduleCard() {
 
   const exportToGoogleCalendar = (item: ScheduleItem) => {
     const dayOfWeek = getDayOfWeek(item.dia);
-    const [startTime, endTime] = item.hora.split(' - ');
+    const [, endTime] = item.hora.split(' - ');
     
     const startDate = getNextOccurrence(dayOfWeek, item.hora);
     const [endHours, endMinutes] = endTime.split(':').map(Number);
@@ -137,7 +136,7 @@ export default function ScheduleCard() {
 
       {/* Calendar Grid - Only weekdays */}
       <div className="grid grid-cols-5 gap-3">
-        {weekDays.map((day, index) => {
+        {weekDays.map((day) => {
           const daySchedule = getScheduleForDay(day);
           const isCurrentDay = isToday(day);
           
