@@ -12,6 +12,7 @@ pub struct Session {
     pub client: Client,
     #[allow(dead_code)]
     pub cookie_store: Arc<CookieStoreMutex>,
+    pub aluno_ids: Vec<String>,
 }
 
 pub struct AppState {

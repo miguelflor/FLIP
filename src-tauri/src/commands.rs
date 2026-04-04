@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fs;
 use std::io::{Cursor, Write};
 use std::sync::Arc;
 
@@ -114,11 +115,17 @@ fn get_current_academic_year() -> String {
     year.to_string()
 }
 
-fn build_clip_year_url(year: &str) -> String {
-    format!("{}/aluno/ano_lectivo?ano_lectivo={}", CLIP_HOME, year)
+fn build_clip_year_student_url(year: &str, student: &str) -> String {
+    format!("{}/aluno/ano_lectivo?aluno={}&ano_lectivo={}", CLIP_HOME,student, year)
 }
 
-fn build_docs_url(year: &str, period: &str, type_period: &str, unit_id: &str, doc_type: &str) -> String {
+fn build_docs_url(
+    year: &str,
+    period: &str,
+    type_period: &str,
+    unit_id: &str,
+    doc_type: &str,
+) -> String {
     format!(
         "{}/aluno/ano_lectivo/unidades/unidade_curricular/actividade/documentos?{}={}&{}={}&{}={}&{}={}&{}={}",
         CLIP_HOME, PERIOD_N, period, PERIOD_TYPE, type_period, YEAR, year, UNIDADE, unit_id, TYPE_FILE, doc_type
@@ -153,7 +160,7 @@ fn extract_form_fields(html: &str) -> HashMap<String, String> {
 
 fn parse_chairs(html: &str) -> ChairsByPeriod {
     let document = Html::parse_document(html);
-    
+
     fn get_chair_links(document: &Html, period_n: &str, period_type: &str) -> Vec<Chair> {
         let link_selector = Selector::parse("a[href]").unwrap();
         let mut chairs = Vec::new();
@@ -188,10 +195,35 @@ fn parse_chairs(html: &str) -> ChairsByPeriod {
 fn parse_file_urls(html: &str) -> Vec<String> {
     let document = Html::parse_document(html);
     let link_selector = Selector::parse("a[href*='/objecto?']").unwrap();
-    
+
     document
         .select(&link_selector)
         .filter_map(|element| element.value().attr("href").map(String::from))
+        .collect()
+}
+
+fn extract_aluno_ids(html: &str) -> Vec<String> {
+    let document = Html::parse_document(html);
+    let link_selector = Selector::parse("a[href*='aluno']").unwrap();
+    
+    document
+        .select(&link_selector)
+        .filter_map(|element| {
+            let href = element.value().attr("href")?;
+            
+            // Extract the value of 'aluno' parameter
+            // Example: "...?aluno=12345&other=..." -> "12345"
+            for param in href.split('&') {
+                if let Some(value) = param.strip_prefix("aluno=") {
+                    return Some(value.to_string());
+                }
+                // Also check if it starts with "?aluno="
+                if let Some(value) = param.strip_prefix("?aluno=") {
+                    return Some(value.to_string());
+                }
+            }
+            None
+        })
         .collect()
 }
 
@@ -226,7 +258,10 @@ pub async fn login(
         return Ok(LoginResponse {
             success: false,
             session_id: None,
-            error: Some(format!("Failed to load login page: {}", login_page.status())),
+            error: Some(format!(
+                "Failed to load login page: {}",
+                login_page.status()
+            )),
         });
     }
 
@@ -251,9 +286,27 @@ pub async fn login(
     if login_response.status().is_success() {
         let session_id = Uuid::new_v4().to_string();
 
+        let home = client
+            .get(CLIP_HOME)
+            .header("Referer", format!("{}/", CLIP_URL))
+            .send()
+            .await
+            .map_err(|e| e.to_string())?;
+
+        let home_html = home.text().await.map_err(|e| e.to_string())?;
+        
+        // Extract aluno IDs from the home page
+        let aluno_ids = extract_aluno_ids(&home_html);
+        
+        println!("Found {} aluno links", aluno_ids.len());
+        for id in &aluno_ids {
+            println!("Aluno ID: {}", id);
+        }
+
         let session = Session {
             client,
             cookie_store,
+            aluno_ids,
         };
 
         state.sessions.lock().insert(session_id.clone(), session);
@@ -277,11 +330,11 @@ pub async fn get_chairs(
     state: State<'_, AppState>,
     session_id: String,
 ) -> Result<ChairsResponse, String> {
-    // Clone the client out of the lock
-    let client = {
+    // Clone the client and aluno_ids out of the lock
+    let (client, aluno_ids) = {
         let sessions = state.sessions.lock();
         match sessions.get(&session_id) {
-            Some(s) => s.client.clone(),
+            Some(s) => (s.client.clone(), s.aluno_ids.clone()),
             None => {
                 return Ok(ChairsResponse {
                     success: false,
@@ -292,8 +345,11 @@ pub async fn get_chairs(
         }
     };
 
+    // Now you have access to aluno_ids!
+    println!("Available aluno IDs: {:?}", aluno_ids);
+
     let year = get_current_academic_year();
-    let url = build_clip_year_url(&year);
+    let url = build_clip_year_student_url(&year,&aluno_ids[0]);
 
     let response = client
         .get(&url)
@@ -328,11 +384,11 @@ pub async fn get_file(
     state: State<'_, AppState>,
     params: FileParams,
 ) -> Result<FileResponse, String> {
-    // Clone the client out of the lock
-    let client = {
+    // Clone the client and aluno_ids out of the lock
+    let (client, _aluno_ids) = {
         let sessions = state.sessions.lock();
         match sessions.get(&params.session_id) {
-            Some(s) => s.client.clone(),
+            Some(s) => (s.client.clone(), s.aluno_ids.clone()),
             None => {
                 return Ok(FileResponse {
                     success: false,
@@ -353,8 +409,8 @@ pub async fn get_file(
     let mut zip_buffer = Cursor::new(Vec::new());
     {
         let mut zip = ZipWriter::new(&mut zip_buffer);
-        let options = SimpleFileOptions::default()
-            .compression_method(zip::CompressionMethod::Deflated);
+        let options =
+            SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
 
         let year = get_current_academic_year();
         let folder_name = format!("{}-{}", year, params.name);
@@ -383,7 +439,7 @@ pub async fn get_file(
             }
 
             let html = response.text().await.unwrap_or_default();
-            
+
             // Parse and collect file URLs first
             let file_urls = parse_file_urls(&html);
             let type_folder = format!("{}/{}", folder_name, get_type_name(type_code));
@@ -405,7 +461,7 @@ pub async fn get_file(
                     continue;
                 }
 
-                let filename = href.split('=').last().unwrap_or("unknown");
+                let filename = href.split('=').next_back().unwrap_or("unknown");
 
                 let file_data = match file_response.bytes().await {
                     Ok(b) => b,
