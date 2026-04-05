@@ -202,24 +202,19 @@ fn parse_file_urls(html: &str) -> Vec<String> {
         .collect()
 }
 
+
 fn extract_aluno_ids(html: &str) -> Vec<String> {
     let document = Html::parse_document(html);
     let link_selector = Selector::parse("a[href*='aluno']").unwrap();
-    
     document
         .select(&link_selector)
         .filter_map(|element| {
             let href = element.value().attr("href")?;
-            
-            // Extract the value of 'aluno' parameter
-            // Example: "...?aluno=12345&other=..." -> "12345"
-            for param in href.split('&') {
+            let query_part = href.split('?').nth(1).unwrap_or(href);
+
+            for param in query_part.split('&') {
                 if let Some(value) = param.strip_prefix("aluno=") {
-                    return Some(value.to_string());
-                }
-                // Also check if it starts with "?aluno="
-                if let Some(value) = param.strip_prefix("?aluno=") {
-                    return Some(value.to_string());
+                    return Some(value.split('&').next().unwrap_or(value).to_string());
                 }
             }
             None
@@ -297,11 +292,6 @@ pub async fn login(
         
         // Extract aluno IDs from the home page
         let aluno_ids = extract_aluno_ids(&home_html);
-        
-        println!("Found {} aluno links", aluno_ids.len());
-        for id in &aluno_ids {
-            println!("Aluno ID: {}", id);
-        }
 
         let session = Session {
             client,
@@ -347,9 +337,16 @@ pub async fn get_chairs(
 
     // Now you have access to aluno_ids!
     println!("Available aluno IDs: {:?}", aluno_ids);
+    if aluno_ids.is_empty() {
+        return Ok(ChairsResponse {
+            success: false,
+            chairs: None,
+            error: Some("The student ids can't be empty!".to_string()),
+        });
+    }
 
     let year = get_current_academic_year();
-    let url = build_clip_year_student_url(&year,&aluno_ids[0]);
+    let url = build_clip_year_student_url(&year,&aluno_ids[0].clone());
 
     let response = client
         .get(&url)
@@ -378,13 +375,11 @@ pub async fn get_chairs(
         error: None,
     })
 }
-
 #[command]
 pub async fn get_file(
     state: State<'_, AppState>,
     params: FileParams,
 ) -> Result<FileResponse, String> {
-    // Clone the client and aluno_ids out of the lock
     let (client, _aluno_ids) = {
         let sessions = state.sessions.lock();
         match sessions.get(&params.session_id) {
@@ -400,28 +395,35 @@ pub async fn get_file(
         }
     };
 
-    let file_types: Vec<&str> = if params.file_type == "all" {
-        FILE_TYPES.iter().map(|(code, _)| *code).collect()
+    let file_types: Vec<String> = if params.file_type == "all" {
+        FILE_TYPES.iter().map(|(code, _)| code.to_string()).collect()
     } else {
-        vec![params.file_type.as_str()]
+        vec![params.file_type.clone()]
     };
 
-    let mut zip_buffer = Cursor::new(Vec::new());
-    {
-        let mut zip = ZipWriter::new(&mut zip_buffer);
-        let options =
-            SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+    let year = get_current_academic_year();
+    let folder_name = format!("{}-{}", year, params.name);
 
-        let year = get_current_academic_year();
-        let folder_name = format!("{}-{}", year, params.name);
+    // Spawn a task per file type
+    let mut handles: Vec<tokio::task::JoinHandle<Vec<(String, Vec<u8>)>>> = Vec::new();
 
-        for type_code in file_types {
+    for type_code in file_types {
+        let client = client.clone();
+        let folder_name = folder_name.clone();
+        let params_year = params.year.clone();
+        let params_period = params.period.clone();
+        let params_type_period = params.type_period.clone();
+        let params_unit_id = params.unit_id.clone();
+
+        let handle = tokio::spawn(async move {
+            let mut files: Vec<(String, Vec<u8>)> = Vec::new();
+
             let url = build_docs_url(
-                &params.year,
-                &params.period,
-                &params.type_period,
-                &params.unit_id,
-                type_code,
+                &params_year,
+                &params_period,
+                &params_type_period,
+                &params_unit_id,
+                &type_code,
             );
 
             let response = match client
@@ -431,22 +433,19 @@ pub async fn get_file(
                 .await
             {
                 Ok(r) => r,
-                Err(_) => continue,
+                Err(_) => return files,
             };
 
             if !response.status().is_success() {
-                continue;
+                return files;
             }
 
             let html = response.text().await.unwrap_or_default();
-
-            // Parse and collect file URLs first
             let file_urls = parse_file_urls(&html);
-            let type_folder = format!("{}/{}", folder_name, get_type_name(type_code));
+            let type_folder = format!("{}/{}", folder_name, get_type_name(&type_code));
 
             for href in file_urls {
                 let file_url = format!("{}{}", CLIP_URL, href);
-
                 let file_response = match client
                     .get(&file_url)
                     .header("Referer", format!("{}/", CLIP_URL))
@@ -462,13 +461,31 @@ pub async fn get_file(
                 }
 
                 let filename = href.split('=').next_back().unwrap_or("unknown");
-
                 let file_data = match file_response.bytes().await {
                     Ok(b) => b,
                     Err(_) => continue,
                 };
 
                 let zip_path = format!("{}/{}", type_folder, filename);
+                files.push((zip_path, file_data.to_vec()));
+            }
+
+            files
+        });
+
+        handles.push(handle);
+    }
+
+    // Join all tasks and collect results
+    let mut zip_buffer = Cursor::new(Vec::new());
+    {
+        let mut zip = ZipWriter::new(&mut zip_buffer);
+        let options =
+            SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+
+        for handle in handles {
+            let files = handle.await.unwrap_or_default();
+            for (zip_path, file_data) in files {
                 if zip.start_file(&zip_path, options).is_ok() {
                     let _ = zip.write_all(&file_data);
                 }
