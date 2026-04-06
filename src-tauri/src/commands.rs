@@ -12,7 +12,10 @@ use zip::ZipWriter;
 use crate::constants::{CLIP_HOME, CLIP_URL, FILE_TYPES, USER_AGENT};
 use crate::parser::{extract_aluno_ids, extract_form_fields, parse_chairs, parse_file_urls};
 use crate::types::{ChairsResponse, FileParams, FileResponse, LoginResponse};
-use crate::utils::{build_clip_year_student_url, build_docs_url, decode_latin1, get_current_academic_year, get_type_name};
+use crate::utils::{
+    build_clip_year_student_url, build_docs_url, decode_latin1, get_current_academic_year,
+    get_type_name,
+};
 use crate::{AppState, Session};
 
 #[command]
@@ -78,7 +81,7 @@ pub async fn login(
             .map_err(|e| e.to_string())?;
 
         let home_html = home.text().await.map_err(|e| e.to_string())?;
-        
+
         // Extract aluno IDs from the home page
         let aluno_ids = extract_aluno_ids(&home_html);
 
@@ -135,7 +138,7 @@ pub async fn get_chairs(
     }
 
     let year = get_current_academic_year();
-    let url = build_clip_year_student_url(&year,&aluno_ids[0].clone());
+    let url = build_clip_year_student_url(&year, &aluno_ids[0].clone());
 
     let response = client
         .get(&url)
@@ -185,7 +188,10 @@ pub async fn get_file(
     };
 
     let file_types: Vec<String> = if params.file_type == "all" {
-        FILE_TYPES.iter().map(|(code, _)| code.to_string()).collect()
+        FILE_TYPES
+            .iter()
+            .map(|(code, _)| code.to_string())
+            .collect()
     } else {
         vec![params.file_type.clone()]
     };
@@ -233,35 +239,52 @@ pub async fn get_file(
             let file_urls = parse_file_urls(&html);
             let type_folder = format!("{}/{}", folder_name, get_type_name(&type_code));
 
+            // Spawn a subtask per file
+            let mut file_handles: Vec<tokio::task::JoinHandle<Option<(String, Vec<u8>)>>> =
+                Vec::new();
+
             for href in file_urls {
-                let file_url = format!("{}{}", CLIP_URL, href);
-                let file_response = match client
-                    .get(&file_url)
-                    .header("Referer", format!("{}/", CLIP_URL))
-                    .send()
-                    .await
-                {
-                    Ok(r) => r,
-                    Err(_) => continue,
-                };
+                let client = client.clone();
+                let type_folder = type_folder.clone();
+                let href = href.clone();
 
-                if !file_response.status().is_success() {
-                    continue;
+                let file_handle = tokio::spawn(async move {
+                    let file_url = format!("{}{}", CLIP_URL, href);
+                    let file_response = match client
+                        .get(&file_url)
+                        .header("Referer", format!("{}/", CLIP_URL))
+                        .send()
+                        .await
+                    {
+                        Ok(r) => r,
+                        Err(_) => return None,
+                    };
+
+                    if !file_response.status().is_success() {
+                        return None;
+                    }
+
+                    let filename = href.split('=').next_back().unwrap_or("unknown");
+                    let file_data = match file_response.bytes().await {
+                        Ok(b) => b,
+                        Err(_) => return None,
+                    };
+
+                    let zip_path = format!("{}/{}", type_folder, filename);
+                    Some((zip_path, file_data.to_vec()))
+                });
+
+                file_handles.push(file_handle);
+            }
+
+            for fh in file_handles {
+                if let Ok(Some(file)) = fh.await {
+                    files.push(file);
                 }
-
-                let filename = href.split('=').next_back().unwrap_or("unknown");
-                let file_data = match file_response.bytes().await {
-                    Ok(b) => b,
-                    Err(_) => continue,
-                };
-
-                let zip_path = format!("{}/{}", type_folder, filename);
-                files.push((zip_path, file_data.to_vec()));
             }
 
             files
         });
-
         handles.push(handle);
     }
 
