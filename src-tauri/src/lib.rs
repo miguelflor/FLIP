@@ -1,4 +1,8 @@
 mod commands;
+mod constants;
+mod parser;
+mod types;
+mod utils;
 
 use std::collections::HashMap;
 use std::sync::Arc;
