@@ -138,7 +138,6 @@ const handleChairs = async () => {
     error.value = 'Erro ao carregar ficheiros recentes. Por favor, tente novamente mais tarde.';
   } finally {
     loading.value = false;
-    console.log(loading.value);
   }
 };
 
@@ -151,7 +150,6 @@ const getPeriodName = (periodKey: string) => {
 };
 
 onMounted(() => {
-  console.log("asd ads");
   handleChairs();
 });
 </script>
