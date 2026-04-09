@@ -12,6 +12,7 @@ pub const PERIOD_TYPE: &str = "tipo_de_per%EDodo_lectivo";
 pub const TYPE_FILE: &str = "tipo_de_documento_de_unidade";
 pub const YEAR: &str = "ano_lectivo";
 pub const UNIDADE: &str = "unidade";
+pub const STUDENT: &str = "aluno";
 
 // File types
 pub const FILE_TYPES: &[(&str, &str)] = &[

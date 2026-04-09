@@ -1,4 +1,6 @@
-use crate::constants::{CLIP_HOME, FILE_TYPES, PERIOD_N, PERIOD_TYPE, TYPE_FILE, UNIDADE, YEAR};
+use crate::constants::{
+    CLIP_HOME, FILE_TYPES, PERIOD_N, PERIOD_TYPE, STUDENT, TYPE_FILE, UNIDADE, YEAR,
+};
 
 // ============================================================================
 // Utility Functions
@@ -16,10 +18,14 @@ pub fn get_current_academic_year() -> String {
 }
 
 pub fn build_clip_year_student_url(year: &str, student: &str) -> String {
-    format!("{}/aluno/ano_lectivo?aluno={}&ano_lectivo={}", CLIP_HOME,student, year)
+    format!(
+        "{}/aluno/ano_lectivo?aluno={}&ano_lectivo={}",
+        CLIP_HOME, student, year
+    )
 }
 
 pub fn build_docs_url(
+    student: &str,
     year: &str,
     period: &str,
     type_period: &str,
@@ -27,8 +33,8 @@ pub fn build_docs_url(
     doc_type: &str,
 ) -> String {
     format!(
-        "{}/aluno/ano_lectivo/unidades/unidade_curricular/actividade/documentos?{}={}&{}={}&{}={}&{}={}&{}={}",
-        CLIP_HOME, PERIOD_N, period, PERIOD_TYPE, type_period, YEAR, year, UNIDADE, unit_id, TYPE_FILE, doc_type
+        "{}/aluno/ano_lectivo/unidades/unidade_curricular/actividade/documentos?{}={}&{}={}&{}={}&{}={}&{}={}&{}={}",
+        CLIP_HOME, PERIOD_N, period, PERIOD_TYPE, type_period, YEAR, year,STUDENT,student, UNIDADE, unit_id, TYPE_FILE, doc_type
     )
 }
 

@@ -61,10 +61,12 @@ pub fn parse_file_urls(html: &str) -> Vec<String> {
     let document = Html::parse_document(html);
     let link_selector = Selector::parse("a[href*='/objecto?']").unwrap();
 
-    document
+    let d = document
         .select(&link_selector)
         .filter_map(|element| element.value().attr("href").map(String::from))
-        .collect()
+        .collect();
+
+    return d;
 }
 
 pub fn extract_aluno_ids(html: &str) -> Vec<String> {

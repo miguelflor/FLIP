@@ -1,3 +1,4 @@
+use std::fs::OpenOptions;
 use std::io::{Cursor, Write};
 use std::sync::Arc;
 
@@ -172,7 +173,7 @@ pub async fn get_file(
     state: State<'_, AppState>,
     params: FileParams,
 ) -> Result<FileResponse, String> {
-    let (client, _aluno_ids) = {
+    let (client, aluno_ids) = {
         let sessions = state.sessions.lock();
         match sessions.get(&params.session_id) {
             Some(s) => (s.client.clone(), s.aluno_ids.clone()),
@@ -201,6 +202,7 @@ pub async fn get_file(
 
     // Spawn a task per file type
     let mut handles: Vec<tokio::task::JoinHandle<Vec<(String, Vec<u8>)>>> = Vec::new();
+    let bind = Arc::new(aluno_ids);
 
     for type_code in file_types {
         let client = client.clone();
@@ -210,10 +212,12 @@ pub async fn get_file(
         let params_type_period = params.type_period.clone();
         let params_unit_id = params.unit_id.clone();
 
+        let aluno_ids = Arc::clone(&bind);
         let handle = tokio::spawn(async move {
             let mut files: Vec<(String, Vec<u8>)> = Vec::new();
 
             let url = build_docs_url(
+                &aluno_ids[0],
                 &params_year,
                 &params_period,
                 &params_type_period,
@@ -236,6 +240,7 @@ pub async fn get_file(
             }
 
             let html = response.text().await.unwrap_or_default();
+            // std::fs::write("output.html", &html).expect("Could not write file");
             let file_urls = parse_file_urls(&html);
             let type_folder = format!("{}/{}", folder_name, get_type_name(&type_code));
 
