@@ -19,15 +19,6 @@ pub struct ChairsByPeriod {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LoginResponse {
-    pub success: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub session_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub error: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChairsResponse {
     pub success: bool,
     #[serde(skip_serializing_if = "Option::is_none")]

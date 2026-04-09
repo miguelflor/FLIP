@@ -49,7 +49,7 @@
       <button
         type="submit"
         :disabled="loading"
-        class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold py-3 px-4 rounded-xl hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-blue-500/30"
+        class="cursor-pointer w-full bg-linear-to-r from-blue-600 to-indigo-600 text-white font-semibold py-3 px-4 rounded-xl hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-blue-500/30"
       >
         <span v-if="loading" class="flex items-center justify-center">
           <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
@@ -68,14 +68,10 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { invoke } from '@tauri-apps/api/core';
-
-interface LoginResponse {
-  success: boolean;
-  session_id?: string;
-  error?: string;
-}
+import { useToast } from '../composables/useToast';
 
 const router = useRouter();
+const { error: showError } = useToast();
 const username = ref('');
 const password = ref('');
 const loading = ref(false);
@@ -84,21 +80,19 @@ const handleSubmit = async () => {
   loading.value = true;
 
   try {
-    const res = await invoke<LoginResponse>('login', { 
+    const sessionId = await invoke<string>('login', {
       username: username.value, 
       password: password.value 
     });
 
-    if (res.success && res.session_id) {
-      localStorage.setItem('clipSessionId', res.session_id);
-      router.push('/dashboard');
-    } else {
-      alert(res.error || 'Login failed');
-    }
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Login failed';
-    alert(message);
+    localStorage.setItem('clipSessionId', sessionId);
+    await router.push('/dashboard');
+  } catch (err) {
+    showError(String(err));
+  } finally {
+    username.value = '';
+    password.value = '';
+    loading.value = false;
   }
-  loading.value = false;
 };
 </script>

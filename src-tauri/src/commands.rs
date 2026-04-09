@@ -1,4 +1,5 @@
-use std::fs::OpenOptions;
+use std::collections::HashMap;
+use std::fs::{copy, OpenOptions};
 use std::io::{Cursor, Write};
 use std::sync::Arc;
 
@@ -12,7 +13,7 @@ use zip::ZipWriter;
 
 use crate::constants::{CLIP_HOME, CLIP_URL, FILE_TYPES, USER_AGENT};
 use crate::parser::{extract_aluno_ids, extract_form_fields, parse_chairs, parse_file_urls};
-use crate::types::{ChairsResponse, FileParams, FileResponse, LoginResponse};
+use crate::types::{ChairsResponse, FileParams, FileResponse};
 use crate::utils::{
     build_clip_year_student_url, build_docs_url, decode_latin1, get_current_academic_year,
     get_type_name,
@@ -24,7 +25,7 @@ pub async fn login(
     state: State<'_, AppState>,
     username: String,
     password: String,
-) -> Result<LoginResponse, String> {
+) -> Result<String, String> {
     let cookie_store = Arc::new(CookieStoreMutex::new(CookieStore::default()));
 
     let client = Client::builder()
@@ -34,37 +35,13 @@ pub async fn login(
         .build()
         .map_err(|e| e.to_string())?;
 
-    // Step 1: Get login page
-    let login_page = client
-        .get(CLIP_HOME)
-        .header("Referer", format!("{}/", CLIP_URL))
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
-
-    if !login_page.status().is_success() {
-        return Ok(LoginResponse {
-            success: false,
-            session_id: None,
-            error: Some(format!(
-                "Failed to load login page: {}",
-                login_page.status()
-            )),
-        });
-    }
-
-    let html_bytes = login_page.bytes().await.map_err(|e| e.to_string())?;
-    let html = decode_latin1(&html_bytes);
-
-    // Extract form fields synchronously (no await after this)
-    let mut form_data = extract_form_fields(&html);
+    let mut form_data = HashMap::new();
     form_data.insert("identificador".to_string(), username);
     form_data.insert("senha".to_string(), password);
 
-    // Step 2: Submit login
+    // Step 1: Submit login
     let login_response = client
         .post(CLIP_HOME)
-        .header("Referer", format!("{}/", CLIP_URL))
         .header("Content-Type", "application/x-www-form-urlencoded")
         .form(&form_data)
         .send()
@@ -72,11 +49,14 @@ pub async fn login(
         .map_err(|e| e.to_string())?;
 
     if login_response.status().is_success() {
+        let html = login_response.text().await.unwrap();
+        if html.contains("Autenticação inválida") {
+            return Err("Login Error - Invalid Credentials".to_string());
+        }
         let session_id = Uuid::new_v4().to_string();
 
         let home = client
             .get(CLIP_HOME)
-            .header("Referer", format!("{}/", CLIP_URL))
             .send()
             .await
             .map_err(|e| e.to_string())?;
@@ -94,17 +74,9 @@ pub async fn login(
 
         state.sessions.lock().insert(session_id.clone(), session);
 
-        Ok(LoginResponse {
-            success: true,
-            session_id: Some(session_id),
-            error: None,
-        })
+        Ok(session_id)
     } else {
-        Ok(LoginResponse {
-            success: false,
-            session_id: None,
-            error: Some("Login failed - invalid credentials".to_string()),
-        })
+        Err("Login Failed - Clip Error".to_string())
     }
 }
 
@@ -143,7 +115,6 @@ pub async fn get_chairs(
 
     let response = client
         .get(&url)
-        .header("Referer", format!("{}/", CLIP_URL))
         .send()
         .await
         .map_err(|e| e.to_string())?;
@@ -227,7 +198,6 @@ pub async fn get_file(
 
             let response = match client
                 .get(&url)
-                .header("Referer", format!("{}/", CLIP_URL))
                 .send()
                 .await
             {
@@ -257,7 +227,6 @@ pub async fn get_file(
                     let file_url = format!("{}{}", CLIP_URL, href);
                     let file_response = match client
                         .get(&file_url)
-                        .header("Referer", format!("{}/", CLIP_URL))
                         .send()
                         .await
                     {
