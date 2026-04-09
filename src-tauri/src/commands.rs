@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::fs::{copy, OpenOptions};
 use std::io::{Cursor, Write};
 use std::sync::Arc;
 
@@ -13,7 +12,7 @@ use zip::ZipWriter;
 
 use crate::constants::{CLIP_HOME, CLIP_BASE, FILE_TYPES, USER_AGENT};
 use crate::parser::{extract_aluno_ids, parse_chairs, parse_file_urls};
-use crate::types::{ChairsResponse, FileParams, FileResponse};
+use crate::types::{LoginResponse, ChairsResponse, FileParams, FileResponse};
 use crate::utils::{
     build_clip_year_student_url, build_docs_url, decode_latin1, get_current_academic_year,
     get_type_name,
@@ -25,7 +24,7 @@ pub async fn login(
     state: State<'_, AppState>,
     username: String,
     password: String,
-) -> Result<String, String> {
+) -> Result<LoginResponse, String> {
     let cookie_store = Arc::new(CookieStoreMutex::new(CookieStore::default()));
 
     let client = Client::builder()
@@ -69,19 +68,23 @@ pub async fn login(
         let session = Session {
             client,
             cookie_store,
-            aluno_ids,
+            aluno_ids: aluno_ids.clone(),
         };
 
-        state.sessions.lock().insert(session_id.clone(), session);
+        let session_id_copy = session_id.clone();
+        state.sessions.lock().insert(session_id, session);
 
-        Ok(session_id)
+        Ok(LoginResponse {
+            session_id: session_id_copy,
+            aluno_ids
+        })
     } else {
         Err("Login Failed - Clip Error".to_string())
     }
 }
 
 #[command]
-pub async fn get_chairs(
+pub async fn get_student_info(
     state: State<'_, AppState>,
     session_id: String,
 ) -> Result<ChairsResponse, String> {
@@ -140,10 +143,104 @@ pub async fn get_chairs(
         error: None,
     })
 }
+
+#[command]
+pub async fn get_chairs(
+    state: State<'_, AppState>,
+    session_id: String,
+    student_id: String,
+    year: String,
+) -> Result<ChairsResponse, String> {
+    // Clone the client and aluno_ids out of the lock
+    let (client, _aluno_ids) = {
+        let sessions = state.sessions.lock();
+        match sessions.get(&session_id) {
+            Some(s) => (s.client.clone(), s.aluno_ids.clone()),
+            None => {
+                return Ok(ChairsResponse {
+                    success: false,
+                    chairs: None,
+                    error: Some("Session not found or expired".to_string()),
+                });
+            }
+        }
+    };
+
+    let url = build_clip_year_student_url(&year, student_id.as_str());
+
+    let response = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if !response.status().is_success() {
+        return Ok(ChairsResponse {
+            success: false,
+            chairs: None,
+            error: Some(format!("Failed to fetch chairs: {}", response.status())),
+        });
+    }
+
+    let html_bytes = response.bytes().await.map_err(|e| e.to_string())?;
+    let html = decode_latin1(&html_bytes);
+
+    // Parse outside of async context
+    let chairs = parse_chairs(&html);
+
+    Ok(ChairsResponse {
+        success: true,
+        chairs: Some(chairs),
+        error: None,
+    })
+}
+
+#[command]
+pub async fn get_available_years(
+    state: State<'_, AppState>,
+    session_id: String,
+    student_id: String,
+) -> Result<serde_json::Value, String> {
+    let client = {
+        let sessions = state.sessions.lock();
+        match sessions.get(&session_id) {
+            Some(s) => s.client.clone(),
+            None => {
+                return Ok(serde_json::json!({
+                    "success": false,
+                    "years": [],
+                    "error": "Session not found or expired"
+                }));
+            }
+        }
+    };
+
+    let url = format!(
+        "https://clip.fct.unl.pt/utente/eu/aluno/ano_lectivo?aluno={}&instituição=97747",
+        student_id
+    );
+
+    let response = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let body = response.text().await.map_err(|e| e.to_string())?;
+    let years = crate::parser::extract_years(&body);
+
+    Ok(serde_json::json!({
+        "success": true,
+        "years": years,
+        "error": null
+    }))
+}
+
 #[command]
 pub async fn get_file(
     state: State<'_, AppState>,
     params: FileParams,
+    year: String
 ) -> Result<FileResponse, String> {
     let (client, aluno_ids) = {
         let sessions = state.sessions.lock();
@@ -169,7 +266,6 @@ pub async fn get_file(
         vec![params.file_type.clone()]
     };
 
-    let year = get_current_academic_year();
     let folder_name = format!("{}-{}", year, params.name);
 
     // Spawn a task per file type

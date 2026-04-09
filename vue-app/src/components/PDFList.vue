@@ -7,7 +7,7 @@
 
     <!-- Refresh button -->
     <button
-      @click="handleChairs"
+      @click="refreshChairs"
       :disabled="loading"
       class="text-xs text-gray-500 hover:text-gray-700 mb-2 flex items-center"
     >
@@ -42,7 +42,7 @@
       <div v-else-if="error" class="text-red-500 py-2">
         <p>{{ error }}</p>
         <button
-          @click="handleChairs"
+          @click="refreshChairs"
           class="text-blue-500 hover:underline mt-1"
         >
           Tentar novamente
@@ -101,7 +101,7 @@ interface ChairsResponse {
   error?: string;
 }
 
-const loading = ref(false);
+const loading = ref(true);
 const chairs = ref<ChairsByPeriod>({});
 const error = ref<string | null>(null);
 
@@ -109,7 +109,26 @@ const hasAnyChairs = computed(() => {
   return Object.values(chairs.value).some(cs => cs.length > 0);
 });
 
-const handleChairs = async () => {
+// Convert year format from "2024/25" to "2025"
+const extractYearForRequest = (yearStr: string): string => {
+  const parts = yearStr.split('/');
+  if (parts.length === 2) {
+    return '20' + parts[1];
+  }
+  return yearStr;
+};
+
+const refreshChairs = async () => {
+  const studentId = localStorage.getItem('selected_student_id');
+  const year = localStorage.getItem('selected_year');
+  if (!studentId) {
+    error.value = 'Por favor, selecione um aluno.';
+    return;
+  }
+  handleChairs(studentId, year || undefined);
+};
+
+const handleChairs = async (studentId: string, year?: string) => {
   loading.value = true;
   error.value = null;
   try {
@@ -120,7 +139,12 @@ const handleChairs = async () => {
       return;
     }
 
-    const res = await invoke<ChairsResponse>('get_chairs', { sessionId });
+    const params: Record<string, string> = { sessionId, studentId };
+    if (year) {
+      params.year = extractYearForRequest(year);
+    }
+
+    const res = await invoke<ChairsResponse>('get_chairs', params);
 
     if (res.success && res.chairs) {
       // Convert from Rust naming (s1, s2, t1, t2) to JS naming
@@ -150,6 +174,31 @@ const getPeriodName = (periodKey: string) => {
 };
 
 onMounted(() => {
-  handleChairs();
+  // Listen for years loaded in dropdown
+  window.addEventListener('years-loaded', (e) => {
+    const { detail } = e as CustomEvent<{ year: string }>;
+    const studentId = localStorage.getItem('selected_student_id');
+    if (studentId) {
+      handleChairs(studentId, detail.year);
+    }
+  });
+
+  // Listen for student change
+  window.addEventListener('student-changed', (e) => {
+    const { detail } = e as CustomEvent<{ studentId: string }>;
+    const year = localStorage.getItem('selected_year');
+    if (year) {
+      handleChairs(detail.studentId, year);
+    }
+  });
+
+  // Listen for year change
+  window.addEventListener('year-changed', (e) => {
+    const { detail } = e as CustomEvent<{ year: string }>;
+    const studentId = localStorage.getItem('selected_student_id');
+    if (studentId) {
+      handleChairs(studentId, detail.year);
+    }
+  });
 });
 </script>

@@ -71,24 +71,30 @@ import { invoke } from '@tauri-apps/api/core';
 import { useToast } from '../composables/useToast';
 
 const router = useRouter();
-const { error: showError } = useToast();
+const { error } = useToast();
 const username = ref('');
 const password = ref('');
 const loading = ref(false);
+
+type LoginResponse = {
+  session_id: string;
+  aluno_ids: Record<string, string>;
+};
 
 const handleSubmit = async () => {
   loading.value = true;
 
   try {
-    const sessionId = await invoke<string>('login', {
+    const loginResponse = await invoke<LoginResponse>('login', {
       username: username.value, 
       password: password.value 
     });
-
-    localStorage.setItem('clipSessionId', sessionId);
+    localStorage.setItem('clipSessionId', loginResponse.session_id);
+    localStorage.setItem('student_ids', JSON.stringify(loginResponse.aluno_ids));
+    localStorage.setItem('selected_aluno_id', Object.keys(loginResponse.aluno_ids)[0]);
     await router.push('/dashboard');
   } catch (err) {
-    showError(String(err));
+    error(String(err));
   } finally {
     username.value = '';
     password.value = '';

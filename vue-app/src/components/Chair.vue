@@ -20,20 +20,14 @@
       <span class="truncate">{{ chair.text }}</span>
     </span>
   </li>
-  <Notification
-    v-if="notification"
-    :type="notification.type"
-    :message="notification.message"
-    @close="notification = null"
-  />
 </template>
 
 <script setup lang="ts">
 import { ref } from "vue";
 import { FolderDown } from "lucide-vue-next";
 import { invoke } from "@tauri-apps/api/core";
-import Notification from "./Notification.vue";
 import { PERIOD_N, PERIOD_TYPE, UNIDADE, YEAR } from "../lib/clipVars";
+import { useToast } from "../composables/useToast";
 
 interface ChairType {
   href: string;
@@ -65,9 +59,7 @@ interface Props {
 const props = defineProps<Props>();
 
 const loading = ref(false);
-const notification = ref<{ type: "success" | "error"; message: string } | null>(
-  null,
-);
+const { error, success } = useToast();
 
 const parseHrefParams = (href: string) => {
   const params: Record<string, string> = {};
@@ -85,16 +77,28 @@ const parseHrefParams = (href: string) => {
   return params;
 };
 
+const extractYearForRequest = (yearStr: string): string => {
+  const parts = yearStr.split('/');
+  if (parts.length === 2) {
+    return '20' + parts[1];
+  }
+  return yearStr;
+};
+
 const handleDownload = async () => {
   loading.value = true;
 
   try {
     const sessionId = localStorage.getItem("clipSessionId");
     if (!sessionId) {
-      notification.value = {
-        type: "error",
-        message: "Not authenticated. Please log in again.",
-      };
+      error("Not authenticated. Please log in again.");
+      loading.value = false;
+      return;
+    }
+
+    const selectedYear = localStorage.getItem("selected_year");
+    if (!selectedYear) {
+      error("Please select a year.");
       loading.value = false;
       return;
     }
@@ -111,13 +115,11 @@ const handleDownload = async () => {
       type_period: hrefParams[PERIOD_TYPE] || "",
     };
 
-    const res = await invoke<FileResponse>("get_file", { params });
+    const year = extractYearForRequest(selectedYear);
+    const res = await invoke<FileResponse>("get_file", { params, year });
 
     if (!res.success || !res.data) {
-      notification.value = {
-        type: "error",
-        message: res.error || "Failed to download file",
-      };
+      error(res.error || "Failed to download file");
     } else {
       // Convert base64 back to blob and download
       const byteCharacters = atob(res.data);
@@ -137,17 +139,11 @@ const handleDownload = async () => {
       a.remove();
       window.URL.revokeObjectURL(url);
 
-      notification.value = {
-        type: "success",
-        message: "File downloaded successfully!",
-      };
+      success("File downloaded successfully!");
     }
   } catch (err: unknown) {
     console.error("Error downloading chair:", err);
-    notification.value = {
-      type: "error",
-      message: "Error downloading file.",
-    };
+    error("Error downloading file.");
   } finally {
     loading.value = false;
   }

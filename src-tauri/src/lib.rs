@@ -54,7 +54,9 @@ pub fn run() {
     builder
         .invoke_handler(tauri::generate_handler![
             commands::login,
+            commands::get_student_info,
             commands::get_chairs,
+            commands::get_available_years,
             commands::get_file
         ])
         .run(tauri::generate_context!())
