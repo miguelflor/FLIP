@@ -10,6 +10,12 @@ use std::sync::Arc;
 use parking_lot::Mutex;
 use reqwest::Client;
 use reqwest_cookie_store::CookieStoreMutex;
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+struct Config {
+    logging: bool,
+}
 
 // Session data stored in app state
 pub struct Session {
@@ -33,9 +39,19 @@ impl Default for AppState {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
-        .manage(AppState::default())
-        .plugin(tauri_plugin_log::Builder::default().build())
+    let config: Config = std::fs::read_to_string("config.json")
+        .ok()
+        .and_then(|content| serde_json::from_str(&content).ok())
+        .unwrap_or(Config { logging: false });
+
+    let mut builder = tauri::Builder::default()
+        .manage(AppState::default());
+
+    if config.logging {
+        builder = builder.plugin(tauri_plugin_log::Builder::default().build());
+    }
+
+    builder
         .invoke_handler(tauri::generate_handler![
             commands::login,
             commands::get_chairs,
