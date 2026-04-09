@@ -11,8 +11,8 @@ use uuid::Uuid;
 use zip::write::SimpleFileOptions;
 use zip::ZipWriter;
 
-use crate::constants::{CLIP_HOME, CLIP_URL, FILE_TYPES, USER_AGENT};
-use crate::parser::{extract_aluno_ids, extract_form_fields, parse_chairs, parse_file_urls};
+use crate::constants::{CLIP_HOME, CLIP_BASE, FILE_TYPES, USER_AGENT};
+use crate::parser::{extract_aluno_ids, parse_chairs, parse_file_urls};
 use crate::types::{ChairsResponse, FileParams, FileResponse};
 use crate::utils::{
     build_clip_year_student_url, build_docs_url, decode_latin1, get_current_academic_year,
@@ -111,7 +111,8 @@ pub async fn get_chairs(
     }
 
     let year = get_current_academic_year();
-    let url = build_clip_year_student_url(&year, &aluno_ids[0].clone());
+    let first_aluno_id = aluno_ids.values().next().unwrap_or(&"".to_string()).clone();
+    let url = build_clip_year_student_url(&year, &first_aluno_id);
 
     let response = client
         .get(&url)
@@ -187,8 +188,9 @@ pub async fn get_file(
         let handle = tokio::spawn(async move {
             let mut files: Vec<(String, Vec<u8>)> = Vec::new();
 
+            let first_aluno_id = aluno_ids.values().next().unwrap_or(&"".to_string()).clone();
             let url = build_docs_url(
-                &aluno_ids[0],
+                &first_aluno_id,
                 &params_year,
                 &params_period,
                 &params_type_period,
@@ -224,7 +226,7 @@ pub async fn get_file(
                 let href = href.clone();
 
                 let file_handle = tokio::spawn(async move {
-                    let file_url = format!("{}{}", CLIP_URL, href);
+                    let file_url = format!("{}{}", CLIP_BASE, href);
                     let file_response = match client
                         .get(&file_url)
                         .send()

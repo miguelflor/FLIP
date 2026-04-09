@@ -9,20 +9,6 @@ use crate::types::{Chair, ChairsByPeriod};
 // HTML Parsing Functions
 // ============================================================================
 
-pub fn extract_form_fields(html: &str) -> HashMap<String, String> {
-    let document = Html::parse_document(html);
-    let mut form_data: HashMap<String, String> = HashMap::new();
-    let input_selector = Selector::parse("form input").unwrap();
-
-    for element in document.select(&input_selector) {
-        if let Some(name) = element.value().attr("name") {
-            let value = element.value().attr("value").unwrap_or("");
-            form_data.insert(name.to_string(), value.to_string());
-        }
-    }
-    form_data
-}
-
 pub fn parse_chairs(html: &str) -> ChairsByPeriod {
     let document = Html::parse_document(html);
 
@@ -69,7 +55,7 @@ pub fn parse_file_urls(html: &str) -> Vec<String> {
     return d;
 }
 
-pub fn extract_aluno_ids(html: &str) -> Vec<String> {
+pub fn extract_aluno_ids(html: &str) -> HashMap<String, String> {
     let document = Html::parse_document(html);
     let link_selector = Selector::parse("a[href*='aluno']").unwrap();
     document
@@ -78,12 +64,20 @@ pub fn extract_aluno_ids(html: &str) -> Vec<String> {
             let href = element.value().attr("href")?;
             let query_part = href.split('?').nth(1).unwrap_or(href);
 
-            for param in query_part.split('&') {
-                if let Some(value) = param.strip_prefix("aluno=") {
-                    return Some(value.split('&').next().unwrap_or(value).to_string());
-                }
+            let aluno_id = query_part
+                .split('&')
+                .find_map(|param| param.strip_prefix("aluno="))?
+                .split('&')
+                .next()?
+                .to_string();
+
+            let display_name = element.text().collect::<String>().trim().to_string();
+
+            if !display_name.is_empty() {
+                Some((display_name, aluno_id))
+            } else {
+                None
             }
-            None
         })
         .collect()
 }
