@@ -1,30 +1,20 @@
 <template>
-  <header class="w-full bg-white border-slate-200 shadow-sm">
-    <div class="flex justify-between items-center px-6 py-4">
-      <!-- Left section -->
-      <div class="flex items-center space-x-4">
-        <!-- Mobile menu button -->
-        <button class="md:hidden p-2 hover:bg-slate-100 rounded-lg transition-colors">
-          <Menu class="w-5 h-5 text-slate-600" />
-        </button>
-      </div>
-
-      <!-- Right section -->
-      <div class="flex items-center space-x-2">
-        <!-- Aluno ID Dropdown -->
+  <header class="w-full bg-white border-b border-slate-200">
+    <div class="flex justify-between items-center px-6 py-3 space-x-3">
+      <div class="flex gap-4">
+        <!-- Course Dropdown -->
         <div class="relative">
           <button
             @click="isDropdownOpen = !isDropdownOpen; isYearDropdownOpen = false"
-            class="flex items-center space-x-2 px-3 py-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+            class="flex items-center space-x-2 px-4 py-2 text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all duration-200 group"
           >
-            <span class="text-sm font-medium">{{ selectedAlunoId || 'Selecionar' }}</span>
-            <ChevronDown class="w-4 h-4" :class="{ 'rotate-180': isDropdownOpen }" />
+            <span class="text-sm font-medium">{{ selectedAlunoId || 'Selecionar Aluno' }}</span>
+            <ChevronDown class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-180': isDropdownOpen }" />
           </button>
-
-          <!-- Dropdown menu -->
+  
           <div
             v-if="isDropdownOpen"
-            class="absolute right-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-50"
+            class="absolute mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50"
           >
             <div class="py-1">
               <button
@@ -43,21 +33,20 @@
             </div>
           </div>
         </div>
-
+  
         <!-- Year Dropdown -->
         <div class="relative">
           <button
             @click="isYearDropdownOpen = !isYearDropdownOpen; isDropdownOpen = false"
-            class="flex items-center space-x-2 px-3 py-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+            class="flex items-center space-x-2 px-4 py-2 text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all duration-200"
           >
-            <span class="text-sm font-medium">{{ selectedYear || 'Ano' }}</span>
-            <ChevronDown class="w-4 h-4" :class="{ 'rotate-180': isYearDropdownOpen }" />
+            <span class="text-sm font-medium">{{ selectedYear || 'Selecionar Ano' }}</span>
+            <ChevronDown class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-180': isYearDropdownOpen }" />
           </button>
-
-          <!-- Year Dropdown menu -->
+  
           <div
             v-if="isYearDropdownOpen"
-            class="absolute right-0 mt-1 w-32 bg-white border border-slate-200 rounded-lg shadow-lg z-50"
+            class="absolute mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50"
           >
             <div class="py-1">
               <button
@@ -76,26 +65,20 @@
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- User profile -->
-        <div class="flex items-center space-x-3 ml-4">
-          <div class="hidden sm:block text-right">
-            <p class="text-sm font-medium text-slate-900">{{ studentName || 'Estudante' }}</p>
-            <p class="text-xs text-slate-500">{{ studentCourse || 'Curso' }}</p>
-          </div>
-          <div v-if="studentPhotoUrl" class="w-10 h-10 rounded-full overflow-hidden">
-            <img :src="studentPhotoUrl" :alt="studentName || 'Estudante'" class="w-full h-full object-cover"/>
-          </div>
+      <!-- User profile -->
+      <div class="flex items-center space-x-3">
+        <div class="hidden sm:block text-right">
+          <p class="text-sm font-semibold text-slate-900">{{ studentName || 'Estudante' }}</p>
+          <p class="text-xs text-slate-500">{{ studentCourse ? studentCourse.split('-')[0].trim() : 'Curso' }}</p>
         </div>
-
-        <!-- Logout button -->
-        <button
-          class="flex items-center space-x-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 group ml-2"
-          @click="handleLogout"
-        >
-          <LogOut class="w-4 h-4 group-hover:text-red-700" />
-          <span class="text-sm font-medium group-hover:text-red-700 hidden sm:inline">Sair</span>
-        </button>
+        <div v-if="studentPhotoUrl" class="w-10 h-10 rounded-full overflow-hidden ring-2 ring-slate-200 shadow-sm hover:ring-blue-400 transition-all duration-200">
+          <img :src="studentPhotoUrl" :alt="studentName || 'Estudante'" class="w-full h-full object-cover"/>
+        </div>
+        <div v-else class="w-10 h-10 rounded-full overflow-hidden ring-2 ring-slate-200 bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+          <span class="text-white font-bold text-sm">{{ (studentName ? studentName[0] : 'E').toUpperCase() }}</span>
+        </div>
       </div>
     </div>
   </header>
@@ -103,11 +86,8 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { LogOut, Menu, ChevronDown } from 'lucide-vue-next';
-import { useRouter } from 'vue-router';
+import { ChevronDown } from 'lucide-vue-next';
 import { invoke } from '@tauri-apps/api/core';
-
-const router = useRouter();
 
 const isDropdownOpen = ref(false);
 const isYearDropdownOpen = ref(false);
@@ -216,10 +196,5 @@ const selectYear = (year: string) => {
 
   // Emit event to reload files with the new year
   window.dispatchEvent(new CustomEvent('year-changed', { detail: { year } }));
-};
-
-const handleLogout = () => {
-  router.push('/');
-  localStorage.clear();
 };
 </script>
