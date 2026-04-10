@@ -11,12 +11,9 @@ use zip::write::SimpleFileOptions;
 use zip::ZipWriter;
 
 use crate::constants::{CLIP_HOME, CLIP_BASE, FILE_TYPES, USER_AGENT};
-use crate::parser::{extract_aluno_ids, parse_chairs, parse_file_urls};
-use crate::types::{LoginResponse, ChairsResponse, FileParams, FileResponse};
-use crate::utils::{
-    build_clip_year_student_url, build_docs_url, decode_latin1, get_current_academic_year,
-    get_type_name,
-};
+use crate::parser::{extract_aluno_ids, extract_student_info, parse_chairs, parse_file_urls, ParsedStudentInfo};
+use crate::types::{ChairsResponse, FileParams, FileResponse, LoginResponse, StudentInfo};
+use crate::utils::{build_clip_year_student_url, build_docs_url, decode_latin1, get_type_name};
 use crate::{AppState, Session};
 
 #[command]
@@ -87,35 +84,23 @@ pub async fn login(
 pub async fn get_student_info(
     state: State<'_, AppState>,
     session_id: String,
-) -> Result<ChairsResponse, String> {
-    // Clone the client and aluno_ids out of the lock
-    let (client, aluno_ids) = {
+    student_id: String
+) -> Result<StudentInfo, String> {
+    // Clone the client out of the lock
+    let client = {
         let sessions = state.sessions.lock();
         match sessions.get(&session_id) {
-            Some(s) => (s.client.clone(), s.aluno_ids.clone()),
+            Some(s) => s.client.clone(),
             None => {
-                return Ok(ChairsResponse {
-                    success: false,
-                    chairs: None,
-                    error: Some("Session not found or expired".to_string()),
-                });
+                return Err("Session not found or expired".to_string());
             }
         }
     };
 
-    // Now you have access to aluno_ids!
-    println!("Available aluno IDs: {:?}", aluno_ids);
-    if aluno_ids.is_empty() {
-        return Ok(ChairsResponse {
-            success: false,
-            chairs: None,
-            error: Some("The student ids can't be empty!".to_string()),
-        });
-    }
-
-    let year = get_current_academic_year();
-    let first_aluno_id = aluno_ids.values().next().unwrap_or(&"".to_string()).clone();
-    let url = build_clip_year_student_url(&year, &first_aluno_id);
+    let url = format!(
+        "https://clip.fct.unl.pt/utente/eu/aluno?aluno={}",
+        student_id
+    );
 
     let response = client
         .get(&url)
@@ -124,24 +109,35 @@ pub async fn get_student_info(
         .map_err(|e| e.to_string())?;
 
     if !response.status().is_success() {
-        return Ok(ChairsResponse {
-            success: false,
-            chairs: None,
-            error: Some(format!("Failed to fetch chairs: {}", response.status())),
-        });
+        return Err(format!("Failed to fetch student info: {}", response.status()));
     }
 
     let html_bytes = response.bytes().await.map_err(|e| e.to_string())?;
     let html = decode_latin1(&html_bytes);
 
-    // Parse outside of async context
-    let chairs = parse_chairs(&html);
+    // Extract student info from HTML
+    if let Some(parsed_info) = extract_student_info(&html) {
+        // Fetch the photo image and convert to base64
+        let photo_data = match client.get(&parsed_info.photo_url).send().await {
+            Ok(img_response) => {
+                match img_response.bytes().await {
+                    Ok(img_bytes) => {
+                        Some(STANDARD.encode(&img_bytes))
+                    }
+                    Err(_) => None,
+                }
+            }
+            Err(_) => None,
+        };
 
-    Ok(ChairsResponse {
-        success: true,
-        chairs: Some(chairs),
-        error: None,
-    })
+        Ok(StudentInfo {
+            photo_data,
+            student_name: parsed_info.student_name,
+            course: parsed_info.course
+        })
+    } else {
+        Err("Failed to parse student information".to_string())
+    }
 }
 
 #[command]

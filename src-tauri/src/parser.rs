@@ -3,7 +3,14 @@ use std::collections::HashMap;
 use scraper::{Html, Selector};
 
 use crate::constants::{PERIOD_N, PERIOD_TYPE};
-use crate::types::{StudentInfo, Chair, ChairsByPeriod};
+use crate::types::{Chair, ChairsByPeriod};
+
+// Helper struct for parsing student info
+pub struct ParsedStudentInfo {
+    pub photo_url: String,
+    pub student_name: String,
+    pub course: String,
+}
 
 // ============================================================================
 // HTML Parsing Functions
@@ -37,42 +44,68 @@ pub fn extract_aluno_ids(html: &str) -> HashMap<String, String> {
 }
 
 
-pub fn extract_student_info(html: &str) -> Option<StudentInfo> {
+pub fn extract_student_info(html: &str) -> Option<ParsedStudentInfo> {
     let document = Html::parse_document(html);
 
-    // Extract photo URL
+    // Extract photo URL and convert relative URL to absolute
     let photo_selector = Selector::parse("img[alt='Fotografia']").unwrap();
-    let photo_url = document
-        .select(&photo_selector)
-        .next()?
-        .value()
-        .attr("src")?
-        .to_string();
+    let photo_url = {
+        let src = document
+            .select(&photo_selector)
+            .next()?
+            .value()
+            .attr("src")?;
 
-    // Extract student name
+        // Convert relative URL to absolute
+        if src.starts_with('/') {
+            format!("https://clip.fct.unl.pt{}", src)
+        } else {
+            src.to_string()
+        }
+    };
+
+    // Extract student name from h3 tag (full text)
     let h3_selector = Selector::parse("h3").unwrap();
     let student_name = document
         .select(&h3_selector)
-        .next()?
-        .text()
-        .collect::<String>()
-        .trim()
-        .to_string();
+        .find_map(|element| {
+            let text = element.text().collect::<String>();
+            if text.contains("Nº") && text.contains("(") {
+                // Remove "Nº XXXXX - " prefix
+                let name = if let Some(dash_pos) = text.find(" - ") {
+                    text[dash_pos + 3..].trim().to_string()
+                } else {
+                    text.trim().to_string()
+                };
+                Some(name)
+            } else {
+                None
+            }
+        })?;
 
-    // Extract course
-    let course_selector = Selector::parse("td[align='center']").unwrap();
+    // Extract course (full text) - look for td with align='center' containing course keywords
+    let td_selector = Selector::parse("td[align='center']").unwrap();
     let course = document
-        .select(&course_selector)
+        .select(&td_selector)
         .find_map(|element| {
             let text = element.text().collect::<String>().trim().to_string();
-            if text.contains("Mestrado") || text.contains("Licenciatura") || text.contains("Bacharelato") {
+
+            // Skip empty or non-course cells
+            if text.is_empty() {
+                return None;
+            }
+
+            // Look for course keywords and skip menu items
+            if (text.contains("Mestrado") || text.contains("Licenciatura") || text.contains("Bacharelato"))
+                && !text.contains("Acto")
+                && !text.contains("Requerimento") {
                 Some(text)
             } else {
                 None
             }
         })?;
 
-    Some(StudentInfo {
+    Some(ParsedStudentInfo {
         photo_url,
         student_name,
         course,

@@ -6,17 +6,6 @@ use crate::constants::{
 // Utility Functions
 // ============================================================================
 
-pub fn get_current_academic_year() -> String {
-    use chrono::{Datelike, Local};
-    let now = Local::now();
-    let year = if now.month() >= 9 {
-        now.year() + 1
-    } else {
-        now.year()
-    };
-    year.to_string()
-}
-
 pub fn build_clip_year_student_url(year: &str, student: &str) -> String {
     format!(
         "{}/aluno/ano_lectivo?aluno={}&ano_lectivo={}",

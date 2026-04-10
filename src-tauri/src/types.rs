@@ -14,7 +14,7 @@ pub struct LoginResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StudentInfo {
-    pub photo_url: String,
+    pub photo_data: Option<String>,
     pub student_name: String,
     pub course: String,
 }

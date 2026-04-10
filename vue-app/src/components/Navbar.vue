@@ -80,11 +80,11 @@
         <!-- User profile -->
         <div class="flex items-center space-x-3 ml-4">
           <div class="hidden sm:block text-right">
-            <p class="text-sm font-medium text-slate-900">Estudante</p>
-            <p class="text-xs text-slate-500">Online</p>
+            <p class="text-sm font-medium text-slate-900">{{ studentName || 'Estudante' }}</p>
+            <p class="text-xs text-slate-500">{{ studentCourse || 'Curso' }}</p>
           </div>
-          <div class="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center">
-            <span class="text-slate-600 font-medium text-sm">E</span>
+          <div v-if="studentPhotoUrl" class="w-10 h-10 rounded-full overflow-hidden">
+            <img :src="studentPhotoUrl" :alt="studentName || 'Estudante'" class="w-full h-full object-cover"/>
           </div>
         </div>
 
@@ -109,18 +109,39 @@ import { invoke } from '@tauri-apps/api/core';
 
 const router = useRouter();
 
-type StudentInfo = {
-  name: string;
-  course: string;
-  photoUrl: string;
-};
-
 const isDropdownOpen = ref(false);
 const isYearDropdownOpen = ref(false);
 const alunoIds = ref<Record<string, string>>({});
 const selectedAlunoId = ref<string | null>(null);
 const availableYears = ref<string[]>([]);
 const selectedYear = ref<string | null>(null);
+const studentName = ref<string | null>(null);
+const studentCourse = ref<string | null>(null);
+const studentPhotoUrl = ref<string | null>(null);
+
+type StudentInfo = {
+  photo_data: string | null;
+  student_name: string;
+  course: string;
+};
+
+const fetchStudentInfo = async () => {
+  try {
+    const sessionId = localStorage.getItem('clipSessionId');
+    if (!sessionId) return;
+
+    const res = await invoke<StudentInfo>('get_student_info', {
+      sessionId,
+      studentId: alunoIds.value[selectedAlunoId.value || ''],
+    });
+
+    studentName.value = res.student_name;
+    studentCourse.value = res.course;
+    studentPhotoUrl.value = res.photo_data ? `data:image/jpeg;base64,${res.photo_data}` : null;
+  } catch (e) {
+    console.error('Error fetching student info:', e);
+  }
+};
 
 const fetchAvailableYears = async (studentId: string) => {
   try {
@@ -160,6 +181,7 @@ onMounted(() => {
 
   let selected_aluno_id = localStorage.getItem('selected_aluno_id');
   selectedAlunoId.value = selected_aluno_id;
+  fetchStudentInfo();
   selectedYear.value = localStorage.getItem('selected_year');
 
   // Load years and emit event with the actual student_id if available
@@ -184,6 +206,7 @@ const selectAlunoId = (displayName: string) => {
   const studentId = alunoIds.value[displayName];
   localStorage.setItem('selected_student_id', studentId);
   fetchAvailableYears(studentId);
+  fetchStudentInfo();
 };
 
 const selectYear = (year: string) => {
