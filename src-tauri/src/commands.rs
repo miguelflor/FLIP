@@ -236,9 +236,10 @@ pub async fn get_available_years(
 pub async fn get_file(
     state: State<'_, AppState>,
     params: FileParams,
-    year: String
+    student_id: String,
+    year: String,
 ) -> Result<FileResponse, String> {
-    let (client, aluno_ids) = {
+    let (client, _aluno_ids) = {
         let sessions = state.sessions.lock();
         match sessions.get(&params.session_id) {
             Some(s) => (s.client.clone(), s.aluno_ids.clone()),
@@ -266,7 +267,6 @@ pub async fn get_file(
 
     // Spawn a task per file type
     let mut handles: Vec<tokio::task::JoinHandle<Vec<(String, Vec<u8>)>>> = Vec::new();
-    let bind = Arc::new(aluno_ids);
 
     for type_code in file_types {
         let client = client.clone();
@@ -275,20 +275,21 @@ pub async fn get_file(
         let params_period = params.period.clone();
         let params_type_period = params.type_period.clone();
         let params_unit_id = params.unit_id.clone();
+        let student_id = student_id.clone();
 
-        let aluno_ids = Arc::clone(&bind);
         let handle = tokio::spawn(async move {
             let mut files: Vec<(String, Vec<u8>)> = Vec::new();
 
-            let first_aluno_id = aluno_ids.values().next().unwrap_or(&"".to_string()).clone();
             let url = build_docs_url(
-                &first_aluno_id,
+                &student_id,
                 &params_year,
                 &params_period,
                 &params_type_period,
                 &params_unit_id,
                 &type_code,
             );
+
+            println!("{}", url.to_string());
 
             let response = match client
                 .get(&url)
@@ -357,6 +358,7 @@ pub async fn get_file(
     }
 
     // Join all tasks and collect results
+    let mut total_files = 0;
     let mut zip_buffer = Cursor::new(Vec::new());
     {
         let mut zip = ZipWriter::new(&mut zip_buffer);
@@ -368,11 +370,22 @@ pub async fn get_file(
             for (zip_path, file_data) in files {
                 if zip.start_file(&zip_path, options).is_ok() {
                     let _ = zip.write_all(&file_data);
+                    total_files += 1;
                 }
             }
         }
 
         zip.finish().map_err(|e| e.to_string())?;
+    }
+
+    // Return error if no files were found
+    if total_files == 0 {
+        return Ok(FileResponse {
+            success: false,
+            data: None,
+            filename: None,
+            error: Some(format!("{} has no files", folder_name)),
+        });
     }
 
     let zip_data = zip_buffer.into_inner();

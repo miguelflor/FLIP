@@ -116,7 +116,13 @@ const handleDownload = async () => {
     };
 
     const year = extractYearForRequest(selectedYear);
-    const res = await invoke<FileResponse>("get_file", { params, year });
+    const studentId = localStorage.getItem("selected_student_id");
+    if (!studentId) {
+      error("No student selected. Please select a student from the navbar.");
+      loading.value = false;
+      return;
+    }
+    const res = await invoke<FileResponse>("get_file", { params, studentId, year });
 
     if (!res.success || !res.data) {
       error(res.error || "Failed to download file");
