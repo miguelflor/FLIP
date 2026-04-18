@@ -14,10 +14,13 @@ use crate::constants::{CLIP_BASE, CLIP_HOME, FILE_TYPES, USER_AGENT};
 use crate::parser::{
     extract_aluno_ids, extract_student_info, parse_chairs, parse_file_urls, ParsedStudentInfo,
 };
+use crate::session::get_session;
 use crate::types::{
     ChairsResponse, FileParams, FileResponse, LoginResponse, Schedule, StudentInfo,
 };
-use crate::utils::{build_clip_year_student_url, build_docs_url, decode_latin1, get_type_name};
+use crate::utils::{
+    build_clip_schedule, build_clip_year_student_url, build_docs_url, decode_latin1, get_type_name,
+};
 use crate::{AppState, Session};
 
 #[command]
@@ -90,16 +93,7 @@ pub async fn get_student_info(
     session_id: String,
     student_id: String,
 ) -> Result<StudentInfo, String> {
-    // Clone the client out of the lock
-    let client = {
-        let sessions = state.sessions.lock();
-        match sessions.get(&session_id) {
-            Some(s) => s.client.clone(),
-            None => {
-                return Err("Session not found or expired".to_string());
-            }
-        }
-    };
+    let (client, _) = get_session(&state, &session_id)?;
 
     let url = format!(
         "https://clip.fct.unl.pt/utente/eu/aluno?aluno={}",
@@ -146,20 +140,7 @@ pub async fn get_chairs(
     student_id: String,
     year: String,
 ) -> Result<ChairsResponse, String> {
-    // Clone the client and aluno_ids out of the lock
-    let (client, _aluno_ids) = {
-        let sessions = state.sessions.lock();
-        match sessions.get(&session_id) {
-            Some(s) => (s.client.clone(), s.aluno_ids.clone()),
-            None => {
-                return Ok(ChairsResponse {
-                    success: false,
-                    chairs: None,
-                    error: Some("Session not found or expired".to_string()),
-                });
-            }
-        }
-    };
+    let (client, _) = get_session(&state, &session_id)?;
 
     let url = build_clip_year_student_url(&year, student_id.as_str());
 
@@ -192,19 +173,7 @@ pub async fn get_available_years(
     session_id: String,
     student_id: String,
 ) -> Result<serde_json::Value, String> {
-    let client = {
-        let sessions = state.sessions.lock();
-        match sessions.get(&session_id) {
-            Some(s) => s.client.clone(),
-            None => {
-                return Ok(serde_json::json!({
-                    "success": false,
-                    "years": [],
-                    "error": "Session not found or expired"
-                }));
-            }
-        }
-    };
+    let (client, _) = get_session(&state, &session_id)?;
 
     let url = format!(
         "https://clip.fct.unl.pt/utente/eu/aluno/ano_lectivo?aluno={}&instituição=97747",
@@ -230,20 +199,7 @@ pub async fn get_file(
     student_id: String,
     year: String,
 ) -> Result<FileResponse, String> {
-    let (client, _aluno_ids) = {
-        let sessions = state.sessions.lock();
-        match sessions.get(&params.session_id) {
-            Some(s) => (s.client.clone(), s.aluno_ids.clone()),
-            None => {
-                return Ok(FileResponse {
-                    success: false,
-                    data: None,
-                    filename: None,
-                    error: Some("Session not found or expired".to_string()),
-                });
-            }
-        }
-    };
+    let (client, _) = get_session(&state, &params.session_id)?;
 
     let file_types: Vec<String> = if params.file_type == "all" {
         FILE_TYPES
@@ -385,7 +341,10 @@ pub async fn get_file(
 #[command]
 pub async fn get_commands(
     state: State<'_, AppState>,
-    student_id: String,
+    session_id: String,
 ) -> Result<Schedule, String> {
+    let (client, student_ids) = get_session(&state, &session_id)?;
+
+    let url = build_clip_schedule(student_ids);
     todo!()
 }

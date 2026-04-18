@@ -3,7 +3,6 @@ use chrono::{Datelike, Local, NaiveDate};
 use crate::constants::{
     CLIP_HOME, CLIP_SCHEDULE, FILE_TYPES, PERIOD_N, PERIOD_TYPE, STUDENT, TYPE_FILE, UNIDADE, YEAR,
 };
-
 use crate::types::Semester;
 
 // ============================================================================
