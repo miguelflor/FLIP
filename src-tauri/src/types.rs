@@ -65,6 +65,42 @@ pub struct FileParams {
     pub year: String,
     pub type_period: String,
 }
+#[derive(Serialize, Deserialize)]
+pub enum Weekday {
+    #[serde(rename = "Monday")]
+    Monday,
+    #[serde(rename = "Tuesday")]
+    Tuesday,
+    #[serde(rename = "Wednesday")]
+    Wednesday,
+    #[serde(rename = "Thursday")]
+    Thursday,
+    #[serde(rename = "Friday")]
+    Friday,
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum ClassType {
+    #[serde(rename = "theoretical")]
+    Theoretical,
+    #[serde(rename = "practical")]
+    Practical,
+    #[serde(rename = "laboratory")]
+    Laboratory,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ScheduleItem {
+    pub day: Weekday,
+    pub time: String,
+    pub class: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub room: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub class_type: Option<ClassType>,
+}
+
+pub type Schedule = Vec<ScheduleItem>;
 
 #[derive(Debug)]
 pub enum Semester {

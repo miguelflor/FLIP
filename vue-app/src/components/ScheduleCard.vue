@@ -6,12 +6,10 @@
         <Calendar class="w-6 h-6 text-slate-600" />
         <div>
           <h3 class="text-xl font-bold text-slate-900">Horário Semanal</h3>
-          <p class="text-sm text-slate-500">
-            Segunda a Sexta
-          </p>
+          <p class="text-sm text-slate-500">Segunda a Sexta</p>
         </div>
       </div>
-      
+
       <!-- Export button - Official Google style -->
       <button
         @click="exportAllToGoogleCalendar"
@@ -26,31 +24,36 @@
     <div class="grid grid-cols-5 gap-3">
       <div v-for="day in weekDays" :key="day" class="min-h-[140px]">
         <!-- Day header -->
-        <div 
+        <div
           :class="[
             'text-center p-3 rounded-t-lg border-b',
-            isToday(day) 
-              ? 'bg-blue-50 border-blue-200 text-blue-900' 
-              : 'bg-slate-50 border-slate-200 text-slate-700'
+            isToday(day)
+              ? 'bg-blue-50 border-blue-200 text-blue-900'
+              : 'bg-slate-50 border-slate-200 text-slate-700',
           ]"
         >
-          <div 
+          <div
             :class="[
               'text-sm font-bold',
-              isToday(day) ? 'text-blue-600' : 'text-slate-900'
+              isToday(day) ? 'text-blue-600' : 'text-slate-900',
             ]"
           >
             {{ day }}
           </div>
         </div>
-        
+
         <!-- Day content -->
-        <div class="p-3 border-l border-r border-b border-slate-200 rounded-b-lg bg-white min-h-[100px]">
+        <div
+          class="p-3 border-l border-r border-b border-slate-200 rounded-b-lg bg-white min-h-[100px]"
+        >
           <div class="space-y-2">
             <div
               v-for="(item, idx) in getScheduleForDay(day)"
               :key="idx"
-              :class="['p-3 rounded-md border text-xs relative group', getTypeColor(item.tipo)]"
+              :class="[
+                'p-3 rounded-md border text-xs relative group',
+                getTypeColor(item.tipo),
+              ]"
             >
               <!-- Export button for individual class - Google style -->
               <button
@@ -60,19 +63,21 @@
               >
                 <img src="/google-logo.svg" alt="Google" class="w-3.5 h-3.5" />
               </button>
-              
+
               <div class="flex items-center space-x-1 mb-1">
                 <Clock class="w-3 h-3" />
                 <span class="font-medium">{{ item.hora }}</span>
               </div>
-              <div class="font-semibold truncate mb-1 pr-6">{{ item.aula }}</div>
+              <div class="font-semibold truncate mb-1 pr-6">
+                {{ item.aula }}
+              </div>
               <div v-if="item.sala" class="flex items-center space-x-1">
                 <MapPin class="w-3 h-3" />
                 <span>{{ item.sala }}</span>
               </div>
             </div>
-            <div 
-              v-if="getScheduleForDay(day).length === 0" 
+            <div
+              v-if="getScheduleForDay(day).length === 0"
               class="text-center py-4 text-slate-400 text-xs"
             >
               Sem aulas
@@ -90,11 +95,15 @@
           <span class="text-slate-600">Teórica</span>
         </div>
         <div class="flex items-center space-x-1">
-          <div class="w-3 h-3 bg-green-100 border border-green-200 rounded"></div>
+          <div
+            class="w-3 h-3 bg-green-100 border border-green-200 rounded"
+          ></div>
           <span class="text-slate-600">Prática</span>
         </div>
         <div class="flex items-center space-x-1">
-          <div class="w-3 h-3 bg-purple-100 border border-purple-200 rounded"></div>
+          <div
+            class="w-3 h-3 bg-purple-100 border border-purple-200 rounded"
+          ></div>
           <span class="text-slate-600">Laboratório</span>
         </div>
       </div>
@@ -103,104 +112,153 @@
 </template>
 
 <script setup lang="ts">
-import { Calendar, Clock, MapPin } from 'lucide-vue-next';
+import { Calendar, Clock, MapPin } from "lucide-vue-next";
+
+/** TODO: put this mtaching with tauri
+type Weekday = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday';
+type ClassType = 'theoretical' | 'practical' | 'laboratory';
+
+interface ScheduleItem {
+  day: Weekday;
+  time: string;
+  class: string;
+  room?: string;
+  class_type?: ClassType;
+}
+*/
 
 interface ScheduleItem {
   dia: string;
   hora: string;
   aula: string;
   sala?: string;
-  tipo?: 'teorica' | 'pratica' | 'laboratorio';
+  tipo?: "teorica" | "pratica" | "laboratorio";
 }
 
 const schedule: ScheduleItem[] = [
-  { dia: 'Segunda', hora: '10:00 - 12:00', aula: 'Cálculo II', sala: 'A101', tipo: 'teorica' },
-  { dia: 'Terça', hora: '14:00 - 16:00', aula: 'EDA', sala: 'Lab2', tipo: 'pratica' },
-  { dia: 'Quarta', hora: '09:00 - 11:00', aula: 'Física I', sala: 'B205', tipo: 'teorica' },
-  { dia: 'Quinta', hora: '16:00 - 18:00', aula: 'Programação', sala: 'Lab1', tipo: 'laboratorio' },
-  { dia: 'Sexta', hora: '11:00 - 13:00', aula: 'Álgebra Linear', sala: 'A203', tipo: 'teorica' },
+  {
+    dia: "Segunda",
+    hora: "10:00 - 12:00",
+    aula: "Cálculo II",
+    sala: "A101",
+    tipo: "teorica",
+  },
+  {
+    dia: "Terça",
+    hora: "14:00 - 16:00",
+    aula: "EDA",
+    sala: "Lab2",
+    tipo: "pratica",
+  },
+  {
+    dia: "Quarta",
+    hora: "09:00 - 11:00",
+    aula: "Física I",
+    sala: "B205",
+    tipo: "teorica",
+  },
+  {
+    dia: "Quinta",
+    hora: "16:00 - 18:00",
+    aula: "Programação",
+    sala: "Lab1",
+    tipo: "laboratorio",
+  },
+  {
+    dia: "Sexta",
+    hora: "11:00 - 13:00",
+    aula: "Álgebra Linear",
+    sala: "A203",
+    tipo: "teorica",
+  },
 ];
 
-const weekDays = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'];
+const weekDays = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"];
 
 const getTypeColor = (tipo?: string) => {
   switch (tipo) {
-    case 'teorica': return 'bg-blue-100 text-blue-800 border-blue-200';
-    case 'pratica': return 'bg-green-100 text-green-800 border-green-200';
-    case 'laboratorio': return 'bg-purple-100 text-purple-800 border-purple-200';
-    default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    case "teorica":
+      return "bg-blue-100 text-blue-800 border-blue-200";
+    case "pratica":
+      return "bg-green-100 text-green-800 border-green-200";
+    case "laboratorio":
+      return "bg-purple-100 text-purple-800 border-purple-200";
+    default:
+      return "bg-gray-100 text-gray-800 border-gray-200";
   }
 };
 
 const isToday = (dayName: string) => {
   const today = new Date();
-  const currentDayName = today.toLocaleDateString('pt-PT', { weekday: 'long' });
+  const currentDayName = today.toLocaleDateString("pt-PT", { weekday: "long" });
   const dayMap: { [key: string]: string } = {
-    'segunda-feira': 'Segunda',
-    'terça-feira': 'Terça',
-    'quarta-feira': 'Quarta',
-    'quinta-feira': 'Quinta',
-    'sexta-feira': 'Sexta'
+    "segunda-feira": "Segunda",
+    "terça-feira": "Terça",
+    "quarta-feira": "Quarta",
+    "quinta-feira": "Quinta",
+    "sexta-feira": "Sexta",
   };
   return dayMap[currentDayName.toLowerCase()] === dayName;
 };
 
 const getScheduleForDay = (dayName: string) => {
-  return schedule.filter(item => item.dia === dayName);
+  return schedule.filter((item) => item.dia === dayName);
 };
 
 // Google Calendar export functions
 const getDayOfWeek = (dayName: string) => {
   const dayMap: { [key: string]: number } = {
-    'Segunda': 1, // Monday
-    'Terça': 2,   // Tuesday
-    'Quarta': 3,  // Wednesday
-    'Quinta': 4,  // Thursday
-    'Sexta': 5    // Friday
+    Segunda: 1, // Monday
+    Terça: 2, // Tuesday
+    Quarta: 3, // Wednesday
+    Quinta: 4, // Thursday
+    Sexta: 5, // Friday
   };
   return dayMap[dayName];
 };
 
 const getNextOccurrence = (dayOfWeek: number, timeString: string) => {
   const today = new Date();
-  const [startTime] = timeString.split(' - ');
-  const [hours, minutes] = startTime.split(':').map(Number);
-  
+  const [startTime] = timeString.split(" - ");
+  const [hours, minutes] = startTime.split(":").map(Number);
+
   // Get the next occurrence of this day
   const nextDate = new Date(today);
   const todayDayOfWeek = today.getDay() === 0 ? 7 : today.getDay(); // Convert Sunday from 0 to 7
   const daysUntil = dayOfWeek - todayDayOfWeek;
   const daysToAdd = daysUntil >= 0 ? daysUntil : daysUntil + 7;
-  
+
   nextDate.setDate(today.getDate() + daysToAdd);
   nextDate.setHours(hours, minutes, 0, 0);
-  
+
   return nextDate;
 };
 
 const formatDateForGoogle = (date: Date) => {
-  return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+  return date.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
 };
 
 const exportToGoogleCalendar = (item: ScheduleItem) => {
   const dayOfWeek = getDayOfWeek(item.dia);
-  const [, endTime] = item.hora.split(' - ');
-  
+  const [, endTime] = item.hora.split(" - ");
+
   const startDate = getNextOccurrence(dayOfWeek, item.hora);
-  const [endHours, endMinutes] = endTime.split(':').map(Number);
+  const [endHours, endMinutes] = endTime.split(":").map(Number);
   const endDate = new Date(startDate);
   endDate.setHours(endHours, endMinutes, 0, 0);
-  
+
   const title = encodeURIComponent(item.aula);
-  const details = encodeURIComponent(`Tipo: ${item.tipo}\nSala: ${item.sala || 'N/A'}`);
-  const location = encodeURIComponent(item.sala || '');
-  
+  const details = encodeURIComponent(
+    `Tipo: ${item.tipo}\nSala: ${item.sala || "N/A"}`,
+  );
+  const location = encodeURIComponent(item.sala || "");
+
   const startDateStr = formatDateForGoogle(startDate);
   const endDateStr = formatDateForGoogle(endDate);
-  
+
   const googleCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startDateStr}/${endDateStr}&details=${details}&location=${location}&recur=RRULE:FREQ=WEEKLY`;
-  
-  window.open(googleCalendarUrl, '_blank');
+
+  window.open(googleCalendarUrl, "_blank");
 };
 
 const exportAllToGoogleCalendar = () => {

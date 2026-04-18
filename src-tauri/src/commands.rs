@@ -14,7 +14,9 @@ use crate::constants::{CLIP_BASE, CLIP_HOME, FILE_TYPES, USER_AGENT};
 use crate::parser::{
     extract_aluno_ids, extract_student_info, parse_chairs, parse_file_urls, ParsedStudentInfo,
 };
-use crate::types::{ChairsResponse, FileParams, FileResponse, LoginResponse, StudentInfo};
+use crate::types::{
+    ChairsResponse, FileParams, FileResponse, LoginResponse, Schedule, StudentInfo,
+};
 use crate::utils::{build_clip_year_student_url, build_docs_url, decode_latin1, get_type_name};
 use crate::{AppState, Session};
 
@@ -384,5 +386,6 @@ pub async fn get_file(
 pub async fn get_commands(
     state: State<'_, AppState>,
     student_id: String,
-) -> Result<Calender, String> {
+) -> Result<Schedule, String> {
+    todo!()
 }
