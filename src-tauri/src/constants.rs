@@ -17,6 +17,9 @@ pub const YEAR: &str = "ano_lectivo";
 pub const UNIDADE: &str = "unidade";
 pub const STUDENT: &str = "aluno";
 
+// CLIP details
+pub const N_ROWS_SCHEDULE_TABLE: usize = 32;
+
 // File types
 pub const FILE_TYPES: &[(&str, &str)] = &[
     ("0ac", "Multimedia"),

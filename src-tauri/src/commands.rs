@@ -5,12 +5,13 @@ use std::sync::Arc;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use reqwest::Client;
 use reqwest_cookie_store::{CookieStore, CookieStoreMutex};
+use scraper::{Html, Selector};
 use tauri::{command, State};
 use uuid::Uuid;
 use zip::write::SimpleFileOptions;
 use zip::ZipWriter;
 
-use crate::constants::{CLIP_BASE, CLIP_HOME, FILE_TYPES, USER_AGENT};
+use crate::constants::{CLIP_BASE, CLIP_HOME, FILE_TYPES, N_ROWS_SCHEDULE_TABLE, USER_AGENT};
 use crate::parser::{
     extract_aluno_ids, extract_student_info, parse_chairs, parse_file_urls, ParsedStudentInfo,
 };
@@ -339,12 +340,30 @@ pub async fn get_file(
 }
 
 #[command]
-pub async fn get_commands(
+pub async fn get_shedule(
     state: State<'_, AppState>,
     session_id: String,
 ) -> Result<Schedule, String> {
     let (client, student_ids) = get_session(&state, &session_id)?;
+    let first_id = student_ids.values().next();
 
-    let url = build_clip_schedule(student_ids);
+    let url = build_clip_schedule(first_id.ok_or("There is no student id")?);
+    let res = client.get(&url).send().await.map_err(|e| e.to_string())?;
+
+    if !res.status().is_success() {
+        return Err("The CLIP is working ...".to_string());
+    }
+
+    let html_bytes = res.bytes().await.map_err(|e| e.to_string())?;
+    let html = decode_latin1(&html_bytes);
+    let doc = Html::parse_document(&html);
+    let table_selector = Selector::parse("table").unwrap();
+
+    let html_schedule = doc
+        .select(&table_selector)
+        .find(|t| t.select(&Selector::parse("tr").unwrap()).count() == N_ROWS_SCHEDULE_TABLE);
+    
+
+
     todo!()
 }
