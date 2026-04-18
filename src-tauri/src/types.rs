@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
+use crate::constants::{SEMESTER_URL_TYPE, TRIMESTER_URL_TYPE};
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -62,4 +64,26 @@ pub struct FileParams {
     pub name: String,
     pub year: String,
     pub type_period: String,
+}
+
+#[derive(Debug)]
+pub enum Semester {
+    First,
+    MidYear,
+    Second,
+}
+impl Semester {
+    pub fn url_type(&self) -> &str {
+        match self {
+            Semester::First | Semester::Second => SEMESTER_URL_TYPE,
+            Semester::MidYear => TRIMESTER_URL_TYPE,
+        }
+    }
+
+    pub fn url_num(&self) -> &str {
+        match self {
+            Semester::First | Semester::MidYear => "1",
+            Semester::Second => "2",
+        }
+    }
 }

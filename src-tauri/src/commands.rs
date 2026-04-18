@@ -10,8 +10,10 @@ use uuid::Uuid;
 use zip::write::SimpleFileOptions;
 use zip::ZipWriter;
 
-use crate::constants::{CLIP_HOME, CLIP_BASE, FILE_TYPES, USER_AGENT};
-use crate::parser::{extract_aluno_ids, extract_student_info, parse_chairs, parse_file_urls, ParsedStudentInfo};
+use crate::constants::{CLIP_BASE, CLIP_HOME, FILE_TYPES, USER_AGENT};
+use crate::parser::{
+    extract_aluno_ids, extract_student_info, parse_chairs, parse_file_urls, ParsedStudentInfo,
+};
 use crate::types::{ChairsResponse, FileParams, FileResponse, LoginResponse, StudentInfo};
 use crate::utils::{build_clip_year_student_url, build_docs_url, decode_latin1, get_type_name};
 use crate::{AppState, Session};
@@ -73,7 +75,7 @@ pub async fn login(
 
         Ok(LoginResponse {
             session_id: session_id_copy,
-            aluno_ids
+            aluno_ids,
         })
     } else {
         Err("Login Failed - Clip Error".to_string())
@@ -84,7 +86,7 @@ pub async fn login(
 pub async fn get_student_info(
     state: State<'_, AppState>,
     session_id: String,
-    student_id: String
+    student_id: String,
 ) -> Result<StudentInfo, String> {
     // Clone the client out of the lock
     let client = {
@@ -102,14 +104,13 @@ pub async fn get_student_info(
         student_id
     );
 
-    let response = client
-        .get(&url)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
+    let response = client.get(&url).send().await.map_err(|e| e.to_string())?;
 
     if !response.status().is_success() {
-        return Err(format!("Failed to fetch student info: {}", response.status()));
+        return Err(format!(
+            "Failed to fetch student info: {}",
+            response.status()
+        ));
     }
 
     let html_bytes = response.bytes().await.map_err(|e| e.to_string())?;
@@ -119,21 +120,17 @@ pub async fn get_student_info(
     if let Some(parsed_info) = extract_student_info(&html) {
         // Fetch the photo image and convert to base64
         let photo_data = match client.get(&parsed_info.photo_url).send().await {
-            Ok(img_response) => {
-                match img_response.bytes().await {
-                    Ok(img_bytes) => {
-                        Some(STANDARD.encode(&img_bytes))
-                    }
-                    Err(_) => None,
-                }
-            }
+            Ok(img_response) => match img_response.bytes().await {
+                Ok(img_bytes) => Some(STANDARD.encode(&img_bytes)),
+                Err(_) => None,
+            },
             Err(_) => None,
         };
 
         Ok(StudentInfo {
             photo_data,
             student_name: parsed_info.student_name,
-            course: parsed_info.course
+            course: parsed_info.course,
         })
     } else {
         Err("Failed to parse student information".to_string())
@@ -164,11 +161,7 @@ pub async fn get_chairs(
 
     let url = build_clip_year_student_url(&year, student_id.as_str());
 
-    let response = client
-        .get(&url)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
+    let response = client.get(&url).send().await.map_err(|e| e.to_string())?;
 
     if !response.status().is_success() {
         return Ok(ChairsResponse {
@@ -216,11 +209,7 @@ pub async fn get_available_years(
         student_id
     );
 
-    let response = client
-        .get(&url)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
+    let response = client.get(&url).send().await.map_err(|e| e.to_string())?;
 
     let body = response.text().await.map_err(|e| e.to_string())?;
     let years = crate::parser::extract_years(&body);
@@ -291,11 +280,7 @@ pub async fn get_file(
 
             println!("{}", url.to_string());
 
-            let response = match client
-                .get(&url)
-                .send()
-                .await
-            {
+            let response = match client.get(&url).send().await {
                 Ok(r) => r,
                 Err(_) => return files,
             };
@@ -320,11 +305,7 @@ pub async fn get_file(
 
                 let file_handle = tokio::spawn(async move {
                     let file_url = format!("{}{}", CLIP_BASE, href);
-                    let file_response = match client
-                        .get(&file_url)
-                        .send()
-                        .await
-                    {
+                    let file_response = match client.get(&file_url).send().await {
                         Ok(r) => r,
                         Err(_) => return None,
                     };
@@ -397,4 +378,11 @@ pub async fn get_file(
         filename: Some(format!("{}-{}.zip", params.name, params.period)),
         error: None,
     })
+}
+
+#[command]
+pub async fn get_commands(
+    state: State<'_, AppState>,
+    student_id: String,
+) -> Result<Calender, String> {
 }
