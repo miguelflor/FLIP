@@ -1,6 +1,7 @@
 mod commands;
 mod constants;
 mod parser;
+mod session;
 mod types;
 mod utils;
 

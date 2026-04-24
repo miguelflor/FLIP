@@ -5,15 +5,23 @@ use std::sync::Arc;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use reqwest::Client;
 use reqwest_cookie_store::{CookieStore, CookieStoreMutex};
+use scraper::{Html, Selector};
 use tauri::{command, State};
 use uuid::Uuid;
 use zip::write::SimpleFileOptions;
 use zip::ZipWriter;
 
-use crate::constants::{CLIP_HOME, CLIP_BASE, FILE_TYPES, USER_AGENT};
-use crate::parser::{extract_aluno_ids, extract_student_info, parse_chairs, parse_file_urls, ParsedStudentInfo};
-use crate::types::{ChairsResponse, FileParams, FileResponse, LoginResponse, StudentInfo};
-use crate::utils::{build_clip_year_student_url, build_docs_url, decode_latin1, get_type_name};
+use crate::constants::{CLIP_BASE, CLIP_HOME, FILE_TYPES, N_ROWS_SCHEDULE_TABLE, USER_AGENT};
+use crate::parser::{
+    extract_aluno_ids, extract_student_info, parse_chairs, parse_file_urls, ParsedStudentInfo,
+};
+use crate::session::get_session;
+use crate::types::{
+    ChairsResponse, FileParams, FileResponse, LoginResponse, Schedule, StudentInfo,
+};
+use crate::utils::{
+    build_clip_schedule, build_clip_year_student_url, build_docs_url, decode_latin1, get_type_name,
+};
 use crate::{AppState, Session};
 
 #[command]
@@ -73,7 +81,7 @@ pub async fn login(
 
         Ok(LoginResponse {
             session_id: session_id_copy,
-            aluno_ids
+            aluno_ids,
         })
     } else {
         Err("Login Failed - Clip Error".to_string())
@@ -84,32 +92,22 @@ pub async fn login(
 pub async fn get_student_info(
     state: State<'_, AppState>,
     session_id: String,
-    student_id: String
+    student_id: String,
 ) -> Result<StudentInfo, String> {
-    // Clone the client out of the lock
-    let client = {
-        let sessions = state.sessions.lock();
-        match sessions.get(&session_id) {
-            Some(s) => s.client.clone(),
-            None => {
-                return Err("Session not found or expired".to_string());
-            }
-        }
-    };
+    let (client, _) = get_session(&state, &session_id)?;
 
     let url = format!(
         "https://clip.fct.unl.pt/utente/eu/aluno?aluno={}",
         student_id
     );
 
-    let response = client
-        .get(&url)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
+    let response = client.get(&url).send().await.map_err(|e| e.to_string())?;
 
     if !response.status().is_success() {
-        return Err(format!("Failed to fetch student info: {}", response.status()));
+        return Err(format!(
+            "Failed to fetch student info: {}",
+            response.status()
+        ));
     }
 
     let html_bytes = response.bytes().await.map_err(|e| e.to_string())?;
@@ -119,21 +117,17 @@ pub async fn get_student_info(
     if let Some(parsed_info) = extract_student_info(&html) {
         // Fetch the photo image and convert to base64
         let photo_data = match client.get(&parsed_info.photo_url).send().await {
-            Ok(img_response) => {
-                match img_response.bytes().await {
-                    Ok(img_bytes) => {
-                        Some(STANDARD.encode(&img_bytes))
-                    }
-                    Err(_) => None,
-                }
-            }
+            Ok(img_response) => match img_response.bytes().await {
+                Ok(img_bytes) => Some(STANDARD.encode(&img_bytes)),
+                Err(_) => None,
+            },
             Err(_) => None,
         };
 
         Ok(StudentInfo {
             photo_data,
             student_name: parsed_info.student_name,
-            course: parsed_info.course
+            course: parsed_info.course,
         })
     } else {
         Err("Failed to parse student information".to_string())
@@ -147,28 +141,11 @@ pub async fn get_chairs(
     student_id: String,
     year: String,
 ) -> Result<ChairsResponse, String> {
-    // Clone the client and aluno_ids out of the lock
-    let (client, _aluno_ids) = {
-        let sessions = state.sessions.lock();
-        match sessions.get(&session_id) {
-            Some(s) => (s.client.clone(), s.aluno_ids.clone()),
-            None => {
-                return Ok(ChairsResponse {
-                    success: false,
-                    chairs: None,
-                    error: Some("Session not found or expired".to_string()),
-                });
-            }
-        }
-    };
+    let (client, _) = get_session(&state, &session_id)?;
 
     let url = build_clip_year_student_url(&year, student_id.as_str());
 
-    let response = client
-        .get(&url)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
+    let response = client.get(&url).send().await.map_err(|e| e.to_string())?;
 
     if !response.status().is_success() {
         return Ok(ChairsResponse {
@@ -197,30 +174,14 @@ pub async fn get_available_years(
     session_id: String,
     student_id: String,
 ) -> Result<serde_json::Value, String> {
-    let client = {
-        let sessions = state.sessions.lock();
-        match sessions.get(&session_id) {
-            Some(s) => s.client.clone(),
-            None => {
-                return Ok(serde_json::json!({
-                    "success": false,
-                    "years": [],
-                    "error": "Session not found or expired"
-                }));
-            }
-        }
-    };
+    let (client, _) = get_session(&state, &session_id)?;
 
     let url = format!(
         "https://clip.fct.unl.pt/utente/eu/aluno/ano_lectivo?aluno={}&instituição=97747",
         student_id
     );
 
-    let response = client
-        .get(&url)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
+    let response = client.get(&url).send().await.map_err(|e| e.to_string())?;
 
     let body = response.text().await.map_err(|e| e.to_string())?;
     let years = crate::parser::extract_years(&body);
@@ -239,20 +200,7 @@ pub async fn get_file(
     student_id: String,
     year: String,
 ) -> Result<FileResponse, String> {
-    let (client, _aluno_ids) = {
-        let sessions = state.sessions.lock();
-        match sessions.get(&params.session_id) {
-            Some(s) => (s.client.clone(), s.aluno_ids.clone()),
-            None => {
-                return Ok(FileResponse {
-                    success: false,
-                    data: None,
-                    filename: None,
-                    error: Some("Session not found or expired".to_string()),
-                });
-            }
-        }
-    };
+    let (client, _) = get_session(&state, &params.session_id)?;
 
     let file_types: Vec<String> = if params.file_type == "all" {
         FILE_TYPES
@@ -291,11 +239,7 @@ pub async fn get_file(
 
             println!("{}", url.to_string());
 
-            let response = match client
-                .get(&url)
-                .send()
-                .await
-            {
+            let response = match client.get(&url).send().await {
                 Ok(r) => r,
                 Err(_) => return files,
             };
@@ -320,11 +264,7 @@ pub async fn get_file(
 
                 let file_handle = tokio::spawn(async move {
                     let file_url = format!("{}{}", CLIP_BASE, href);
-                    let file_response = match client
-                        .get(&file_url)
-                        .send()
-                        .await
-                    {
+                    let file_response = match client.get(&file_url).send().await {
                         Ok(r) => r,
                         Err(_) => return None,
                     };
@@ -397,4 +337,37 @@ pub async fn get_file(
         filename: Some(format!("{}-{}.zip", params.name, params.period)),
         error: None,
     })
+}
+
+#[command]
+pub async fn get_shedule(
+    state: State<'_, AppState>,
+    session_id: String,
+) -> Result<Schedule, String> {
+    let (client, student_ids) = get_session(&state, &session_id)?;
+    let first_id = student_ids.values().next();
+
+    let url = build_clip_schedule(first_id.ok_or("There is no student id")?);
+    let res = client.get(&url).send().await.map_err(|e| e.to_string())?;
+
+    if !res.status().is_success() {
+        return Err("The CLIP is working ...".to_string());
+    }
+
+    let html_bytes = res.bytes().await.map_err(|e| e.to_string())?;
+    let html = decode_latin1(&html_bytes);
+    let doc = Html::parse_document(&html);
+    let table_selector = Selector::parse("table").unwrap();
+
+    let html_schedule = doc
+        .select(&table_selector)
+        .find(|t| t.select(&Selector::parse("tr").unwrap()).count() == N_ROWS_SCHEDULE_TABLE)
+        .ok_or("The table of the schedule is not beeing detected")?;
+
+    let tr_select = Selector::parse("tr").unwrap();
+
+    let mut is_first_row = false;
+    for row in html_schedule.select(&tr_select) {}
+
+    todo!();
 }
