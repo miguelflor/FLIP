@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, u8};
 
 use serde::{Deserialize, Serialize};
 
@@ -98,6 +98,34 @@ pub struct ScheduleItem {
     pub room: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub class_type: Option<ClassType>,
+}
+
+const HALF_HOUR: u8 = 30;
+const HOUR_MIN: u8 = 60;
+
+pub struct HourMinute {
+    pub hour: u8,
+    pub min: u8,
+}
+
+impl Default for HourMinute {
+    fn default() -> Self {
+        Self { hour: 8, min: 0 }
+    }
+}
+impl HourMinute {
+    fn add_half_hour(&mut self) {
+        if self.min + HALF_HOUR >= 60 {
+            self.min = (self.min + HALF_HOUR) - HOUR_MIN;
+            if self.hour == 23 {
+                self.hour = 0;
+            } else {
+                self.hour += 1
+            }
+        } else {
+            self.min += HALF_HOUR;
+        }
+    }
 }
 
 pub type Schedule = Vec<ScheduleItem>;
