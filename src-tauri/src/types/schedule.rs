@@ -27,7 +27,7 @@ pub enum ClassType {
 #[derive(Serialize, Deserialize)]
 pub struct ScheduleItem {
     pub day: Weekday,
-    pub time: String,
+    pub time: HourMinute,
     pub class: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub room: Option<String>,
@@ -38,6 +38,7 @@ pub struct ScheduleItem {
 const HALF_HOUR: u8 = 30;
 const HOUR_MIN: u8 = 60;
 
+#[derive(Serialize, Deserialize)]
 pub struct HourMinute {
     pub hour: u8,
     pub min: u8,
