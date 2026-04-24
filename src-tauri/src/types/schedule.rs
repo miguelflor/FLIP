@@ -66,3 +66,17 @@ impl HourMinute {
 }
 
 pub type Schedule = Vec<ScheduleItem>;
+
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_add_to_default_half_hour_24_times_is_20_hour() {
+        let mut hm = HourMinute::default();
+        for _ in 0..24 {
+            hm.add_half_hour();
+        }
+        assert_eq!(hm.hour, 20);
+        assert_eq!(hm.min, 0);
+    }
+}
