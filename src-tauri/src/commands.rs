@@ -361,9 +361,13 @@ pub async fn get_shedule(
 
     let html_schedule = doc
         .select(&table_selector)
-        .find(|t| t.select(&Selector::parse("tr").unwrap()).count() == N_ROWS_SCHEDULE_TABLE);
-    
+        .find(|t| t.select(&Selector::parse("tr").unwrap()).count() == N_ROWS_SCHEDULE_TABLE)
+        .ok_or("The table of the schedule is not beeing detected")?;
 
+    let tr_select = Selector::parse("tr").unwrap();
 
-    todo!()
+    let mut is_first_row = false;
+    for row in html_schedule.select(&tr_select) {}
+
+    todo!();
 }
