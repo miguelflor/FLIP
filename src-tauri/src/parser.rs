@@ -14,9 +14,7 @@ pub struct ParsedStudentInfo {
     pub course: String,
 }
 
-// ============================================================================
-// HTML Parsing Functions
-// ============================================================================
+// Parsing Functions
 
 pub fn extract_aluno_ids(html: &str) -> HashMap<String, String> {
     let document = Html::parse_document(html);
