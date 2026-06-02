@@ -4,8 +4,8 @@ use scraper::{Html, Selector};
 use strum::IntoEnumIterator;
 
 use crate::constants::{N_ROWS_SCHEDULE_TABLE, PERIOD_N, PERIOD_TYPE};
-use crate::types::HourMinute;
-use crate::types::{Chair, ChairsByPeriod, Weekday};
+use crate::types::{Chair, ChairsByPeriod, ClassType, ScheduleItem, Weekday};
+use crate::types::{HourMinute, Schedule};
 
 // Helper struct for parsing student info
 pub struct ParsedStudentInfo {
@@ -196,14 +196,53 @@ pub fn parse_schedule(html: &str) {
     let mut hm = HourMinute::default();
     let rows: Vec<_> = html_schedule.select(&tr_select).collect();
 
+    let schedule = Schedule::default();
+
+    // Each tr is half an hour in clip schedule
     for row in &rows[1..] {
         hm.add_half_hour();
         let td_select = Selector::parse("td").unwrap();
         let columns: Vec<_> = row.select(&td_select).collect();
-        for (day, column) in Weekday::iter().zip(&columns[1..]) {
+
+        // Each td is a weekday
+        for (weekday, column) in Weekday::iter().zip(&columns[1..]) {
+            if let Some(rowspan_str) = column.attr("rowspan") {
+                if let Ok(span_value) = rowspan_str.parse::<usize>() {
+                    // Each <b><b/> has the name of the class
+                    let b_select = Selector::parse("b").unwrap();
+                    let bs: Vec<_> = column.select(&b_select).collect();
+                    if let Some(b) = bs.first() {
+                        let class: String = b.text().collect();
+
+                        // Each anchor <a></a> has the type and class number (e.g. "t.1", "p", "tp")
+                        let anchor_select = Selector::parse("a").unwrap();
+                        let anchors: Vec<_> = column.select(&anchor_select).collect();
+                        if let Some(anchor) = anchors.first() {
+                            let type_number_str: String = anchor.text().collect();
+                            let mut parts = type_number_str.splitn(2, '.');
+                            let class_type = parts
+                                .next()
+                                .and_then(|s| ClassType::try_from(s).ok());
+                            let class_number: Option<u8> = parts
+                                .next()
+                                .and_then(|s| s.parse().ok());
+                        } else {
+                            println!("No anchor found for this rowspanned td!")
+                        }
+                    } else {
+                        println!("No class name found for this rowspaned td!")
+                    }
+
+                    // schedule.add_schedule_item(ScheduleItem {
+                    //     day: weekday,
+                    //     time_start: hm,
+                    //     time_end: hm.add_half_hours(span_value),
+                    // });
+                }
+            }
+
             //TODO: Search for each td check if it has a rowspan,
             // if so then:
-            // the number of rowspan x 30min is the time of the class
             // between <b></b> is the name of the class
             // between <a></a> is the shift
             // at the end the location
