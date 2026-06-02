@@ -211,27 +211,41 @@ pub fn parse_schedule(html: &str) {
                     // Each <b><b/> has the name of the class
                     let b_select = Selector::parse("b").unwrap();
                     let bs: Vec<_> = column.select(&b_select).collect();
-                    if let Some(b) = bs.first() {
-                        let class: String = b.text().collect();
+                    let Some(b) = bs.first() else {
+                        println!("No class name found for this rowspanned td!");
+                        continue;
+                    };
+                    let class: String = b.text().collect();
 
-                        // Each anchor <a></a> has the type and class number (e.g. "t.1", "p", "tp")
-                        let anchor_select = Selector::parse("a").unwrap();
-                        let anchors: Vec<_> = column.select(&anchor_select).collect();
-                        if let Some(anchor) = anchors.first() {
-                            let type_number_str: String = anchor.text().collect();
-                            let mut parts = type_number_str.splitn(2, '.');
-                            let class_type = parts
-                                .next()
-                                .and_then(|s| ClassType::try_from(s).ok());
-                            let class_number: Option<u8> = parts
-                                .next()
-                                .and_then(|s| s.parse().ok());
-                        } else {
-                            println!("No anchor found for this rowspanned td!")
-                        }
-                    } else {
-                        println!("No class name found for this rowspaned td!")
-                    }
+                    // Each anchor <a></a> has the type and class number (e.g. "t.1", "p", "tp")
+                    let anchor_select = Selector::parse("a").unwrap();
+                    let anchors: Vec<_> = column.select(&anchor_select).collect();
+                    let Some(anchor) = anchors.first() else {
+                        println!("No anchor found for this rowspanned td!");
+                        continue;
+                    };
+                    // e.g "t.1"
+                    let type_number_str: String = anchor.text().collect();
+                    let mut parts = type_number_str.splitn(2, '.');
+                    // e.g "t"
+                    let Some(class_type) = parts.next().and_then(|s| ClassType::try_from(s).ok()) else {
+                        println!("Could not parse class type from: {}", type_number_str);
+                        continue;
+                    };
+                    // e.g "1"
+                    let Some(class_number) = parts.next().and_then(|s| s.parse::<u8>().ok()) else {
+                        println!("Could not parse class number from: {}", type_number_str);
+                        continue;
+                    };
+                    // Room is the first non-empty text node in the column
+                    let Some(room) = column
+                        .children()
+                        .filter_map(|n| n.value().as_text().map(|t| t.trim().to_string()))
+                        .find(|t| !t.is_empty())
+                    else {
+                        println!("No room found for: {}", type_number_str);
+                        continue;
+                    };
 
                     // schedule.add_schedule_item(ScheduleItem {
                     //     day: weekday,
