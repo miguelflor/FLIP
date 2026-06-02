@@ -182,7 +182,7 @@ pub fn extract_years(html: &str) -> Vec<String> {
     years
 }
 
-pub fn parse_schedule(html: &str) {
+pub fn parse_schedule(html: &str) -> Schedule {
     let doc = Html::parse_document(html);
     let table_selector = Selector::parse("table").unwrap();
 
@@ -264,4 +264,5 @@ pub fn parse_schedule(html: &str) {
             }
         }
     }
+    return schedule;
 }
