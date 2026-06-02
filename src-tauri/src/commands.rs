@@ -10,15 +10,12 @@ use uuid::Uuid;
 use zip::write::SimpleFileOptions;
 use zip::ZipWriter;
 
-use crate::constants::{CLIP_BASE, CLIP_HOME, FILE_TYPES, N_ROWS_SCHEDULE_TABLE, USER_AGENT};
+use crate::constants::{CLIP_BASE, CLIP_HOME, FILE_TYPES, USER_AGENT};
 use crate::parser::{
     extract_aluno_ids, extract_student_info, parse_chairs, parse_file_urls, parse_schedule,
 };
 use crate::session::get_session;
-use crate::types::{
-    ChairsResponse, FileParams, FileResponse, HourMinute, LoginResponse, Schedule, StudentInfo,
-    Weekday,
-};
+use crate::types::{ChairsResponse, FileParams, FileResponse, LoginResponse, Schedule, StudentInfo};
 use crate::utils::{
     build_clip_schedule, build_clip_year_student_url, build_docs_url, decode_latin1, get_type_name,
 };
@@ -358,7 +355,5 @@ pub async fn get_schedule(
     let html_bytes = res.bytes().await.map_err(|e| e.to_string())?;
     let html = decode_latin1(&html_bytes);
 
-    parse_schedule(&html);
-
-    todo!()
+    Ok(parse_schedule(&html))
 }
