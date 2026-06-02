@@ -53,3 +53,5 @@ chrono = "0.4"
 # Character encoding (CLIP uses ISO-8859-1)
 encoding_rs = "0.8"
 const_format = "0.2.36"
+strum = { version = "0.28.0", features = ["derive"] }
+strum_macros = "0.28.0"

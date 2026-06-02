@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
+use strum_macros::EnumIter;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, EnumIter)]
 pub enum Weekday {
     #[serde(rename = "Monday")]
     Monday,
@@ -12,6 +13,10 @@ pub enum Weekday {
     Thursday,
     #[serde(rename = "Friday")]
     Friday,
+    #[serde(rename = "Saturday")]
+    Saturday,
+    #[serde(rename = "Sunday")]
+    Sunday,
 }
 
 #[derive(Serialize, Deserialize)]
