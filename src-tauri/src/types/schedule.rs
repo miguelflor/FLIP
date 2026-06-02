@@ -89,7 +89,7 @@ impl HourMinute {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Serialize)]
 pub struct Schedule(Vec<ScheduleItem>);
 
 impl Schedule {
