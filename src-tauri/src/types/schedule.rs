@@ -44,15 +44,13 @@ impl TryFrom<&str> for ClassType {
 
 #[derive(Serialize, Deserialize)]
 pub struct ScheduleItem {
-    pub day: Weekday,
+    pub weekday: Weekday,
     pub time_start: HourMinute,
     pub time_end: HourMinute,
     pub class: String,
     pub class_number: u8,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub room: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub class_type: Option<ClassType>,
+    pub location: String,
+    pub class_type: ClassType,
 }
 
 const HALF_HOUR: u8 = 30;
