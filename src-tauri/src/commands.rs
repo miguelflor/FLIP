@@ -5,24 +5,23 @@ use std::sync::Arc;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use reqwest::Client;
 use reqwest_cookie_store::{CookieStore, CookieStoreMutex};
-use scraper::{Html, Selector};
 use tauri::{command, State};
 use uuid::Uuid;
 use zip::write::SimpleFileOptions;
 use zip::ZipWriter;
 
-use crate::constants::{CLIP_BASE, CLIP_HOME, FILE_TYPES, N_ROWS_SCHEDULE_TABLE, USER_AGENT};
+use crate::constants::{CLIP_BASE, CLIP_HOME, FILE_TYPES, USER_AGENT};
 use crate::parser::{
-    extract_aluno_ids, extract_student_info, parse_chairs, parse_file_urls, ParsedStudentInfo,
+    extract_aluno_ids, extract_student_info, parse_chairs, parse_file_urls, parse_schedule,
 };
 use crate::session::get_session;
-use crate::types::{
-    ChairsResponse, FileParams, FileResponse, LoginResponse, Schedule, StudentInfo,
-};
+use crate::types::{ChairsResponse, FileParams, FileResponse, LoginResponse, Schedule, StudentInfo};
 use crate::utils::{
     build_clip_schedule, build_clip_year_student_url, build_docs_url, decode_latin1, get_type_name,
 };
 use crate::{AppState, Session};
+
+type VecThr<T> = Vec<tokio::task::JoinHandle<T>>;
 
 #[command]
 pub async fn login(
@@ -214,7 +213,7 @@ pub async fn get_file(
     let folder_name = format!("{}-{}", year, params.name);
 
     // Spawn a task per file type
-    let mut handles: Vec<tokio::task::JoinHandle<Vec<(String, Vec<u8>)>>> = Vec::new();
+    let mut handles: VecThr<Vec<(String, Vec<u8>)>> = Vec::new();
 
     for type_code in file_types {
         let client = client.clone();
@@ -237,7 +236,7 @@ pub async fn get_file(
                 &type_code,
             );
 
-            println!("{}", url.to_string());
+            println!("{}", url);
 
             let response = match client.get(&url).send().await {
                 Ok(r) => r,
@@ -254,8 +253,7 @@ pub async fn get_file(
             let type_folder = format!("{}/{}", folder_name, get_type_name(&type_code));
 
             // Spawn a subtask per file
-            let mut file_handles: Vec<tokio::task::JoinHandle<Option<(String, Vec<u8>)>>> =
-                Vec::new();
+            let mut file_handles: VecThr<Option<(String, Vec<u8>)>> = Vec::new();
 
             for href in file_urls {
                 let client = client.clone();
@@ -340,7 +338,7 @@ pub async fn get_file(
 }
 
 #[command]
-pub async fn get_shedule(
+pub async fn get_schedule(
     state: State<'_, AppState>,
     session_id: String,
 ) -> Result<Schedule, String> {
@@ -356,18 +354,10 @@ pub async fn get_shedule(
 
     let html_bytes = res.bytes().await.map_err(|e| e.to_string())?;
     let html = decode_latin1(&html_bytes);
-    let doc = Html::parse_document(&html);
-    let table_selector = Selector::parse("table").unwrap();
 
-    let html_schedule = doc
-        .select(&table_selector)
-        .find(|t| t.select(&Selector::parse("tr").unwrap()).count() == N_ROWS_SCHEDULE_TABLE)
-        .ok_or("The table of the schedule is not beeing detected")?;
+    // TEMP: dump the fetched schedule page for debugging.
+    let _ = std::fs::write("schedule_debug.html", &html);
+    println!("[SCHEDULE URL] {}", url);
 
-    let tr_select = Selector::parse("tr").unwrap();
-
-    let mut is_first_row = false;
-    for row in html_schedule.select(&tr_select) {}
-
-    todo!();
+    parse_schedule(&html)
 }

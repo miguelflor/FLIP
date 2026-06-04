@@ -58,7 +58,8 @@ pub fn run() {
             commands::get_student_info,
             commands::get_chairs,
             commands::get_available_years,
-            commands::get_file
+            commands::get_file,
+            commands::get_schedule
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

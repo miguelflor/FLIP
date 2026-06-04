@@ -19,12 +19,13 @@ pub fn build_clip_year_student_url(year: &str, student: &str) -> String {
 // Ex.: https://clip.fct.unl.pt/utente/eu/aluno/ano_lectivo/hor%E1rio?ano_lectivo=2026&institui%E7%E3o=97747&aluno=132271&tipo_de_per%EDodo_lectivo=s&per%EDodo_lectivo=2
 pub fn build_clip_schedule(student: &str) -> String {
     let sem = get_semester();
+    // TODO: institui%E7%E3o (97747 = FCT) is hardcoded for now; extract it dynamically from CLIP HTML.
     format!(
-        "{}?{}={}&ano_lectivo={}&{}={}&{}={}",
+        "{}?ano_lectivo={}&institui%E7%E3o=97747&{}={}&{}={}&{}={}",
         CLIP_SCHEDULE,
+        get_lective_year(),
         STUDENT,
         student,
-        get_lective_year(),
         PERIOD_TYPE,
         sem.url_type(),
         PERIOD_N,
