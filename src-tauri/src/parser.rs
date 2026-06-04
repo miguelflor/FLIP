@@ -249,7 +249,7 @@ pub fn parse_schedule(html: &str) -> Result<Schedule, String> {
                         .filter_map(|n| n.value().as_text().map(|t| t.trim().to_string()))
                         .find(|t| !t.is_empty())
                     else {
-                        return Err(format!("No room found for: {}", type_number_str));
+                        return Err(format!("No location found for: {}", type_number_str));
                     };
 
                     schedule.add_schedule_item(ScheduleItem {
