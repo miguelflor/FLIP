@@ -1,103 +1,158 @@
 <template>
-  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+  <div
+    class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"
+  >
     <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
+    <div
+      class="flex items-center justify-between px-6 py-4 border-b border-slate-100"
+    >
       <div class="flex items-center space-x-3">
-        <Calendar class="w-6 h-6 text-slate-600" />
+        <Calendar class="w-5 h-5 text-slate-500" />
         <div>
-          <h3 class="text-xl font-bold text-slate-900">Horário Semanal</h3>
-          <p class="text-sm text-slate-500">Segunda a Sexta</p>
+          <h3 class="text-lg font-bold text-slate-900">Horário Semanal</h3>
+          <p class="text-xs text-slate-400">Segunda a Sexta</p>
         </div>
       </div>
-
-      <button
-        @click="exportAllToGoogleCalendar"
-        class="flex items-center space-x-3 px-4 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-md hover:shadow-md transition-all duration-200 text-sm font-medium shadow-sm hover:bg-gray-50"
-      >
-        <img src="/google-logo.svg" alt="Google" class="w-5 h-5" />
-        <span class="text-gray-600 font-medium">Exportar</span>
-      </button>
+      <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-3 text-xs text-slate-500">
+          <span class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-sm bg-blue-400 inline-block"></span
+            >Teórica
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span
+              class="w-2.5 h-2.5 rounded-sm bg-emerald-400 inline-block"
+            ></span
+            >Prática
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span
+              class="w-2.5 h-2.5 rounded-sm bg-violet-400 inline-block"
+            ></span
+            >Teórico-Prática
+          </span>
+        </div>
+        <button
+          @click="exportAllToGoogleCalendar"
+          class="flex items-center space-x-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-md hover:shadow-sm transition-all text-xs font-medium hover:bg-slate-50"
+        >
+          <img src="/google-logo.svg" alt="Google" class="w-4 h-4" />
+          <span>Exportar tudo</span>
+        </button>
+      </div>
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="flex justify-center py-12 text-slate-400 text-sm">
+    <div
+      v-if="loading"
+      class="flex justify-center py-16 text-slate-400 text-sm"
+    >
       A carregar horário...
     </div>
 
     <!-- Error -->
-    <div v-else-if="error" class="text-center py-12 text-red-500 text-sm">
+    <div v-else-if="error" class="text-center py-16 text-red-400 text-sm">
       {{ error }}
     </div>
 
-    <!-- Calendar Grid -->
-    <div v-else class="grid grid-cols-5 gap-3">
-      <div v-for="day in weekDays" :key="day.key" class="min-h-[140px]">
-        <div
-          :class="[
-            'text-center p-3 rounded-t-lg border-b',
-            isToday(day.key)
-              ? 'bg-blue-50 border-blue-200 text-blue-900'
-              : 'bg-slate-50 border-slate-200 text-slate-700',
-          ]"
-        >
-          <div :class="['text-sm font-bold', isToday(day.key) ? 'text-blue-600' : 'text-slate-900']">
-            {{ day.label }}
-          </div>
-        </div>
-
-        <div class="p-3 border-l border-r border-b border-slate-200 rounded-b-lg bg-white min-h-[100px]">
-          <div class="space-y-2">
-            <div
-              v-for="(item, idx) in getScheduleForDay(day.key)"
-              :key="idx"
-              :class="['p-3 rounded-md border text-xs relative group', getTypeColor(item.class_type)]"
-            >
-              <button
-                @click="exportToGoogleCalendar(item)"
-                class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-white/70 rounded-full bg-white/50 backdrop-blur-sm"
-                title="Exportar para Google Calendar"
-              >
-                <img src="/google-logo.svg" alt="Google" class="w-3.5 h-3.5" />
-              </button>
-
-              <div class="flex items-center space-x-1 mb-1">
-                <Clock class="w-3 h-3" />
-                <span class="font-medium">{{ formatTime(item.time_start) }} - {{ formatTime(item.time_end) }}</span>
-              </div>
-              <div class="font-semibold truncate mb-1 pr-6">
-                {{ item.class }}
-                <span class="font-normal text-xs opacity-70">({{ item.class_type }}.{{ item.class_number }})</span>
-              </div>
-              <div class="flex items-center space-x-1">
-                <MapPin class="w-3 h-3" />
-                <span>{{ item.location }}</span>
-              </div>
-            </div>
-            <div
-              v-if="getScheduleForDay(day.key).length === 0"
-              class="text-center py-4 text-slate-400 text-xs"
-            >
-              Sem aulas
-            </div>
+    <!-- Calendar grid -->
+    <div v-else class="flex overflow-x-auto">
+      <!-- Time gutter -->
+      <div
+        class="flex-none w-14 border-r border-slate-100 bg-slate-50/60 shrink-0"
+      >
+        <div style="height: 48px"></div>
+        <div :style="{ height: gridHeight + 'px' }" class="relative">
+          <div
+            v-for="hour in hours"
+            :key="hour"
+            class="absolute right-2 text-[10px] text-slate-400 font-medium select-none"
+            :style="{ top: toTop({ hour, min: 0 }) - 8 + 'px' }"
+          >
+            {{ String(hour).padStart(2, "0") }}:00
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Legend -->
-    <div class="mt-4 pt-4 border-t border-slate-200">
-      <div class="flex items-center justify-center space-x-4 text-xs">
-        <div class="flex items-center space-x-1">
-          <div class="w-3 h-3 bg-blue-100 border border-blue-200 rounded"></div>
-          <span class="text-slate-600">Teórica</span>
-        </div>
-        <div class="flex items-center space-x-1">
-          <div class="w-3 h-3 bg-green-100 border border-green-200 rounded"></div>
-          <span class="text-slate-600">Prática</span>
-        </div>
-        <div class="flex items-center space-x-1">
-          <div class="w-3 h-3 bg-purple-100 border border-purple-200 rounded"></div>
-          <span class="text-slate-600">Teórico-Prática</span>
+      <!-- Day columns -->
+      <div class="flex-1 grid grid-cols-5 min-w-[560px]">
+        <div
+          v-for="day in weekDays"
+          :key="day.key"
+          class="border-r border-slate-100 last:border-r-0"
+        >
+          <!-- Day header -->
+          <div
+            :class="[
+              'h-12 flex items-center justify-center border-b border-slate-100 text-sm font-semibold gap-1.5',
+              isToday(day.key)
+                ? 'text-blue-600 bg-blue-50/60'
+                : 'text-slate-500 bg-white',
+            ]"
+          >
+            {{ day.label }}
+            <span
+              v-if="isToday(day.key)"
+              class="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block"
+            ></span>
+          </div>
+
+          <!-- Events area -->
+          <div class="relative" :style="{ height: gridHeight + 'px' }">
+            <!-- Hour lines -->
+            <div
+              v-for="hour in hours"
+              :key="hour"
+              class="absolute w-full border-t border-slate-100"
+              :style="{ top: toTop({ hour, min: 0 }) + 'px' }"
+            ></div>
+            <!-- Half-hour lines -->
+            <div
+              v-for="hour in hours.slice(0, -1)"
+              :key="'half-' + hour"
+              class="absolute w-full border-t border-slate-50"
+              :style="{ top: toTop({ hour, min: 30 }) + 'px' }"
+            ></div>
+
+            <!-- Events -->
+            <div
+              v-for="(item, idx) in getScheduleForDay(day.key)"
+              :key="idx"
+              :class="[
+                'absolute inset-x-1.5 rounded-md overflow-hidden cursor-pointer transition-all hover:z-10 hover:shadow-lg hover:brightness-95 group',
+                getTypeStyle(item.class_type),
+              ]"
+              :style="{
+                top: toTop(item.time_start) + 2 + 'px',
+                height:
+                  Math.max(toHeight(item.time_start, item.time_end) - 4, 24) +
+                  'px',
+              }"
+              :title="`${item.class} · ${item.class_type}.${item.class_number}\n${formatTime(item.time_start)} – ${formatTime(item.time_end)}\n${item.location}`"
+            >
+              <div class="flex flex-col h-full px-2 py-1.5 overflow-hidden">
+                <span class="text-[11px] font-bold leading-tight truncate">{{
+                  item.class
+                }}</span>
+                <span class="text-[10px] opacity-60 leading-tight truncate"
+                  >{{ item.class_type }}.{{ item.class_number }}</span
+                >
+                <span
+                  class="mt-auto text-[10px] opacity-55 leading-tight truncate flex items-center gap-0.5"
+                >
+                  <MapPin class="w-2.5 h-2.5 shrink-0" />{{ item.location }}
+                </span>
+              </div>
+              <!-- Export button on hover -->
+              <button
+                @click.stop="exportToGoogleCalendar(item)"
+                class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded bg-white/60 hover:bg-white/90"
+                title="Exportar para Google Calendar"
+              >
+                <img src="/google-logo.svg" alt="Google" class="w-3 h-3" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -105,12 +160,19 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
-import { invoke } from '@tauri-apps/api/core';
-import { Calendar, Clock, MapPin } from 'lucide-vue-next';
+import { computed, onMounted, ref } from "vue";
+import { invoke } from "@tauri-apps/api/core";
+import { Calendar, MapPin } from "lucide-vue-next";
 
-type Weekday = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
-type ClassType = 't' | 'p' | 'tp';
+type Weekday =
+  | "Monday"
+  | "Tuesday"
+  | "Wednesday"
+  | "Thursday"
+  | "Friday"
+  | "Saturday"
+  | "Sunday";
+type ClassType = "t" | "p" | "tp";
 
 interface HourMinute {
   hour: number;
@@ -127,27 +189,56 @@ interface ScheduleItem {
   class_type: ClassType;
 }
 
+const HOUR_PX = 64;
+
 const schedule = ref<ScheduleItem[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
 
 const weekDays: { key: Weekday; label: string }[] = [
-  { key: 'Monday', label: 'Segunda' },
-  { key: 'Tuesday', label: 'Terça' },
-  { key: 'Wednesday', label: 'Quarta' },
-  { key: 'Thursday', label: 'Quinta' },
-  { key: 'Friday', label: 'Sexta' },
+  { key: "Monday", label: "Segunda" },
+  { key: "Tuesday", label: "Terça" },
+  { key: "Wednesday", label: "Quarta" },
+  { key: "Thursday", label: "Quinta" },
+  { key: "Friday", label: "Sexta" },
 ];
 
+const minHour = computed(() => {
+  if (!schedule.value.length) return 8;
+  return Math.max(7, Math.min(...schedule.value.map((i) => i.time_start.hour)));
+});
+
+const maxHour = computed(() => {
+  if (!schedule.value.length) return 20;
+  return Math.min(
+    24,
+    Math.max(...schedule.value.map((i) => i.time_end.hour)) + 1,
+  );
+});
+
+const hours = computed(() => {
+  const h: number[] = [];
+  for (let i = minHour.value; i <= maxHour.value; i++) h.push(i);
+  return h;
+});
+
+const gridHeight = computed(() => (maxHour.value - minHour.value) * HOUR_PX);
+
+const toTop = (hm: HourMinute) =>
+  ((hm.hour * 60 + hm.min - minHour.value * 60) / 60) * HOUR_PX;
+
+const toHeight = (start: HourMinute, end: HourMinute) =>
+  ((end.hour * 60 + end.min - (start.hour * 60 + start.min)) / 60) * HOUR_PX;
+
 onMounted(async () => {
-  const sessionId = localStorage.getItem('clipSessionId');
+  const sessionId = localStorage.getItem("clipSessionId");
   if (!sessionId) {
-    error.value = 'Sessão não encontrada';
+    error.value = "Sessão não encontrada";
     loading.value = false;
     return;
   }
   try {
-    const result = await invoke<ScheduleItem[]>('get_schedule', { sessionId });
+    const result = await invoke<ScheduleItem[]>("get_schedule", { sessionId });
     schedule.value = result;
   } catch (e) {
     error.value = String(e);
@@ -157,30 +248,44 @@ onMounted(async () => {
 });
 
 const formatTime = (hm: HourMinute) =>
-  `${String(hm.hour).padStart(2, '0')}:${String(hm.min).padStart(2, '0')}`;
+  `${String(hm.hour).padStart(2, "0")}:${String(hm.min).padStart(2, "0")}`;
 
 const getScheduleForDay = (day: Weekday) =>
   schedule.value.filter((item) => item.weekday === day);
 
-const getTypeColor = (type: ClassType) => {
+const getTypeStyle = (type: ClassType) => {
   switch (type) {
-    case 't':  return 'bg-blue-100 text-blue-800 border-blue-200';
-    case 'p':  return 'bg-green-100 text-green-800 border-green-200';
-    case 'tp': return 'bg-purple-100 text-purple-800 border-purple-200';
-    default:   return 'bg-gray-100 text-gray-800 border-gray-200';
+    case "t":
+      return "bg-blue-100 border-l-[3px] border-blue-400 text-blue-900";
+    case "p":
+      return "bg-emerald-100 border-l-[3px] border-emerald-400 text-emerald-900";
+    case "tp":
+      return "bg-violet-100 border-l-[3px] border-violet-400 text-violet-900";
+    default:
+      return "bg-slate-100 border-l-[3px] border-slate-400 text-slate-900";
   }
 };
 
 const isToday = (day: Weekday) => {
   const map: Record<number, Weekday> = {
-    1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5: 'Friday',
+    1: "Monday",
+    2: "Tuesday",
+    3: "Wednesday",
+    4: "Thursday",
+    5: "Friday",
   };
   return map[new Date().getDay()] === day;
 };
 
 const getNextOccurrence = (day: Weekday, hm: HourMinute) => {
   const dayIndex: Record<Weekday, number> = {
-    Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6, Sunday: 7,
+    Monday: 1,
+    Tuesday: 2,
+    Wednesday: 3,
+    Thursday: 4,
+    Friday: 5,
+    Saturday: 6,
+    Sunday: 7,
   };
   const today = new Date();
   const todayIdx = today.getDay() === 0 ? 7 : today.getDay();
@@ -192,25 +297,24 @@ const getNextOccurrence = (day: Weekday, hm: HourMinute) => {
 };
 
 const formatDateForGoogle = (date: Date) =>
-  date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+  date.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
 
 const exportToGoogleCalendar = (item: ScheduleItem) => {
   const start = getNextOccurrence(item.weekday, item.time_start);
   const end = getNextOccurrence(item.weekday, item.time_end);
-
-  const url = `https://calendar.google.com/calendar/render?action=TEMPLATE` +
+  const url =
+    `https://calendar.google.com/calendar/render?action=TEMPLATE` +
     `&text=${encodeURIComponent(item.class)}` +
     `&dates=${formatDateForGoogle(start)}/${formatDateForGoogle(end)}` +
     `&details=${encodeURIComponent(`Tipo: ${item.class_type}.${item.class_number}`)}` +
     `&location=${encodeURIComponent(item.location)}` +
     `&recur=RRULE:FREQ=WEEKLY`;
-
-  window.open(url, '_blank');
+  window.open(url, "_blank");
 };
 
 const exportAllToGoogleCalendar = () => {
-  schedule.value.forEach((item, i) => {
-    setTimeout(() => exportToGoogleCalendar(item), i * 1000);
-  });
+  schedule.value.forEach((item, i) =>
+    setTimeout(() => exportToGoogleCalendar(item), i * 1000),
+  );
 };
 </script>
