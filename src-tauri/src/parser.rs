@@ -204,8 +204,8 @@ pub fn parse_schedule(html: &str) -> Result<Schedule, String> {
         let td_select = Selector::parse("td").unwrap();
         let columns: Vec<_> = row.select(&td_select).collect();
 
-        // Each td is a weekday
-        for (weekday, column) in Weekday::iter().zip(&columns[1..]) {
+        // Each td is a weekday (skip 2 time-label columns: EC/EB + DC/DB)
+        for (weekday, column) in Weekday::iter().zip(&columns[2..]) {
             if let Some(rowspan_str) = column.attr("rowspan") {
                 if let Ok(span_value) = rowspan_str.parse::<usize>() {
                     // Each row is 30 minutes, so the time of the class is span*30
@@ -243,11 +243,16 @@ pub fn parse_schedule(html: &str) -> Result<Schedule, String> {
                             type_number_str
                         ));
                     };
-                    // Room is the first non-empty text node in the column
-                    let Some(location) = column
+                    // Room is the last non-empty text node inside the <div> (after the <a> tag)
+                    let div_select = Selector::parse("div").unwrap();
+                    let Some(div) = column.select(&div_select).next() else {
+                        return Err(format!("No div found for: {}", type_number_str));
+                    };
+                    let Some(location) = div
                         .children()
                         .filter_map(|n| n.value().as_text().map(|t| t.trim().to_string()))
-                        .find(|t| !t.is_empty())
+                        .filter(|t| !t.is_empty())
+                        .last()
                     else {
                         return Err(format!("No location found for: {}", type_number_str));
                     };
