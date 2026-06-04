@@ -18,7 +18,7 @@ pub const UNIDADE: &str = "unidade";
 pub const STUDENT: &str = "aluno";
 
 // CLIP details
-pub const N_ROWS_SCHEDULE_TABLE: usize = 32;
+pub const N_ROWS_SCHEDULE_TABLE: usize = 34;
 
 // File types
 pub const FILE_TYPES: &[(&str, &str)] = &[

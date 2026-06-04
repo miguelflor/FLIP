@@ -231,11 +231,17 @@ pub fn parse_schedule(html: &str) -> Result<Schedule, String> {
                     // e.g "t"
                     let Some(class_type) = parts.next().and_then(|s| ClassType::try_from(s).ok())
                     else {
-                        return Err(format!("Could not parse class type from: {}", type_number_str));
+                        return Err(format!(
+                            "Could not parse class type from: {}",
+                            type_number_str
+                        ));
                     };
                     // e.g "1"
                     let Some(class_number) = parts.next().and_then(|s| s.parse::<u8>().ok()) else {
-                        return Err(format!("Could not parse class number from: {}", type_number_str));
+                        return Err(format!(
+                            "Could not parse class number from: {}",
+                            type_number_str
+                        ));
                     };
                     // Room is the first non-empty text node in the column
                     let Some(location) = column
