@@ -182,14 +182,14 @@ pub fn extract_years(html: &str) -> Vec<String> {
     years
 }
 
-pub fn parse_schedule(html: &str) -> Schedule {
+pub fn parse_schedule(html: &str) -> Result<Schedule, String> {
     let doc = Html::parse_document(html);
     let table_selector = Selector::parse("table").unwrap();
 
     let html_schedule = doc
         .select(&table_selector)
         .find(|t| t.select(&Selector::parse("tr").unwrap()).count() == N_ROWS_SCHEDULE_TABLE)
-        .expect("The table of the schedule is not beeing detected");
+        .ok_or("Schedule table not found in HTML")?;
 
     let tr_select = Selector::parse("tr").unwrap();
 
@@ -215,8 +215,7 @@ pub fn parse_schedule(html: &str) -> Schedule {
                     let b_select = Selector::parse("b").unwrap();
                     let bs: Vec<_> = column.select(&b_select).collect();
                     let Some(b) = bs.first() else {
-                        println!("No class name found for this rowspanned td!");
-                        continue;
+                        return Err("No class name found for rowspanned td".to_string());
                     };
                     let class: String = b.text().collect();
 
@@ -224,8 +223,7 @@ pub fn parse_schedule(html: &str) -> Schedule {
                     let anchor_select = Selector::parse("a").unwrap();
                     let anchors: Vec<_> = column.select(&anchor_select).collect();
                     let Some(anchor) = anchors.first() else {
-                        println!("No anchor found for this rowspanned td!");
-                        continue;
+                        return Err("No anchor found for rowspanned td".to_string());
                     };
                     // e.g "t.1"
                     let type_number_str: String = anchor.text().collect();
@@ -233,13 +231,11 @@ pub fn parse_schedule(html: &str) -> Schedule {
                     // e.g "t"
                     let Some(class_type) = parts.next().and_then(|s| ClassType::try_from(s).ok())
                     else {
-                        println!("Could not parse class type from: {}", type_number_str);
-                        continue;
+                        return Err(format!("Could not parse class type from: {}", type_number_str));
                     };
                     // e.g "1"
                     let Some(class_number) = parts.next().and_then(|s| s.parse::<u8>().ok()) else {
-                        println!("Could not parse class number from: {}", type_number_str);
-                        continue;
+                        return Err(format!("Could not parse class number from: {}", type_number_str));
                     };
                     // Room is the first non-empty text node in the column
                     let Some(location) = column
@@ -247,8 +243,7 @@ pub fn parse_schedule(html: &str) -> Schedule {
                         .filter_map(|n| n.value().as_text().map(|t| t.trim().to_string()))
                         .find(|t| !t.is_empty())
                     else {
-                        println!("No room found for: {}", type_number_str);
-                        continue;
+                        return Err(format!("No room found for: {}", type_number_str));
                     };
 
                     schedule.add_schedule_item(ScheduleItem {
@@ -264,5 +259,5 @@ pub fn parse_schedule(html: &str) -> Schedule {
             }
         }
     }
-    return schedule;
+    Ok(schedule)
 }
