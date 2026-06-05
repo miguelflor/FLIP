@@ -356,8 +356,8 @@ pub async fn get_schedule(
     let html = decode_latin1(&html_bytes);
 
     // TEMP: dump the fetched schedule page for debugging.
-    let _ = std::fs::write("schedule_debug.html", &html);
-    println!("[SCHEDULE URL] {}", url);
+    // let _ = std::fs::write("schedule_debug.html", &html);
+    // println!("[SCHEDULE URL] {}", url);
 
     parse_schedule(&html)
 }
