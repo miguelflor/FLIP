@@ -1,14 +1,14 @@
 <template>
-  <aside class="w-64 pb-2 bg-linear-to-b from-slate-50 to-slate-100 border-r border-slate-200 hidden md:flex flex-col h-screen">
+  <aside
+    class="w-64 pb-2 bg-linear-to-b from-slate-50 to-slate-100 border-r border-slate-200 hidden md:flex flex-col h-screen"
+  >
     <!-- Header -->
     <div class="px-6 py-4 border-b border-slate-200 shrink-0">
       <div class="flex items-center space-x-3">
-        <div class="w-8 h-8 bg-linear-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-          <img
-            src="/favicon.ico"
-            alt="FLIP Logo"
-            class="w-5 h-5"
-          />
+        <div
+          class="w-8 h-8 bg-linear-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center"
+        >
+          <img src="/favicon.ico" alt="FLIP Logo" class="w-5 h-5" />
         </div>
         <div>
           <h2 class="text-xl font-bold text-slate-900">FLIP</h2>
@@ -32,9 +32,6 @@
       >
         <Calendar class="w-5 h-5 text-slate-500 group-hover:text-blue-600" />
         <span class="font-medium">Horário</span>
-        <span class="absolute right-2 top-1/2 -translate-y-1/2 bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-full font-medium">
-          Em breve
-        </span>
       </a>
     </nav>
 
@@ -51,13 +48,13 @@
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vue-router';
-import { Calendar, FolderOpen, LogOut } from 'lucide-vue-next';
+import { useRouter } from "vue-router";
+import { Calendar, FolderOpen, LogOut } from "lucide-vue-next";
 
 const router = useRouter();
 
 const handleLogout = () => {
   localStorage.clear();
-  router.replace('/');
+  router.replace("/");
 };
 </script>

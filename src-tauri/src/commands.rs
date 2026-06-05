@@ -15,7 +15,9 @@ use crate::parser::{
     extract_aluno_ids, extract_student_info, parse_chairs, parse_file_urls, parse_schedule,
 };
 use crate::session::get_session;
-use crate::types::{ChairsResponse, FileParams, FileResponse, LoginResponse, Schedule, StudentInfo};
+use crate::types::{
+    ChairsResponse, FileParams, FileResponse, LoginResponse, Schedule, StudentInfo,
+};
 use crate::utils::{
     build_clip_schedule, build_clip_year_student_url, build_docs_url, decode_latin1, get_type_name,
 };
@@ -356,7 +358,7 @@ pub async fn get_schedule(
     let html = decode_latin1(&html_bytes);
 
     // TEMP: dump the fetched schedule page for debugging.
-    let _ = std::fs::write("schedule_debug.html", &html);
+    // let _ = std::fs::write("schedule_debug.html", &html);
     println!("[SCHEDULE URL] {}", url);
 
     parse_schedule(&html)

@@ -174,6 +174,15 @@ const getPeriodName = (periodKey: string) => {
 };
 
 onMounted(() => {
+  // Trigger immediately in case events already fired before this component mounted
+  const existingStudentId = localStorage.getItem('selected_student_id');
+  const existingYear = localStorage.getItem('selected_year') || undefined;
+  if (existingStudentId) {
+    handleChairs(existingStudentId, existingYear);
+  } else {
+    loading.value = false;
+  }
+
   // Listen for years loaded in dropdown
   window.addEventListener('years-loaded', (e) => {
     const { detail } = e as CustomEvent<{ year: string }>;
