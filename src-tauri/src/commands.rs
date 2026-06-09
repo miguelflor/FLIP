@@ -343,11 +343,18 @@ pub async fn get_file(
 pub async fn get_schedule(
     state: State<'_, AppState>,
     session_id: String,
+    student_id: Option<String>,
+    year: Option<String>,
 ) -> Result<Schedule, String> {
     let (client, student_ids) = get_session(&state, &session_id)?;
-    let first_id = student_ids.values().next();
 
-    let url = build_clip_schedule(first_id.ok_or("There is no student id")?);
+    let resolved_id = student_id
+        .as_deref()
+        .or_else(|| student_ids.values().next().map(|s| s.as_str()))
+        .ok_or("There is no student id")?
+        .to_string();
+
+    let url = build_clip_schedule(&resolved_id, year.as_deref());
     let res = client.get(&url).send().await.map_err(|e| e.to_string())?;
 
     if !res.status().is_success() {

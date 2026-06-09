@@ -195,6 +195,13 @@ const schedule = ref<ScheduleItem[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
 
+// Convert year format from "2024/25" to "2025"
+const extractYearForRequest = (yearStr: string): string => {
+  const parts = yearStr.split('/');
+  if (parts.length === 2) return '20' + parts[1];
+  return yearStr;
+};
+
 const weekDays: { key: Weekday; label: string }[] = [
   { key: "Monday", label: "Segunda" },
   { key: "Tuesday", label: "Terça" },
@@ -230,21 +237,50 @@ const toTop = (hm: HourMinute) =>
 const toHeight = (start: HourMinute, end: HourMinute) =>
   ((end.hour * 60 + end.min - (start.hour * 60 + start.min)) / 60) * HOUR_PX;
 
-onMounted(async () => {
+const loadSchedule = async (studentId?: string, year?: string) => {
   const sessionId = localStorage.getItem("clipSessionId");
   if (!sessionId) {
     error.value = "Sessão não encontrada";
     loading.value = false;
     return;
   }
+  loading.value = true;
+  error.value = null;
   try {
-    const result = await invoke<ScheduleItem[]>("get_schedule", { sessionId });
+    const params: Record<string, string> = { sessionId };
+    if (studentId) params.studentId = studentId;
+    if (year) params.year = extractYearForRequest(year);
+    const result = await invoke<ScheduleItem[]>("get_schedule", params);
     schedule.value = result;
   } catch (e) {
     error.value = String(e);
   } finally {
     loading.value = false;
   }
+};
+
+onMounted(() => {
+  const studentId = localStorage.getItem("selected_student_id") ?? undefined;
+  const year = localStorage.getItem("selected_year") ?? undefined;
+  loadSchedule(studentId, year);
+
+  window.addEventListener("years-loaded", (e) => {
+    const { detail } = e as CustomEvent<{ year: string }>;
+    const sid = localStorage.getItem("selected_student_id") ?? undefined;
+    loadSchedule(sid, detail.year);
+  });
+
+  window.addEventListener("student-changed", (e) => {
+    const { detail } = e as CustomEvent<{ studentId: string }>;
+    const yr = localStorage.getItem("selected_year") ?? undefined;
+    loadSchedule(detail.studentId, yr);
+  });
+
+  window.addEventListener("year-changed", (e) => {
+    const { detail } = e as CustomEvent<{ year: string }>;
+    const sid = localStorage.getItem("selected_student_id") ?? undefined;
+    loadSchedule(sid, detail.year);
+  });
 });
 
 const formatTime = (hm: HourMinute) =>
