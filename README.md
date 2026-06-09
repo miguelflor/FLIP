@@ -184,7 +184,6 @@ Licensed under the [GNU General Public License v3.0](LICENSE).
 ## 🙏 Acknowledgments
 
 - Built with [Tauri](https://tauri.app/), [Vue.js](https://vuejs.org/), and [Tailwind CSS](https://tailwindcss.com/)
-- Icons by [Lucide](https://lucide.dev/)
 - Made with ❤️ by NOVA FCT students
 
 ---
