@@ -56,7 +56,7 @@
     </div>
 
     <!-- Calendar grid -->
-    <div v-else class="flex overflow-x-auto">
+    <div v-else class="flex pb-4">
       <!-- Time gutter -->
       <div
         class="flex-none w-14 border-r border-slate-100 bg-slate-50/60 shrink-0"
