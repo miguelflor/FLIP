@@ -17,12 +17,7 @@
     >
       <!-- Header -->
       <div class="px-6 py-4 border-b border-slate-200 shrink-0 flex items-center justify-between">
-        <div class="flex items-center space-x-3 min-w-0">
-          <div
-            class="w-8 h-8 bg-linear-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shrink-0"
-          >
-            <img src="/favicon.ico" alt="FLIP Logo" class="w-5 h-5" />
-          </div>
+        <div class="flex items-center min-w-0">
           <h2 class="text-xl font-bold text-slate-900 truncate">FLIP</h2>
         </div>
         <!-- Close button (mobile only) -->
