@@ -15,27 +15,31 @@
 
 ---
 
+![FLIP Dashboard](dashboard.png)
+
+---
+
 ## ✨ Features
 
-### 📚 **Course Materials**
+### **Course Materials**
 - Browse all your course files by semester/trimester
 - One-click download for all materials from a course
 - Automatic file organization
 - Fast and reliable downloads
 
-### 🗓️ **Weekly Schedule**
+### **Weekly Schedule**
 - Clean, color-coded weekly schedule view
 - Export individual classes to Google Calendar
 - Export entire schedule with one click
 - Automatic recurring event creation
 
-### 🚀 **Fast & Native**
+### **Fast & Native**
 - Native desktop application built with Rust
 - Lightning-fast performance
 - Cross-platform (Windows, macOS, Linux)
 - Minimal memory footprint
 
-### 🔐 **Secure**
+### **Secure**
 - Direct authentication with CLIP servers
 - No data stored externally
 - Session management for seamless access
@@ -49,19 +53,28 @@ Built with modern, performant technologies:
 - **Frontend**: Vue 3 + TypeScript + Tailwind CSS 4
 - **Desktop**: Tauri 2 (Rust-based)
 - **Build Tool**: Vite 8
-- **Icons**: Lucide Vue
 - **Routing**: Vue Router
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
-### Prerequisites
+### Download (Recommended)
+
+Grab the latest pre-built installer for your OS from the most recent release — no toolchain required:
+
+**[Download the latest release →](https://github.com/miguelflor/FLIP/releases/latest)**
+
+[![Latest Release](https://img.shields.io/github/v/release/miguelflor/FLIP?style=for-the-badge&logo=github&label=Latest%20Release)](https://github.com/miguelflor/FLIP/releases/latest)
+
+### Build from Source
+
+#### Prerequisites
 
 - [Node.js](https://nodejs.org/) (v18 or higher)
 - [Rust](https://www.rust-lang.org/) (latest stable)
 
-### Installation
+#### Installation
 
 1. **Clone the repository**
    ```bash
@@ -107,31 +120,20 @@ FLIP/
 
 ---
 
-## 💡 Why FLIP?
+## Why FLIP?
 
 CLIP is slow and requires too many clicks to access basic information. FLIP solves this by:
 
-- ⚡ **Instant Access** - No more navigating through endless menus
-- 🎯 **One-Click Actions** - Download files or export schedules instantly
-- 💻 **Native Performance** - Desktop app built with Rust for maximum speed
-- 🎨 **Modern UI** - Clean, intuitive interface with smooth animations
-- 📱 **Always Available** - Quick access from your desktop
+- **Instant Access** - No more navigating through endless menus
+- **One-Click Actions** - Download files or export schedules instantly
+- **Native Performance** - Desktop app built with Rust for maximum speed
+- **Modern UI** - Clean, intuitive interface with smooth animations
+- **Always Available** - Quick access from your desktop
 
 **Time Comparison:**
 - **CLIP**: 2-5 minutes to check schedule, 20+ clicks, frequent timeouts
 - **FLIP**: 5 seconds, one click, always works ✨
 
----
-
-## 🎨 Design Philosophy
-
-FLIP follows modern design principles:
-
-- **Native Experience** - True desktop app with Rust backend
-- **Minimalism** - Clean, uncluttered interface
-- **Performance First** - Lightning-fast with Tauri
-- **User-Centric** - Designed with student needs in mind
-- **Accessibility** - Proper labels and keyboard navigation
 
 ---
 
@@ -152,7 +154,7 @@ npm run build         # Build Vue app
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Feel free to:
 
@@ -175,7 +177,7 @@ Contributions are welcome! Feel free to:
 
 ## 📄 License
 
-This project is private. All rights reserved.
+Licensed under the [GNU General Public License v3.0](LICENSE).
 
 ---
 
