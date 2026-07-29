@@ -55,3 +55,8 @@ encoding_rs = "0.8"
 const_format = "0.2.36"
 strum = { version = "0.28.0", features = ["derive"] }
 strum_macros = "0.28.0"
+tauri-plugin-sql = "2"
+tauri-plugin-stronghold = "2"
+
+[profile.dev.package.scrypt]
+opt-level = 3

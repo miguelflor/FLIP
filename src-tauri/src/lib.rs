@@ -46,6 +46,8 @@ pub fn run() {
         .unwrap_or(Config { logging: false });
 
     let mut builder = tauri::Builder::default()
+        .plugin(tauri_plugin_stronghold::Builder::new(|pass| todo!()).build())
+        .plugin(tauri_plugin_sql::Builder::new().build())
         .manage(AppState::default());
 
     if config.logging {
