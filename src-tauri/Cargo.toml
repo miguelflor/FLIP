@@ -59,4 +59,5 @@ encoding_rs = "0.8"
 const_format = "0.2.36"
 strum = { version = "0.28.0", features = ["derive"] }
 strum_macros = "0.28.0"
-tauri-plugin-stronghold = "2"
+keyring = "3.6.3"
+rand = "0.9.5"

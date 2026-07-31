@@ -53,7 +53,6 @@ pub fn run() {
             setup_cache(app)?;
             Ok(())
         })
-        .plugin(tauri_plugin_stronghold::Builder::new(|pass| todo!()).build())
         .manage(AppState::default());
 
     if config.logging {
