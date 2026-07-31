@@ -1,4 +1,6 @@
 mod commands;
+mod db;
+mod cache;
 mod constants;
 mod parser;
 mod session;
@@ -12,6 +14,7 @@ use parking_lot::Mutex;
 use reqwest::Client;
 use reqwest_cookie_store::CookieStoreMutex;
 use serde::Deserialize;
+use cache::setup_cache;
 
 #[derive(Deserialize)]
 struct Config {
@@ -46,8 +49,11 @@ pub fn run() {
         .unwrap_or(Config { logging: false });
 
     let mut builder = tauri::Builder::default()
+        .setup(|app| {
+            setup_cache(app)?;
+            Ok(())
+        })
         .plugin(tauri_plugin_stronghold::Builder::new(|pass| todo!()).build())
-        .plugin(tauri_plugin_sql::Builder::new().build())
         .manage(AppState::default());
 
     if config.logging {

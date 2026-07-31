@@ -22,6 +22,10 @@ log = "0.4"
 tauri = { version = "2.10.3", features = [] }
 tauri-plugin-log = "2"
 
+
+# SQLCipher 
+rusqlite = { version = "0.32", features = ["bundled-sqlcipher-vendored-openssl"] }
+
 # HTTP client with cookie support
 reqwest = { version = "0.12", features = ["cookies", "json"] }
 reqwest_cookie_store = "0.8"
@@ -55,8 +59,4 @@ encoding_rs = "0.8"
 const_format = "0.2.36"
 strum = { version = "0.28.0", features = ["derive"] }
 strum_macros = "0.28.0"
-tauri-plugin-sql = "2"
 tauri-plugin-stronghold = "2"
-
-[profile.dev.package.scrypt]
-opt-level = 3
