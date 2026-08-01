@@ -1,6 +1,8 @@
+use crate::utils::decode_latin1;
 use keyring::Entry;
 use rand::RngCore;
-use rusqlite::Connection;
+use reqwest::Client;
+use rusqlite::{Connection, OptionalExtension};
 use std::error::Error;
 use std::fs;
 use std::sync::Mutex;
@@ -10,12 +12,42 @@ const DB_NAME: &str = "cache.db";
 const APP_NAME: &str = "flip";
 
 pub struct CacheHandler {
-    pub db: Connection,
+    db: Connection,
 }
 
 impl CacheHandler {
     pub fn new(conn: Connection) -> Self {
         Self { db: conn }
+    }
+
+    pub async fn get(&self, url: &str, client: &Client) -> Result<String, String> {
+        let result = self
+            .db
+            .query_row("SELECT html FROM html_cache WHERE url=?1", [url], |row| {
+                row.get(0)
+            })
+            .optional();
+
+        match result {
+            Err(_) => {
+                return Err(format!("sqlite select for {}", url));
+            }
+            Ok(None) => {
+                let response = client.get(url).send().await.map_err(|e| e.to_string())?;
+
+                if !response.status().is_success() {
+                    return Err(format!("Failed to scrape {}", url));
+                }
+
+                let html_bytes = response.bytes().await.map_err(|e| e.to_string())?;
+                let html = decode_latin1(&html_bytes);
+                // TODO: put here
+                return Ok(html);
+            }
+            Ok(Some(x)) => {
+                return Ok(x);
+            }
+        }
     }
 }
 
@@ -32,7 +64,7 @@ pub fn setup_cache(app: &mut tauri::App) -> Result<(), Box<dyn Error>> {
     let db_path = data_dir.join(DB_NAME);
     let conn = Connection::open(&db_path)?;
     let key = get_or_create_db_key()?;
-    conn.pragma_update(None, "key",key)?;
+    conn.pragma_update(None, "key", key)?;
 
     conn.execute_batch(
         "CREATE TABLE IF NOT EXISTS html_cache (url TEXT PRIMARY KEY, html TEXT NOT NULL);",
@@ -42,7 +74,7 @@ pub fn setup_cache(app: &mut tauri::App) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn get_or_create_db_key() -> Result<String, Box<dyn std::error::Error>> {
+fn get_or_create_db_key() -> Result<String, Box<dyn Error>> {
     let entry = Entry::new(APP_NAME, "db-encryption-key")?;
 
     match entry.get_password() {
