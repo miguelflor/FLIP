@@ -6,8 +6,9 @@ use reqwest::Client;
 use rusqlite::{params, Connection, OptionalExtension};
 use std::error::Error;
 use std::fs;
-use std::sync::Mutex;
+use std::sync::Arc;
 use tauri::Manager;
+use tokio::sync::Mutex;
 
 const DB_NAME: &str = "cache.db";
 const APP_NAME: &str = "flip";
@@ -20,12 +21,12 @@ struct CacheEntry {
 }
 
 pub struct CacheHandler {
-    db: Connection,
+    db: Arc<Mutex<Connection>>,
 }
 
 impl CacheHandler {
     pub fn new(conn: Connection) -> Self {
-        Self { db: conn }
+        Self { db: Arc::new(Mutex::new(conn)) }
     }
 
 
@@ -40,7 +41,8 @@ impl CacheHandler {
         let html_bytes = response.bytes().await.map_err(|e| e.to_string())?;
         let html = decode_latin1(&html_bytes);
 
-        let result = self.db.execute(
+        let db = self.db.lock().await;
+        let result = db.execute(
             "INSERT INTO html_cache (url, html, updated_at)
              VALUES (?1, ?2, ?3)
              ON CONFLICT(url) DO UPDATE SET
@@ -58,6 +60,8 @@ impl CacheHandler {
     pub async fn get(&self, url: &str, client: &Client) -> Result<String, String> {
         let result = self
             .db
+            .lock()
+            .await
             .query_row(
                 "SELECT html, updated_at FROM html_cache WHERE url=?1",
                 [url],
@@ -109,7 +113,7 @@ pub fn setup_cache(app: &mut tauri::App) -> Result<(), Box<dyn Error>> {
         "CREATE TABLE IF NOT EXISTS html_cache (url TEXT PRIMARY KEY, html TEXT NOT NULL, updated_at TEXT NOT NULL);",
     )?;
 
-    app.manage(Mutex::new(CacheHandler::new(conn)));
+    app.manage(CacheHandler::new(conn));
     Ok(())
 }
 
@@ -196,7 +200,7 @@ mod tests {
 
         // Insert a stale entry manually (30 minutes ago)
         let stale_time = Utc::now() - Duration::minutes(30);
-        cache.db.execute(
+        cache.db.lock().await.execute(
             "INSERT INTO html_cache (url, html, updated_at) VALUES (?1, ?2, ?3)",
             params![url, "<html>old</html>", stale_time],
         ).unwrap();
