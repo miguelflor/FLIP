@@ -20,6 +20,17 @@ impl CacheHandler {
         Self { db: conn }
     }
 
+    pub fn put(&self, url: &str, html: &str) -> Result<(), ()> {
+        let result = self
+            .db
+            .execute("INSERT INTO html_cache VALUES (?1, ?2)", [url, html]);
+
+        match result {
+            Ok(_) => Ok(()),
+            Err(_) => Err(()),
+        }
+    }
+
     pub async fn get(&self, url: &str, client: &Client) -> Result<String, String> {
         let result = self
             .db
@@ -41,7 +52,9 @@ impl CacheHandler {
 
                 let html_bytes = response.bytes().await.map_err(|e| e.to_string())?;
                 let html = decode_latin1(&html_bytes);
-                // TODO: put here
+
+                self.put(url, &html);
+
                 return Ok(html);
             }
             Ok(Some(x)) => {
