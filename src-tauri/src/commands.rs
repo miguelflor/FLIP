@@ -342,6 +342,7 @@ pub async fn get_schedule(
     session_id: String,
     student_id: Option<String>,
     year: Option<String>,
+    use_cache: Option<bool>,
 ) -> Result<Schedule, String> {
     let (client, student_ids) = get_session(&state, &session_id)?;
 
@@ -354,7 +355,11 @@ pub async fn get_schedule(
     let url = build_clip_schedule(&resolved_id, year.as_deref());
     println!("[SCHEDULE URL] {}", url);
 
-    let html = cache.get(&url, &client).await?;
+    let html = if use_cache.unwrap_or(true) {
+        cache.get(&url, &client).await?
+    } else {
+        cache.put(&url, &client).await?
+    };
 
     parse_schedule(&html)
 }
