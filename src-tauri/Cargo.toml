@@ -61,3 +61,7 @@ strum = { version = "0.28.0", features = ["derive"] }
 strum_macros = "0.28.0"
 keyring = "3.6.3"
 rand = "0.9.5"
+
+[dev-dependencies]
+mockito = "1"
+tokio = { version = "1", features = ["rt", "macros"] }

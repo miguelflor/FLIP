@@ -85,9 +85,9 @@ impl CacheHandler {
                 let elapsed = now - entry.updated_at;
 
                 if elapsed > CACHE_LIMIT {
-                    self.put(url, &client);
+                    let html = self.put(url, &client).await?;
+                    return Ok(html);
                 }
-
 
                 return Ok(entry.html);
             }
@@ -132,4 +132,113 @@ fn generate_random_key() -> String {
     rand::rng().fill_bytes(&mut bytes);
     let key: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
     return key;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use mockito::{Mock, Server};
+
+    fn setup_cache() -> CacheHandler {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS html_cache (url TEXT PRIMARY KEY, html TEXT NOT NULL, updated_at TEXT NOT NULL);",
+        ).unwrap();
+        CacheHandler::new(conn)
+    }
+
+    fn mock_html_endpoint(server: &mut Server, path: &str, body: &str) -> Mock {
+        server.mock("GET", path).with_body(body).create()
+    }
+
+    #[tokio::test]
+    async fn get_inserts_into_cache_on_miss() {
+        let mut server = Server::new_async().await;
+        let mock = mock_html_endpoint(&mut server, "/page", "<html>hello</html>");
+
+        let cache = setup_cache();
+        let client = Client::new();
+        let url = format!("{}/page", server.url());
+
+        let result = cache.get(&url, &client).await.unwrap();
+        assert_eq!(result, "<html>hello</html>");
+        mock.assert();
+    }
+
+    #[tokio::test]
+    async fn get_returns_cached_html_without_fetching() {
+        let mut server = Server::new_async().await;
+        let mock = mock_html_endpoint(&mut server, "/page", "<html>first</html>");
+
+        let cache = setup_cache();
+        let client = Client::new();
+        let url = format!("{}/page", server.url());
+
+        // First call populates cache
+        cache.get(&url, &client).await.unwrap();
+        mock.assert();
+
+        // Second call should not hit the server
+        let mock2 = server.mock("GET", "/page").with_body("second").expect(0).create();
+        let result = cache.get(&url, &client).await.unwrap();
+        assert_eq!(result, "<html>first</html>");
+        mock2.assert();
+    }
+
+    #[tokio::test]
+    async fn get_refreshes_cache_when_expired() {
+        let cache = setup_cache();
+        let client = Client::new();
+
+        let mut server = Server::new_async().await;
+        let url = format!("{}/page", server.url());
+
+        // Insert a stale entry manually (30 minutes ago)
+        let stale_time = Utc::now() - Duration::minutes(30);
+        cache.db.execute(
+            "INSERT INTO html_cache (url, html, updated_at) VALUES (?1, ?2, ?3)",
+            params![url, "<html>old</html>", stale_time],
+        ).unwrap();
+
+        let mock = mock_html_endpoint(&mut server, "/page", "<html>refreshed</html>");
+
+        let result = cache.get(&url, &client).await.unwrap();
+        assert_eq!(result, "<html>refreshed</html>");
+        mock.assert();
+    }
+
+    #[tokio::test]
+    async fn put_returns_error_on_http_failure() {
+        let mut server = Server::new_async().await;
+        let mock = server.mock("GET", "/fail").with_status(500).create();
+
+        let cache = setup_cache();
+        let client = Client::new();
+        let url = format!("{}/fail", server.url());
+
+        let result = cache.put(&url, &client).await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Failed to scrape"));
+        mock.assert();
+    }
+
+    #[tokio::test]
+    async fn put_upserts_on_duplicate_url() {
+        let mut server = Server::new_async().await;
+        let _m1 = mock_html_endpoint(&mut server, "/page", "<html>v1</html>");
+
+        let cache = setup_cache();
+        let client = Client::new();
+        let url = format!("{}/page", server.url());
+
+        cache.put(&url, &client).await.unwrap();
+
+        // Drop and recreate mock with new body
+        let mut server2 = Server::new_async().await;
+        let _m2 = mock_html_endpoint(&mut server2, "/page", "<html>v2</html>");
+        let url2 = format!("{}/page", server2.url());
+
+        let result = cache.put(&url2, &client).await.unwrap();
+        assert_eq!(result, "<html>v2</html>");
+    }
 }

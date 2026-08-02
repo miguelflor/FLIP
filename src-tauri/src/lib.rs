@@ -1,5 +1,4 @@
 mod commands;
-mod db;
 mod cache;
 mod constants;
 mod parser;
