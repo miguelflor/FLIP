@@ -20,7 +20,18 @@ impl CacheHandler {
         Self { db: conn }
     }
 
-    pub fn put(&self, url: &str, html: &str) -> Result<(), ()> {
+    fn update(&self, url: &str, html: &str) -> Result<(), ()> {
+        let result = self
+            .db
+            .execute("UPDATE html_cache SET html=?2 WHERE url=?1", [url, html]);
+
+        match result {
+            Ok(_) => Ok(()),
+            Err(_) => Err(()),
+        }
+    }
+
+    fn put(&self, url: &str, html: &str) -> Result<(), ()> {
         let result = self
             .db
             .execute("INSERT INTO html_cache VALUES (?1, ?2)", [url, html]);
@@ -62,11 +73,6 @@ impl CacheHandler {
             }
         }
     }
-}
-
-struct Site {
-    url: String,
-    html: String,
 }
 
 pub fn setup_cache(app: &mut tauri::App) -> Result<(), Box<dyn Error>> {
