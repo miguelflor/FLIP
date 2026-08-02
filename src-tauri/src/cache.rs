@@ -134,6 +134,8 @@ fn generate_random_key() -> String {
     return key;
 }
 
+// Tests
+
 #[cfg(test)]
 mod tests {
     use super::*;
