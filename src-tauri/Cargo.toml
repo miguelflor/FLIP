@@ -59,7 +59,7 @@ encoding_rs = "0.8"
 const_format = "0.2.36"
 strum = { version = "0.28.0", features = ["derive"] }
 strum_macros = "0.28.0"
-keyring = "3.6.3"
+keyring = { version = "3.6.3", features = ["sync-secret-service", "crypto-rust"] }
 rand = "0.9.5"
 
 [dev-dependencies]

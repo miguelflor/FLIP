@@ -109,9 +109,14 @@ pub fn setup_cache(app: &mut tauri::App) -> Result<(), Box<dyn Error>> {
     let key = get_or_create_db_key()?;
     conn.pragma_update(None, "key", key)?;
 
-    conn.execute_batch(
+    let create_result = conn.execute_batch(
         "CREATE TABLE IF NOT EXISTS html_cache (url TEXT PRIMARY KEY, html TEXT NOT NULL, updated_at TEXT NOT NULL);",
-    )?;
+    );
+
+    if let Err(e) = create_result {
+        fs::remove_file(&db_path)?;
+        return Err(e.into());
+    }
 
     app.manage(CacheHandler::new(conn));
     Ok(())
@@ -122,11 +127,12 @@ fn get_or_create_db_key() -> Result<String, Box<dyn Error>> {
 
     match entry.get_password() {
         Ok(key) => Ok(key),
-        Err(_) => {
+        Err(keyring::Error::NoEntry) => {
             let key = generate_random_key();
             entry.set_password(&key)?;
             Ok(key)
-        }
+        },
+        Err(e) => Err(e.into()),
     }
 }
 

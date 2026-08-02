@@ -10,6 +10,7 @@ use uuid::Uuid;
 use zip::write::SimpleFileOptions;
 use zip::ZipWriter;
 
+use crate::cache::CacheHandler;
 use crate::constants::{CLIP_BASE, CLIP_HOME, FILE_TYPES, USER_AGENT};
 use crate::parser::{
     extract_aluno_ids, extract_student_info, parse_chairs, parse_file_urls, parse_schedule,
@@ -19,7 +20,7 @@ use crate::types::{
     ChairsResponse, FileParams, FileResponse, LoginResponse, Schedule, StudentInfo,
 };
 use crate::utils::{
-    build_clip_schedule, build_clip_year_student_url, build_docs_url, decode_latin1, get_type_name,
+    build_clip_schedule, build_clip_year_student_url, build_docs_url, get_type_name,
 };
 use crate::{AppState, Session};
 
@@ -92,6 +93,7 @@ pub async fn login(
 #[command]
 pub async fn get_student_info(
     state: State<'_, AppState>,
+    cache: State<'_, CacheHandler>,
     session_id: String,
     student_id: String,
 ) -> Result<StudentInfo, String> {
@@ -102,17 +104,7 @@ pub async fn get_student_info(
         student_id
     );
 
-    let response = client.get(&url).send().await.map_err(|e| e.to_string())?;
-
-    if !response.status().is_success() {
-        return Err(format!(
-            "Failed to fetch student info: {}",
-            response.status()
-        ));
-    }
-
-    let html_bytes = response.bytes().await.map_err(|e| e.to_string())?;
-    let html = decode_latin1(&html_bytes);
+    let html = cache.get(&url, &client).await?;
 
     // Extract student info from HTML
     if let Some(parsed_info) = extract_student_info(&html) {
@@ -138,6 +130,7 @@ pub async fn get_student_info(
 #[command]
 pub async fn get_chairs(
     state: State<'_, AppState>,
+    cache: State<'_, CacheHandler>,
     session_id: String,
     student_id: String,
     year: String,
@@ -146,20 +139,17 @@ pub async fn get_chairs(
 
     let url = build_clip_year_student_url(&year, student_id.as_str());
 
-    let response = client.get(&url).send().await.map_err(|e| e.to_string())?;
+    let html = match cache.get(&url, &client).await {
+        Ok(h) => h,
+        Err(e) => {
+            return Ok(ChairsResponse {
+                success: false,
+                chairs: None,
+                error: Some(e),
+            })
+        }
+    };
 
-    if !response.status().is_success() {
-        return Ok(ChairsResponse {
-            success: false,
-            chairs: None,
-            error: Some(format!("Failed to fetch chairs: {}", response.status())),
-        });
-    }
-
-    let html_bytes = response.bytes().await.map_err(|e| e.to_string())?;
-    let html = decode_latin1(&html_bytes);
-
-    // Parse outside of async context
     let chairs = parse_chairs(&html);
 
     Ok(ChairsResponse {
@@ -172,6 +162,7 @@ pub async fn get_chairs(
 #[command]
 pub async fn get_available_years(
     state: State<'_, AppState>,
+    cache: State<'_, CacheHandler>,
     session_id: String,
     student_id: String,
 ) -> Result<serde_json::Value, String> {
@@ -182,9 +173,7 @@ pub async fn get_available_years(
         student_id
     );
 
-    let response = client.get(&url).send().await.map_err(|e| e.to_string())?;
-
-    let body = response.text().await.map_err(|e| e.to_string())?;
+    let body = cache.get(&url, &client).await?;
     let years = crate::parser::extract_years(&body);
 
     Ok(serde_json::json!({
@@ -342,6 +331,7 @@ pub async fn get_file(
 #[command]
 pub async fn get_schedule(
     state: State<'_, AppState>,
+    cache: State<'_, CacheHandler>,
     session_id: String,
     student_id: Option<String>,
     year: Option<String>,
@@ -355,18 +345,9 @@ pub async fn get_schedule(
         .to_string();
 
     let url = build_clip_schedule(&resolved_id, year.as_deref());
-    let res = client.get(&url).send().await.map_err(|e| e.to_string())?;
-
-    if !res.status().is_success() {
-        return Err("The CLIP is working ...".to_string());
-    }
-
-    let html_bytes = res.bytes().await.map_err(|e| e.to_string())?;
-    let html = decode_latin1(&html_bytes);
-
-    // TEMP: dump the fetched schedule page for debugging.
-    // let _ = std::fs::write("schedule_debug.html", &html);
     println!("[SCHEDULE URL] {}", url);
+
+    let html = cache.get(&url, &client).await?;
 
     parse_schedule(&html)
 }
