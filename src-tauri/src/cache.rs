@@ -30,6 +30,7 @@ impl CacheHandler {
     }
 
 
+    // Fetches url, stores result in cache, and returns the html.
     pub async fn put(&self, url: &str, client: &Client) -> Result<String, String> {
         let now = Utc::now();
         let response = client.get(url).send().await.map_err(|e| e.to_string())?;
@@ -57,6 +58,7 @@ impl CacheHandler {
         }
     }
 
+    // Returns cached html if fresh, otherwise fetches and updates the cache.
     pub async fn get(&self, url: &str, client: &Client) -> Result<String, String> {
         let result = self
             .db
