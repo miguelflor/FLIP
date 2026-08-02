@@ -72,24 +72,24 @@ impl CacheHandler {
 
         match result {
             Err(_) => {
-                return Err(format!("sqlite select for {}", url));
+                Err(format!("sqlite select for {}", url))
             }
             Ok(None) => {
 
-                let html = self.put(url, &client).await?;
+                let html = self.put(url, client).await?;
 
-                return Ok(html);
+                Ok(html)
             }
             Ok(Some(entry)) => {
                 let now = Utc::now();
                 let elapsed = now - entry.updated_at;
 
                 if elapsed > CACHE_LIMIT {
-                    let html = self.put(url, &client).await?;
+                    let html = self.put(url, client).await?;
                     return Ok(html);
                 }
 
-                return Ok(entry.html);
+                Ok(entry.html)
             }
         }
     }
@@ -130,8 +130,7 @@ fn get_or_create_db_key() -> Result<String, Box<dyn Error>> {
 fn generate_random_key() -> String {
     let mut bytes = [0u8; 32];
     rand::rng().fill_bytes(&mut bytes);
-    let key: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
-    return key;
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
 // Tests
