@@ -1,8 +1,9 @@
 use crate::utils::decode_latin1;
+use chrono::{DateTime, Duration, Utc};
 use keyring::Entry;
 use rand::RngCore;
 use reqwest::Client;
-use rusqlite::{Connection, OptionalExtension};
+use rusqlite::{params, Connection, OptionalExtension};
 use std::error::Error;
 use std::fs;
 use std::sync::Mutex;
@@ -10,6 +11,13 @@ use tauri::Manager;
 
 const DB_NAME: &str = "cache.db";
 const APP_NAME: &str = "flip";
+
+const CACHE_LIMIT: Duration = Duration::minutes(20);
+
+struct CacheEntry {
+    html: String,
+    updated_at: DateTime<Utc>,
+}
 
 pub struct CacheHandler {
     db: Connection,
@@ -20,34 +28,46 @@ impl CacheHandler {
         Self { db: conn }
     }
 
-    fn update(&self, url: &str, html: &str) -> Result<(), ()> {
-        let result = self
-            .db
-            .execute("UPDATE html_cache SET html=?2 WHERE url=?1", [url, html]);
 
-        match result {
-            Ok(_) => Ok(()),
-            Err(_) => Err(()),
+    async fn put(&self, url: &str, client: &Client) -> Result<String, String> {
+        let now = Utc::now();
+        let response = client.get(url).send().await.map_err(|e| e.to_string())?;
+
+        if !response.status().is_success() {
+            return Err(format!("Failed to scrape {}", url));
         }
-    }
 
-    fn put(&self, url: &str, html: &str) -> Result<(), ()> {
-        let result = self
-            .db
-            .execute("INSERT INTO html_cache VALUES (?1, ?2)", [url, html]);
+        let html_bytes = response.bytes().await.map_err(|e| e.to_string())?;
+        let html = decode_latin1(&html_bytes);
+
+        let result = self.db.execute(
+            "INSERT INTO html_cache (url, html, updated_at)
+             VALUES (?1, ?2, ?3)
+             ON CONFLICT(url) DO UPDATE SET
+                html = excluded.html,
+                updated_at = excluded.updated_at",
+            params![url, html, now],
+        );
 
         match result {
-            Ok(_) => Ok(()),
-            Err(_) => Err(()),
+            Ok(_) => Ok(html),
+            Err(_) => Err(format!("Failed to update cache with {}", url)),
         }
     }
 
     pub async fn get(&self, url: &str, client: &Client) -> Result<String, String> {
         let result = self
             .db
-            .query_row("SELECT html FROM html_cache WHERE url=?1", [url], |row| {
-                row.get(0)
-            })
+            .query_row(
+                "SELECT html, updated_at FROM html_cache WHERE url=?1",
+                [url],
+                |row| {
+                    Ok(CacheEntry {
+                        html: row.get(0)?,
+                        updated_at: row.get(1)?,
+                    })
+                },
+            )
             .optional();
 
         match result {
@@ -55,21 +75,21 @@ impl CacheHandler {
                 return Err(format!("sqlite select for {}", url));
             }
             Ok(None) => {
-                let response = client.get(url).send().await.map_err(|e| e.to_string())?;
 
-                if !response.status().is_success() {
-                    return Err(format!("Failed to scrape {}", url));
-                }
-
-                let html_bytes = response.bytes().await.map_err(|e| e.to_string())?;
-                let html = decode_latin1(&html_bytes);
-
-                self.put(url, &html);
+                let html = self.put(url, &client).await?;
 
                 return Ok(html);
             }
-            Ok(Some(x)) => {
-                return Ok(x);
+            Ok(Some(entry)) => {
+                let now = Utc::now();
+                let elapsed = now - entry.updated_at;
+
+                if elapsed > CACHE_LIMIT {
+                    self.put(url, &client);
+                }
+
+
+                return Ok(entry.html);
             }
         }
     }
@@ -86,7 +106,7 @@ pub fn setup_cache(app: &mut tauri::App) -> Result<(), Box<dyn Error>> {
     conn.pragma_update(None, "key", key)?;
 
     conn.execute_batch(
-        "CREATE TABLE IF NOT EXISTS html_cache (url TEXT PRIMARY KEY, html TEXT NOT NULL);",
+        "CREATE TABLE IF NOT EXISTS html_cache (url TEXT PRIMARY KEY, html TEXT NOT NULL, updated_at TEXT NOT NULL);",
     )?;
 
     app.manage(Mutex::new(CacheHandler::new(conn)));

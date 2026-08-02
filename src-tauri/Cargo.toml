@@ -24,7 +24,7 @@ tauri-plugin-log = "2"
 
 
 # SQLCipher 
-rusqlite = { version = "0.32", features = ["bundled-sqlcipher-vendored-openssl"] }
+rusqlite = { version = "0.32", features = ["bundled-sqlcipher-vendored-openssl", "chrono"] }
 
 # HTTP client with cookie support
 reqwest = { version = "0.12", features = ["cookies", "json"] }
