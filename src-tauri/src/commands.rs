@@ -98,10 +98,7 @@ pub async fn get_student_info(
 ) -> Result<StudentInfo, String> {
     let (client, _) = get_session(&state, &session_id)?;
 
-    let url = format!(
-        "https://clip.fct.unl.pt/utente/eu/aluno?aluno={}",
-        student_id
-    );
+    let url = Url::student(&student_id);
 
     let html = cache.get(&url, &client).await?;
 
@@ -140,9 +137,9 @@ pub async fn get_chairs(
     let url = Url::year_student(&year, student_id.as_str());
 
     let fetch = if use_cache.unwrap_or(true) {
-        cache.get(&url.value, &client).await
+        cache.get(&url, &client).await
     } else {
-        cache.put(&url.value, &client).await
+        cache.put(&url, &client).await
     };
 
     let html = match fetch {
@@ -174,10 +171,7 @@ pub async fn get_available_years(
 ) -> Result<serde_json::Value, String> {
     let (client, _) = get_session(&state, &session_id)?;
 
-    let url = format!(
-        "https://clip.fct.unl.pt/utente/eu/aluno/ano_lectivo?aluno={}&instituição=97747",
-        student_id
-    );
+    let url = Url::student_years(&student_id);
 
     let body = cache.get(&url, &client).await?;
     let years = crate::parser::extract_years(&body);
@@ -233,9 +227,9 @@ pub async fn get_file(
                 &type_code,
             );
 
-            println!("{}", url.value);
+            println!("{}", url);
 
-            let response = match client.get(&url.value).send().await {
+            let response = match client.get(&*url.value).send().await {
                 Ok(r) => r,
                 Err(_) => return files,
             };
@@ -355,9 +349,9 @@ pub async fn get_schedule(
     println!("[SCHEDULE URL] {}", url.value);
 
     let html = if use_cache.unwrap_or(true) {
-        cache.get(&url.value, &client).await?
+        cache.get(&url, &client).await?
     } else {
-        cache.put(&url.value, &client).await?
+        cache.put(&url, &client).await?
     };
 
     parse_schedule(&html)

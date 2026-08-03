@@ -1,4 +1,5 @@
 use crate::utils::decode_latin1;
+use crate::url::Url;
 use chrono::{DateTime, Duration, Utc};
 use keyring::Entry;
 use rand::RngCore;
@@ -31,9 +32,9 @@ impl CacheHandler {
 
 
     // Fetches url, stores result in cache, and returns the html.
-    pub async fn put(&self, url: &str, client: &Client) -> Result<String, String> {
+    pub async fn put(&self,url: &Url, client: &Client) -> Result<String, String> {
         let now = Utc::now();
-        let response = client.get(url).send().await.map_err(|e| e.to_string())?;
+        let response = client.get(&url.value).send().await.map_err(|e| e.to_string())?;
 
         if !response.status().is_success() {
             return Err(format!("Failed to scrape {}", url));
@@ -49,7 +50,7 @@ impl CacheHandler {
              ON CONFLICT(url) DO UPDATE SET
                 html = excluded.html,
                 updated_at = excluded.updated_at",
-            params![url, html, now],
+            params![url.value, html, now],
         );
 
         match result {
@@ -59,14 +60,14 @@ impl CacheHandler {
     }
 
     // Returns cached html if fresh, otherwise fetches and updates the cache.
-    pub async fn get(&self, url: &str, client: &Client) -> Result<String, String> {
+    pub async fn get(&self,url: &Url, client: &Client) -> Result<String, String> {
         let result = self
             .db
             .lock()
             .await
             .query_row(
                 "SELECT html, updated_at FROM html_cache WHERE url=?1",
-                [url],
+                [&url.value],
                 |row| {
                     Ok(CacheEntry {
                         html: row.get(0)?,
@@ -150,6 +151,7 @@ fn generate_random_key() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::url::{Url, UrlType};
     use mockito::{Mock, Server};
 
     fn setup_cache() -> CacheHandler {
@@ -171,7 +173,7 @@ mod tests {
 
         let cache = setup_cache();
         let client = Client::new();
-        let url = format!("{}/page", server.url());
+        let url = Url { value: format!("{}/page", server.url()), url_type: UrlType::Documents };
 
         let result = cache.get(&url, &client).await.unwrap();
         assert_eq!(result, "<html>hello</html>");
@@ -185,7 +187,7 @@ mod tests {
 
         let cache = setup_cache();
         let client = Client::new();
-        let url = format!("{}/page", server.url());
+        let url = Url { value: format!("{}/page", server.url()), url_type: UrlType::Documents };
 
         // First call populates cache
         cache.get(&url, &client).await.unwrap();
@@ -204,13 +206,13 @@ mod tests {
         let client = Client::new();
 
         let mut server = Server::new_async().await;
-        let url = format!("{}/page", server.url());
+        let url = Url { value: format!("{}/page", server.url()), url_type: UrlType::Documents };
 
         // Insert a stale entry manually (30 minutes ago)
         let stale_time = Utc::now() - Duration::minutes(30);
         cache.db.lock().await.execute(
             "INSERT INTO html_cache (url, html, updated_at) VALUES (?1, ?2, ?3)",
-            params![url, "<html>old</html>", stale_time],
+            params![url.value, "<html>old</html>", stale_time],
         ).unwrap();
 
         let mock = mock_html_endpoint(&mut server, "/page", "<html>refreshed</html>");
@@ -227,7 +229,7 @@ mod tests {
 
         let cache = setup_cache();
         let client = Client::new();
-        let url = format!("{}/fail", server.url());
+        let url = Url { value: format!("{}/fail", server.url()), url_type: UrlType::Documents };
 
         let result = cache.put(&url, &client).await;
         assert!(result.is_err());
@@ -242,14 +244,14 @@ mod tests {
 
         let cache = setup_cache();
         let client = Client::new();
-        let url = format!("{}/page", server.url());
+        let url = Url { value: format!("{}/page", server.url()), url_type: UrlType::Documents };
 
         cache.put(&url, &client).await.unwrap();
 
         // Drop and recreate mock with new body
         let mut server2 = Server::new_async().await;
         let _m2 = mock_html_endpoint(&mut server2, "/page", "<html>v2</html>");
-        let url2 = format!("{}/page", server2.url());
+        let url2 = Url { value: format!("{}/page", server2.url()), url_type: UrlType::Documents };
 
         let result = cache.put(&url2, &client).await.unwrap();
         assert_eq!(result, "<html>v2</html>");
