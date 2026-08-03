@@ -1,0 +1,42 @@
+<template>
+  <div class="flex h-screen bg-gray-50 overflow-hidden">
+    <Sidebar :open="sidebarOpen" @close="sidebarOpen = false" />
+
+    <!-- Mobile backdrop -->
+    <transition
+      enter-active-class="transition-opacity duration-300"
+      leave-active-class="transition-opacity duration-300"
+      enter-from-class="opacity-0"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="sidebarOpen"
+        @click="sidebarOpen = false"
+        class="fixed inset-0 bg-black/40 z-30 md:hidden"
+      ></div>
+    </transition>
+
+    <div class="flex-1 flex flex-col overflow-hidden min-w-0">
+      <Navbar @toggle-sidebar="sidebarOpen = !sidebarOpen" />
+      <main class="flex-1 overflow-y-auto p-4 sm:p-6">
+        <RouterView />
+      </main>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { onMounted, onUnmounted, ref } from 'vue';
+import Navbar from '../components/Navbar.vue';
+import Sidebar from '../components/Sidebar.vue';
+
+const sidebarOpen = ref(window.innerWidth >= 768);
+
+const mql = window.matchMedia('(min-width: 768px)');
+const handleBreakpoint = (e: MediaQueryListEvent) => {
+  sidebarOpen.value = e.matches;
+};
+
+onMounted(() => mql.addEventListener('change', handleBreakpoint));
+onUnmounted(() => mql.removeEventListener('change', handleBreakpoint));
+</script>
