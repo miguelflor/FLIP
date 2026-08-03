@@ -30,7 +30,7 @@ import { useStudent } from '../composables/useStudent';
 
 const { currentStudentId } = useStudent();
 
-const selectedYear = ref<string | null>(null);
+const selectedYear = ref<string | null>(localStorage.getItem('selected_year'));
 const availableYears = ref<string[]>([]);
 const isYearDropdownOpen = ref(false);
 
@@ -57,8 +57,6 @@ const fetchAvailableYears = async (studentId: string) => {
 };
 
 onMounted(() => {
-  selectedYear.value = localStorage.getItem('selected_year');
-
   if (currentStudentId.value) {
     fetchAvailableYears(currentStudentId.value);
   }
