@@ -55,7 +55,7 @@ const fetchAvailableYears = async (studentId: string) => {
 
     if (res.success) {
       availableYears.value = res.years;
-      if (res.years.length > 0 && !selectedYear.value) {
+      if (res.years.length > 0 && (!selectedYear.value || !res.years.includes(selectedYear.value))) {
         selectedYear.value = res.years[0];
         localStorage.setItem('selected_year', selectedYear.value);
         window.dispatchEvent(new CustomEvent('years-loaded', { detail: { year: selectedYear.value } }));
