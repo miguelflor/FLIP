@@ -92,7 +92,7 @@ const handleSubmit = async () => {
     localStorage.setItem('clipSessionId', loginResponse.session_id);
     localStorage.setItem('student_ids', JSON.stringify(loginResponse.aluno_ids));
     localStorage.setItem('selected_aluno_id', Object.keys(loginResponse.aluno_ids)[0]);
-    await router.push('/dashboard');
+    await router.push('/app/dashboard');
   } catch (err) {
     error(String(err));
   } finally {
