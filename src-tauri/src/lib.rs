@@ -4,6 +4,7 @@ mod constants;
 mod parser;
 mod session;
 mod types;
+mod url;
 mod utils;
 
 use std::collections::HashMap;

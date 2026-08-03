@@ -19,9 +19,8 @@ use crate::session::get_session;
 use crate::types::{
     ChairsResponse, FileParams, FileResponse, LoginResponse, Schedule, StudentInfo,
 };
-use crate::utils::{
-    build_clip_schedule, build_clip_year_student_url, build_docs_url, get_type_name,
-};
+use crate::url::Url;
+use crate::utils::get_type_name;
 use crate::{AppState, Session};
 
 type VecThr<T> = Vec<tokio::task::JoinHandle<T>>;
@@ -138,12 +137,12 @@ pub async fn get_chairs(
 ) -> Result<ChairsResponse, String> {
     let (client, _) = get_session(&state, &session_id)?;
 
-    let url = build_clip_year_student_url(&year, student_id.as_str());
+    let url = Url::year_student(&year, student_id.as_str());
 
     let fetch = if use_cache.unwrap_or(true) {
-        cache.get(&url, &client).await
+        cache.get(&url.value, &client).await
     } else {
-        cache.put(&url, &client).await
+        cache.put(&url.value, &client).await
     };
 
     let html = match fetch {
@@ -225,7 +224,7 @@ pub async fn get_file(
         let handle = tokio::spawn(async move {
             let mut files: Vec<(String, Vec<u8>)> = Vec::new();
 
-            let url = build_docs_url(
+            let url = Url::documents(
                 &student_id,
                 &params_year,
                 &params_period,
@@ -234,9 +233,9 @@ pub async fn get_file(
                 &type_code,
             );
 
-            println!("{}", url);
+            println!("{}", url.value);
 
-            let response = match client.get(&url).send().await {
+            let response = match client.get(&url.value).send().await {
                 Ok(r) => r,
                 Err(_) => return files,
             };
@@ -352,13 +351,13 @@ pub async fn get_schedule(
         .ok_or("There is no student id")?
         .to_string();
 
-    let url = build_clip_schedule(&resolved_id, year.as_deref());
-    println!("[SCHEDULE URL] {}", url);
+    let url = Url::schedule(&resolved_id, year.as_deref());
+    println!("[SCHEDULE URL] {}", url.value);
 
     let html = if use_cache.unwrap_or(true) {
-        cache.get(&url, &client).await?
+        cache.get(&url.value, &client).await?
     } else {
-        cache.put(&url, &client).await?
+        cache.put(&url.value, &client).await?
     };
 
     parse_schedule(&html)
