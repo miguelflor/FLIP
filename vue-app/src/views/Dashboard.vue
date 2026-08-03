@@ -15,7 +15,7 @@
     <!-- Panels -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
       <ScheduleCard :student-id="currentStudentId" :year="selectedYear" />
-      <PDFList :student-id="currentStudentId" :year="selectedYear" />
+      <DocView :student-id="currentStudentId" :year="selectedYear" />
     </div>
   </div>
 </template>
@@ -25,7 +25,7 @@ import { onMounted, ref, watch } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 import Dropdown from '../components/Dropdown.vue';
 import ScheduleCard from '../components/ScheduleCard.vue';
-import PDFList from '../components/PDFList.vue';
+import DocView from '../components/DocView.vue';
 import { useStudent } from '../composables/useStudent';
 
 const { currentStudentId } = useStudent();
