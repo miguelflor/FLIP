@@ -29,6 +29,9 @@
 import { onMounted, onUnmounted, ref } from 'vue';
 import Navbar from '../components/Navbar.vue';
 import Sidebar from '../components/Sidebar.vue';
+import { useStudent } from '../composables/useStudent';
+
+const { init } = useStudent();
 
 const sidebarOpen = ref(window.innerWidth >= 768);
 
@@ -37,6 +40,9 @@ const handleBreakpoint = (e: MediaQueryListEvent) => {
   sidebarOpen.value = e.matches;
 };
 
-onMounted(() => mql.addEventListener('change', handleBreakpoint));
+onMounted(() => {
+  mql.addEventListener('change', handleBreakpoint);
+  init();
+});
 onUnmounted(() => mql.removeEventListener('change', handleBreakpoint));
 </script>

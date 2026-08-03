@@ -31,6 +31,10 @@ const router = createRouter({
           component: Files
         }
       ]
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      redirect: '/'
     }
   ]
 })

@@ -77,11 +77,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 import { FolderOpen } from 'lucide-vue-next';
 import Chair from './Chair.vue';
 import { PeriodType } from '../lib/clipVars';
+
+const props = defineProps<{
+  studentId: string | null;
+  year: string | null;
+}>();
 
 interface ChairData {
   href: string;
@@ -174,40 +179,14 @@ const getPeriodName = (periodKey: string) => {
 };
 
 onMounted(() => {
-  // Trigger immediately in case events already fired before this component mounted
-  const existingStudentId = localStorage.getItem('selected_student_id');
-  const existingYear = localStorage.getItem('selected_year') || undefined;
-  if (existingStudentId) {
-    handleChairs(existingStudentId, existingYear);
+  if (props.studentId) {
+    handleChairs(props.studentId, props.year ?? undefined);
   } else {
     loading.value = false;
   }
+});
 
-  // Listen for years loaded in dropdown
-  window.addEventListener('years-loaded', (e) => {
-    const { detail } = e as CustomEvent<{ year: string }>;
-    const studentId = localStorage.getItem('selected_student_id');
-    if (studentId) {
-      handleChairs(studentId, detail.year);
-    }
-  });
-
-  // Listen for student change
-  window.addEventListener('student-changed', (e) => {
-    const { detail } = e as CustomEvent<{ studentId: string }>;
-    const year = localStorage.getItem('selected_year');
-    if (year) {
-      handleChairs(detail.studentId, year);
-    }
-  });
-
-  // Listen for year change
-  window.addEventListener('year-changed', (e) => {
-    const { detail } = e as CustomEvent<{ year: string }>;
-    const studentId = localStorage.getItem('selected_student_id');
-    if (studentId) {
-      handleChairs(studentId, detail.year);
-    }
-  });
+watch([() => props.studentId, () => props.year], ([newStudentId, newYear]) => {
+  if (newStudentId) handleChairs(newStudentId, newYear ?? undefined);
 });
 </script>

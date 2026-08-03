@@ -180,9 +180,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { Calendar, MapPin } from "lucide-vue-next";
+
+const props = defineProps<{
+  studentId: string | null;
+  year: string | null;
+}>();
 
 type Weekday =
   | "Monday"
@@ -258,9 +263,7 @@ const toHeight = (start: HourMinute, end: HourMinute) =>
   ((end.hour * 60 + end.min - (start.hour * 60 + start.min)) / 60) * HOUR_PX;
 
 const refreshSchedule = () => {
-  const studentId = localStorage.getItem("selected_student_id") ?? undefined;
-  const year = localStorage.getItem("selected_year") ?? undefined;
-  loadSchedule(studentId, year, false);
+  loadSchedule(props.studentId ?? undefined, props.year ?? undefined, false);
 };
 
 const loadSchedule = async (studentId?: string, year?: string, useCache: boolean = true) => {
@@ -286,27 +289,11 @@ const loadSchedule = async (studentId?: string, year?: string, useCache: boolean
 };
 
 onMounted(() => {
-  const studentId = localStorage.getItem("selected_student_id") ?? undefined;
-  const year = localStorage.getItem("selected_year") ?? undefined;
-  loadSchedule(studentId, year);
+  if (props.studentId) loadSchedule(props.studentId, props.year ?? undefined);
+});
 
-  window.addEventListener("years-loaded", (e) => {
-    const { detail } = e as CustomEvent<{ year: string }>;
-    const sid = localStorage.getItem("selected_student_id") ?? undefined;
-    loadSchedule(sid, detail.year);
-  });
-
-  window.addEventListener("student-changed", (e) => {
-    const { detail } = e as CustomEvent<{ studentId: string }>;
-    const yr = localStorage.getItem("selected_year") ?? undefined;
-    loadSchedule(detail.studentId, yr);
-  });
-
-  window.addEventListener("year-changed", (e) => {
-    const { detail } = e as CustomEvent<{ year: string }>;
-    const sid = localStorage.getItem("selected_student_id") ?? undefined;
-    loadSchedule(sid, detail.year);
-  });
+watch([() => props.studentId, () => props.year], ([newStudentId, newYear]) => {
+  if (newStudentId) loadSchedule(newStudentId, newYear ?? undefined);
 });
 
 const formatTime = (hm: HourMinute) =>

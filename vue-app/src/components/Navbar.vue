@@ -10,6 +10,16 @@
         >
           <Menu class="w-5 h-5" />
         </button>
+
+        <!-- Student Dropdown -->
+        <Dropdown
+          :options="Object.keys(alunoIds)"
+          :selected="selectedAlunoId"
+          placeholder="Selecionar Aluno"
+          :open="isDropdownOpen"
+          @select="handleSelectStudent"
+          @update:open="(v) => isDropdownOpen = v"
+        />
       </div>
 
       <!-- User profile -->
@@ -26,50 +36,22 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
-import { invoke } from '@tauri-apps/api/core';
+import { ref } from 'vue';
 import { Menu } from 'lucide-vue-next';
+import Dropdown from './Dropdown.vue';
 import UserProfile from './UserProfile.vue';
+import { useStudent } from '../composables/useStudent';
 
 const emit = defineEmits<{
   'toggle-sidebar': [];
 }>();
 
-const studentName = ref<string | null>(null);
-const studentCourse = ref<string | null>(null);
-const studentPhotoUrl = ref<string | null>(null);
-const loadingStudentInfo = ref(true);
+const { alunoIds, selectedAlunoId, studentName, studentCourse, studentPhotoUrl, loadingStudentInfo, selectStudent } = useStudent();
 
-type StudentInfo = {
-  photo_data: string | null;
-  student_name: string;
-  course: string;
+const isDropdownOpen = ref(false);
+
+const handleSelectStudent = (displayName: string) => {
+  selectStudent(displayName);
+  isDropdownOpen.value = false;
 };
-
-const fetchStudentInfo = async () => {
-  loadingStudentInfo.value = true;
-  try {
-    const sessionId = localStorage.getItem('clipSessionId');
-    const studentId = localStorage.getItem('selected_student_id');
-    if (!sessionId || !studentId) return;
-
-    const res = await invoke<StudentInfo>('get_student_info', {
-      sessionId,
-      studentId,
-    });
-
-    studentName.value = res.student_name;
-    studentCourse.value = res.course;
-    studentPhotoUrl.value = res.photo_data ? `data:image/jpeg;base64,${res.photo_data}` : null;
-  } catch (e) {
-    console.error('Error fetching student info:', e);
-  } finally {
-    loadingStudentInfo.value = false;
-  }
-};
-
-onMounted(() => {
-  fetchStudentInfo();
-  window.addEventListener('student-changed', fetchStudentInfo);
-});
 </script>
