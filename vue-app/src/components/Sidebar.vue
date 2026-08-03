@@ -58,22 +58,35 @@
         </RouterLink>
       </nav>
 
-      <!-- Logout Button -->
-      <button
-        @click="handleLogout"
-        class="cursor-pointer w-fit mx-auto flex items-center justify-center space-x-2 px-3 py-2 mb-2 text-slate-500 hover:text-slate-700 hover:bg-slate-200 rounded-lg transition-all duration-200 group whitespace-nowrap"
-        title="Terminar sessão"
-      >
-        <LogOut class="w-4 h-4 shrink-0" />
-        <span class="text-sm font-medium">Sair</span>
-      </button>
+      <!-- Bottom actions -->
+      <div class="p-4 border-t border-slate-200 space-y-2">
+        <button
+          @click="handleResetCache"
+          class="cursor-pointer w-full flex items-center justify-center space-x-2 px-3 py-2 text-slate-500 hover:text-slate-700 hover:bg-slate-200 rounded-lg transition-all duration-200 group whitespace-nowrap"
+          title="Limpar cache"
+        >
+          <RefreshCw class="w-4 h-4 shrink-0" />
+          <span class="text-sm font-medium">Limpar cache</span>
+        </button>
+
+        <button
+          @click="handleLogout"
+          class="cursor-pointer w-full flex items-center justify-center space-x-2 px-3 py-2 text-slate-500 hover:text-slate-700 hover:bg-slate-200 rounded-lg transition-all duration-200 group whitespace-nowrap"
+          title="Terminar sessão"
+        >
+          <LogOut class="w-4 h-4 shrink-0" />
+          <span class="text-sm font-medium">Sair</span>
+        </button>
+      </div>
     </div>
   </aside>
 </template>
 
 <script setup lang="ts">
 import { useRoute, useRouter } from "vue-router";
-import { FolderOpen, LayoutDashboard, LogOut, X } from "lucide-vue-next";
+import { invoke } from "@tauri-apps/api/core";
+import { FolderOpen, LayoutDashboard, LogOut, RefreshCw, X } from "lucide-vue-next";
+import { useToast } from "../composables/useToast";
 
 defineProps<{
   open: boolean;
@@ -85,6 +98,16 @@ const emit = defineEmits<{
 
 const route = useRoute();
 const router = useRouter();
+const { success, error } = useToast();
+
+const handleResetCache = async () => {
+  try {
+    await invoke('reset_cache');
+    success('Cache limpa com sucesso');
+  } catch (e) {
+    error('Erro ao limpar cache');
+  }
+};
 
 const handleLogout = () => {
   localStorage.clear();

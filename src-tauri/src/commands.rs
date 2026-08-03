@@ -356,3 +356,8 @@ pub async fn get_schedule(
 
     parse_schedule(&html)
 }
+
+#[command]
+pub async fn reset_cache(cache: State<'_, CacheHandler>) -> Result<(), String> {
+    cache.reset().await
+}

@@ -63,6 +63,13 @@ impl CacheHandler {
         }
     }
 
+    pub async fn reset(&self) -> Result<(), String> {
+        let db = self.db.lock().await;
+        db.execute("DELETE FROM html_cache", [])
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
     // Returns cached html if fresh, otherwise fetches and updates the cache.
     pub async fn get(&self, url: &Url, client: &Client) -> Result<String, String> {
         let result = self

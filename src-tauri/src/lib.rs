@@ -66,7 +66,8 @@ pub fn run() {
             commands::get_chairs,
             commands::get_available_years,
             commands::get_file,
-            commands::get_schedule
+            commands::get_schedule,
+            commands::reset_cache
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
