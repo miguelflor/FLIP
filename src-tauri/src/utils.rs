@@ -1,52 +1,9 @@
 use chrono::{Datelike, Local, NaiveDate};
 
-use crate::constants::{
-    CLIP_HOME, CLIP_SCHEDULE, FILE_TYPES, PERIOD_N, PERIOD_TYPE, STUDENT, TYPE_FILE, UNIDADE, YEAR,
-};
+use crate::constants::FILE_TYPES;
 use crate::types::Semester;
 
-// ============================================================================
 // Utility Functions
-// ============================================================================
-
-pub fn build_clip_year_student_url(year: &str, student: &str) -> String {
-    format!(
-        "{}/aluno/ano_lectivo?aluno={}&ano_lectivo={}",
-        CLIP_HOME, student, year
-    )
-}
-
-// Ex.: https://clip.fct.unl.pt/utente/eu/aluno/ano_lectivo/hor%E1rio?ano_lectivo=2026&institui%E7%E3o=97747&aluno=132271&tipo_de_per%EDodo_lectivo=s&per%EDodo_lectivo=2
-pub fn build_clip_schedule(student: &str, year: Option<&str>) -> String {
-    let sem = get_semester();
-    let lective_year = year.map(|y| y.to_string()).unwrap_or_else(get_lective_year);
-    // TODO: institui%E7%E3o (97747 = FCT) is hardcoded for now; extract it dynamically from CLIP HTML.
-    format!(
-        "{}?ano_lectivo={}&institui%E7%E3o=97747&{}={}&{}={}&{}={}",
-        CLIP_SCHEDULE,
-        lective_year,
-        STUDENT,
-        student,
-        PERIOD_TYPE,
-        sem.url_type(),
-        PERIOD_N,
-        sem.url_num()
-    )
-}
-
-pub fn build_docs_url(
-    student: &str,
-    year: &str,
-    period: &str,
-    type_period: &str,
-    unit_id: &str,
-    doc_type: &str,
-) -> String {
-    format!(
-        "{}/aluno/ano_lectivo/unidades/unidade_curricular/actividade/documentos?{}={}&{}={}&{}={}&{}={}&{}={}&{}={}",
-        CLIP_HOME, PERIOD_N, period, PERIOD_TYPE, type_period, YEAR, year,STUDENT,student, UNIDADE, unit_id, TYPE_FILE, doc_type
-    )
-}
 
 /// Returns the current semester based on today's date.
 ///

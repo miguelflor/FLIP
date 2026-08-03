@@ -10,6 +10,7 @@ use uuid::Uuid;
 use zip::write::SimpleFileOptions;
 use zip::ZipWriter;
 
+use crate::cache::CacheHandler;
 use crate::constants::{CLIP_BASE, CLIP_HOME, FILE_TYPES, USER_AGENT};
 use crate::parser::{
     extract_aluno_ids, extract_student_info, parse_chairs, parse_file_urls, parse_schedule,
@@ -18,9 +19,8 @@ use crate::session::get_session;
 use crate::types::{
     ChairsResponse, FileParams, FileResponse, LoginResponse, Schedule, StudentInfo,
 };
-use crate::utils::{
-    build_clip_schedule, build_clip_year_student_url, build_docs_url, decode_latin1, get_type_name,
-};
+use crate::url::Url;
+use crate::utils::get_type_name;
 use crate::{AppState, Session};
 
 type VecThr<T> = Vec<tokio::task::JoinHandle<T>>;
@@ -92,27 +92,15 @@ pub async fn login(
 #[command]
 pub async fn get_student_info(
     state: State<'_, AppState>,
+    cache: State<'_, CacheHandler>,
     session_id: String,
     student_id: String,
 ) -> Result<StudentInfo, String> {
     let (client, _) = get_session(&state, &session_id)?;
 
-    let url = format!(
-        "https://clip.fct.unl.pt/utente/eu/aluno?aluno={}",
-        student_id
-    );
+    let url = Url::student(&student_id);
 
-    let response = client.get(&url).send().await.map_err(|e| e.to_string())?;
-
-    if !response.status().is_success() {
-        return Err(format!(
-            "Failed to fetch student info: {}",
-            response.status()
-        ));
-    }
-
-    let html_bytes = response.bytes().await.map_err(|e| e.to_string())?;
-    let html = decode_latin1(&html_bytes);
+    let html = cache.get(&url, &client).await?;
 
     // Extract student info from HTML
     if let Some(parsed_info) = extract_student_info(&html) {
@@ -138,28 +126,33 @@ pub async fn get_student_info(
 #[command]
 pub async fn get_chairs(
     state: State<'_, AppState>,
+    cache: State<'_, CacheHandler>,
     session_id: String,
     student_id: String,
     year: String,
+    use_cache: Option<bool>,
 ) -> Result<ChairsResponse, String> {
     let (client, _) = get_session(&state, &session_id)?;
 
-    let url = build_clip_year_student_url(&year, student_id.as_str());
+    let url = Url::year_student(&year, student_id.as_str());
 
-    let response = client.get(&url).send().await.map_err(|e| e.to_string())?;
+    let fetch = if use_cache.unwrap_or(true) {
+        cache.get(&url, &client).await
+    } else {
+        cache.put(&url, &client).await
+    };
 
-    if !response.status().is_success() {
-        return Ok(ChairsResponse {
-            success: false,
-            chairs: None,
-            error: Some(format!("Failed to fetch chairs: {}", response.status())),
-        });
-    }
+    let html = match fetch {
+        Ok(h) => h,
+        Err(e) => {
+            return Ok(ChairsResponse {
+                success: false,
+                chairs: None,
+                error: Some(e),
+            })
+        }
+    };
 
-    let html_bytes = response.bytes().await.map_err(|e| e.to_string())?;
-    let html = decode_latin1(&html_bytes);
-
-    // Parse outside of async context
     let chairs = parse_chairs(&html);
 
     Ok(ChairsResponse {
@@ -172,19 +165,15 @@ pub async fn get_chairs(
 #[command]
 pub async fn get_available_years(
     state: State<'_, AppState>,
+    cache: State<'_, CacheHandler>,
     session_id: String,
     student_id: String,
 ) -> Result<serde_json::Value, String> {
     let (client, _) = get_session(&state, &session_id)?;
 
-    let url = format!(
-        "https://clip.fct.unl.pt/utente/eu/aluno/ano_lectivo?aluno={}&instituição=97747",
-        student_id
-    );
+    let url = Url::student_years(&student_id);
 
-    let response = client.get(&url).send().await.map_err(|e| e.to_string())?;
-
-    let body = response.text().await.map_err(|e| e.to_string())?;
+    let body = cache.get(&url, &client).await?;
     let years = crate::parser::extract_years(&body);
 
     Ok(serde_json::json!({
@@ -229,7 +218,7 @@ pub async fn get_file(
         let handle = tokio::spawn(async move {
             let mut files: Vec<(String, Vec<u8>)> = Vec::new();
 
-            let url = build_docs_url(
+            let url = Url::documents(
                 &student_id,
                 &params_year,
                 &params_period,
@@ -240,7 +229,7 @@ pub async fn get_file(
 
             println!("{}", url);
 
-            let response = match client.get(&url).send().await {
+            let response = match client.get(&*url.value).send().await {
                 Ok(r) => r,
                 Err(_) => return files,
             };
@@ -342,9 +331,11 @@ pub async fn get_file(
 #[command]
 pub async fn get_schedule(
     state: State<'_, AppState>,
+    cache: State<'_, CacheHandler>,
     session_id: String,
     student_id: Option<String>,
     year: Option<String>,
+    use_cache: Option<bool>,
 ) -> Result<Schedule, String> {
     let (client, student_ids) = get_session(&state, &session_id)?;
 
@@ -354,19 +345,14 @@ pub async fn get_schedule(
         .ok_or("There is no student id")?
         .to_string();
 
-    let url = build_clip_schedule(&resolved_id, year.as_deref());
-    let res = client.get(&url).send().await.map_err(|e| e.to_string())?;
+    let url = Url::schedule(&resolved_id, year.as_deref());
+    println!("[SCHEDULE URL] {}", url.value);
 
-    if !res.status().is_success() {
-        return Err("The CLIP is working ...".to_string());
-    }
-
-    let html_bytes = res.bytes().await.map_err(|e| e.to_string())?;
-    let html = decode_latin1(&html_bytes);
-
-    // TEMP: dump the fetched schedule page for debugging.
-    // let _ = std::fs::write("schedule_debug.html", &html);
-    println!("[SCHEDULE URL] {}", url);
+    let html = if use_cache.unwrap_or(true) {
+        cache.get(&url, &client).await?
+    } else {
+        cache.put(&url, &client).await?
+    };
 
     parse_schedule(&html)
 }

@@ -1,8 +1,10 @@
 mod commands;
+mod cache;
 mod constants;
 mod parser;
 mod session;
 mod types;
+mod url;
 mod utils;
 
 use std::collections::HashMap;
@@ -12,6 +14,7 @@ use parking_lot::Mutex;
 use reqwest::Client;
 use reqwest_cookie_store::CookieStoreMutex;
 use serde::Deserialize;
+use cache::setup_cache;
 
 #[derive(Deserialize)]
 struct Config {
@@ -46,6 +49,10 @@ pub fn run() {
         .unwrap_or(Config { logging: false });
 
     let mut builder = tauri::Builder::default()
+        .setup(|app| {
+            setup_cache(app)?;
+            Ok(())
+        })
         .manage(AppState::default());
 
     if config.logging {

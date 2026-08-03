@@ -33,6 +33,26 @@
           </span>
         </div>
         <button
+          @click="refreshSchedule"
+          :disabled="loading"
+          class="flex items-center space-x-1 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-md hover:shadow-sm transition-all text-xs font-medium hover:bg-slate-50 disabled:opacity-50"
+        >
+          <svg
+            :class="['w-3.5 h-3.5', { 'animate-spin': loading }]"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+            />
+          </svg>
+          <span>Atualizar</span>
+        </button>
+        <button
           @click="exportAllToGoogleCalendar"
           class="flex items-center space-x-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-md hover:shadow-sm transition-all text-xs font-medium hover:bg-slate-50"
         >
@@ -237,7 +257,13 @@ const toTop = (hm: HourMinute) =>
 const toHeight = (start: HourMinute, end: HourMinute) =>
   ((end.hour * 60 + end.min - (start.hour * 60 + start.min)) / 60) * HOUR_PX;
 
-const loadSchedule = async (studentId?: string, year?: string) => {
+const refreshSchedule = () => {
+  const studentId = localStorage.getItem("selected_student_id") ?? undefined;
+  const year = localStorage.getItem("selected_year") ?? undefined;
+  loadSchedule(studentId, year, false);
+};
+
+const loadSchedule = async (studentId?: string, year?: string, useCache: boolean = true) => {
   const sessionId = localStorage.getItem("clipSessionId");
   if (!sessionId) {
     error.value = "Sessão não encontrada";
@@ -247,7 +273,7 @@ const loadSchedule = async (studentId?: string, year?: string) => {
   loading.value = true;
   error.value = null;
   try {
-    const params: Record<string, string> = { sessionId };
+    const params: Record<string, string | boolean> = { sessionId, useCache };
     if (studentId) params.studentId = studentId;
     if (year) params.year = extractYearForRequest(year);
     const result = await invoke<ScheduleItem[]>("get_schedule", params);

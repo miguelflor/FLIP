@@ -125,10 +125,10 @@ const refreshChairs = async () => {
     error.value = 'Por favor, selecione um aluno.';
     return;
   }
-  handleChairs(studentId, year || undefined);
+  handleChairs(studentId, year || undefined, false);
 };
 
-const handleChairs = async (studentId: string, year?: string) => {
+const handleChairs = async (studentId: string, year?: string, useCache: boolean = true) => {
   loading.value = true;
   error.value = null;
   try {
@@ -139,7 +139,7 @@ const handleChairs = async (studentId: string, year?: string) => {
       return;
     }
 
-    const params: Record<string, string> = { sessionId, studentId };
+    const params: Record<string, string | boolean> = { sessionId, studentId, useCache };
     if (year) {
       params.year = extractYearForRequest(year);
     }
