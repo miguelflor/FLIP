@@ -53,7 +53,6 @@ interface FileParams {
 
 interface Props {
   chair: ChairType;
-  idx: number;
 }
 
 const props = defineProps<Props>();

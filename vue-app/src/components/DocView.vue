@@ -39,14 +39,14 @@
         class="animate-pulse space-y-3"
       >
         <div
-          v-for="i in 5"
-          :key="i"
+          v-for="width in SKELETON_WIDTHS"
+          :key="width"
           class="flex items-center"
         >
           <div class="h-4 w-4 bg-gray-200 rounded mr-2" />
-          <div 
-            class="h-4 bg-gray-200 rounded" 
-            :style="{ width: `${Math.floor(Math.random() * 30) + 60}%` }"
+          <div
+            class="h-4 bg-gray-200 rounded"
+            :style="{ width: `${width}%` }"
           />
         </div>
       </div>
@@ -78,10 +78,9 @@
             </h4>
             <ul class="space-y-2 pl-2">
               <ChairItem
-                v-for="(chair, idx) in cs"
-                :key="idx"
+                v-for="chair in cs"
+                :key="chair.href"
                 :chair="chair"
-                :idx="idx"
               />
             </ul>
           </div>
@@ -131,6 +130,9 @@ interface ChairsResponse {
   error?: string;
 }
 
+// Fixed widths so the skeleton bars don't jitter on every re-render.
+const SKELETON_WIDTHS = [72, 88, 64, 81, 69];
+
 const loading = ref(true);
 const chairs = ref<ChairsByPeriod>({});
 const error = ref<string | null>(null);
@@ -148,14 +150,12 @@ const extractYearForRequest = (yearStr: string): string => {
   return yearStr;
 };
 
-const refreshChairs = async () => {
-  const studentId = localStorage.getItem('selected_student_id');
-  const year = localStorage.getItem('selected_year');
-  if (!studentId) {
+const refreshChairs = () => {
+  if (!props.studentId) {
     error.value = 'Por favor, selecione um aluno.';
     return;
   }
-  handleChairs(studentId, year || undefined, false);
+  handleChairs(props.studentId, props.year ?? undefined, false);
 };
 
 const handleChairs = async (studentId: string, year?: string, useCache: boolean = true) => {
