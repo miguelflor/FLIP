@@ -31,7 +31,7 @@
                 ? 'hover:bg-red-100 text-red-600 hover:text-red-700'
                 : 'hover:bg-green-100 text-green-600 hover:text-green-700'
             ]"
-            @click="removeToast(toast.id)"
+            @click="dismiss(toast.id)"
           >
             <X class="h-4 w-4" />
           </button>
@@ -40,10 +40,10 @@
         <div :class="['h-1 w-full', toast.type === 'error' ? 'bg-red-100' : 'bg-green-100']">
           <div
             :class="[
-              'h-full transition-all duration-75 ease-linear',
+              'h-full origin-left toast-progress',
               toast.type === 'error' ? 'bg-red-500' : 'bg-green-500'
             ]"
-            :style="{ width: `${toastProgress[toast.id] || 100}%` }"
+            :style="{ animationDuration: `${toast.duration}ms` }"
           />
         </div>
       </div>
@@ -52,51 +52,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
 import { CheckCircle, XCircle, X } from 'lucide-vue-next';
 import { useToast } from '../composables/useToast';
 
-const { toasts } = useToast();
-const toastProgress = ref<Record<number, number>>({});
-const timers = ref<Record<number, number>>({});
-const intervals = ref<Record<number, number>>({});
-const duration = 2000; // 2 seconds
-
-const removeToast = (id: number) => {
-  const index = toasts.value.findIndex(t => t.id === id);
-  if (index > -1) {
-    toasts.value.splice(index, 1);
-    if (timers.value[id]) clearTimeout(timers.value[id]);
-    if (intervals.value[id]) clearInterval(intervals.value[id]);
-  }
-};
-
-const startToastTimer = (id: number) => {
-  toastProgress.value[id] = 100;
-
-  timers.value[id] = window.setTimeout(() => {
-    removeToast(id);
-  }, duration);
-
-  intervals.value[id] = window.setInterval(() => {
-    toastProgress.value[id] = Math.max(0, toastProgress.value[id] - (100 / (duration / 50)));
-  }, 50);
-};
-
-watch(
-  () => toasts.value,
-  (newToasts) => {
-    newToasts.forEach(toast => {
-      if (!toastProgress.value.hasOwnProperty(toast.id)) {
-        startToastTimer(toast.id);
-      }
-    });
-  },
-  { deep: true }
-);
+// Lifecycle (auto-dismiss timers) is owned by useToast; this component only renders.
+const { toasts, dismiss } = useToast();
 </script>
 
 <style scoped>
+@keyframes toast-progress {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+.toast-progress {
+  animation-name: toast-progress;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
 .slide-fade-enter-active {
   transition: all 0.3s ease-out;
 }
