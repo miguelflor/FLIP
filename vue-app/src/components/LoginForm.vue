@@ -116,9 +116,11 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { invoke } from '@tauri-apps/api/core';
 import { useToast } from '../composables/useToast';
+import { useStudent } from '../composables/useStudent';
 
 const router = useRouter();
 const { error } = useToast();
+const { startSession } = useStudent();
 const username = ref('');
 const password = ref('');
 const loading = ref(false);
@@ -136,11 +138,7 @@ const handleSubmit = async () => {
       username: username.value, 
       password: password.value 
     });
-    localStorage.setItem('clipSessionId', loginResponse.session_id);
-    localStorage.setItem('student_ids', JSON.stringify(loginResponse.aluno_ids));
-    const firstKey = Object.keys(loginResponse.aluno_ids)[0];
-    localStorage.setItem('selected_aluno_id', firstKey);
-    localStorage.setItem('selected_student_id', loginResponse.aluno_ids[firstKey]);
+    startSession(loginResponse.session_id, loginResponse.aluno_ids);
     await router.push('/app/dashboard');
   } catch (err) {
     error(String(err));

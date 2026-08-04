@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
+import { storage } from '../lib/storage';
 
 type StudentInfo = {
   photo_data: string | null;
@@ -7,14 +8,20 @@ type StudentInfo = {
   course: string;
 };
 
+// Session state, held in memory only: the Rust backend keeps each session as a
+// live HTTP client in an in-memory map, so it cannot survive a process restart.
+const sessionId = ref<string | null>(null);
 const alunoIds = ref<Record<string, string>>({});
-const selectedAlunoId = ref<string | null>(null);
+
+const selectedAlunoId = ref<string | null>(storage.get('selectedAlunoId'));
 
 const studentName = ref<string | null>(null);
 const studentCourse = ref<string | null>(null);
 const studentPhotoUrl = ref<string | null>(null);
 const loadingStudentInfo = ref(false);
 const currentLoadedId = ref<string | null>(null);
+
+const isAuthenticated = computed(() => sessionId.value !== null);
 
 const currentStudentId = computed(() => {
   if (!selectedAlunoId.value) return null;
@@ -23,14 +30,12 @@ const currentStudentId = computed(() => {
 
 const fetchInfo = async (studentId: string, force = false) => {
   if (!force && currentLoadedId.value === studentId) return;
+  if (!sessionId.value) return;
 
   loadingStudentInfo.value = true;
   try {
-    const sessionId = localStorage.getItem('clipSessionId');
-    if (!sessionId) return;
-
     const res = await invoke<StudentInfo>('get_student_info', {
-      sessionId,
+      sessionId: sessionId.value,
       studentId,
     });
     studentName.value = res.student_name;
@@ -44,34 +49,45 @@ const fetchInfo = async (studentId: string, force = false) => {
   }
 };
 
-const init = () => {
-  const storedIds = localStorage.getItem('student_ids');
-  if (storedIds) {
-    try {
-      alunoIds.value = JSON.parse(storedIds);
-    } catch (e) {
-      console.error('Failed to parse student_ids', e);
-    }
-  }
+/**
+ * Records a successful login. The remembered student selection is kept if it is
+ * still valid for this account, otherwise it falls back to the first aluno id.
+ */
+const startSession = (newSessionId: string, ids: Record<string, string>) => {
+  sessionId.value = newSessionId;
+  alunoIds.value = ids;
 
-  selectedAlunoId.value = localStorage.getItem('selected_aluno_id');
-
-  if (currentStudentId.value) {
-    fetchInfo(currentStudentId.value);
-  }
+  const remembered = selectedAlunoId.value;
+  const fallback = Object.keys(ids)[0] ?? null;
+  selectStudent(remembered && remembered in ids ? remembered : fallback);
 };
 
-const selectStudent = (displayName: string) => {
-  selectedAlunoId.value = displayName;
-  localStorage.setItem('selected_aluno_id', displayName);
+const endSession = () => {
+  sessionId.value = null;
+  alunoIds.value = {};
+  studentName.value = null;
+  studentCourse.value = null;
+  studentPhotoUrl.value = null;
+  currentLoadedId.value = null;
+};
 
-  const studentId = alunoIds.value[displayName];
-  localStorage.setItem('selected_student_id', studentId);
-  fetchInfo(studentId, true);
+const selectStudent = (displayName: string | null) => {
+  selectedAlunoId.value = displayName;
+  storage.set('selectedAlunoId', displayName);
+
+  const studentId = displayName ? alunoIds.value[displayName] : undefined;
+  if (studentId) fetchInfo(studentId, true);
+};
+
+/** Loads info for the current selection, e.g. after a webview reload. */
+const init = () => {
+  if (currentStudentId.value) fetchInfo(currentStudentId.value);
 };
 
 export function useStudent() {
   return {
+    sessionId,
+    isAuthenticated,
     alunoIds,
     selectedAlunoId,
     currentStudentId,
@@ -80,6 +96,8 @@ export function useStudent() {
     studentPhotoUrl,
     loadingStudentInfo,
     init,
+    startSession,
+    endSession,
     selectStudent,
   };
 }

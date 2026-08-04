@@ -89,6 +89,7 @@ import { useRoute, useRouter } from "vue-router";
 import { invoke } from "@tauri-apps/api/core";
 import { FolderOpen, LayoutDashboard, LogOut, RefreshCw, X } from "lucide-vue-next";
 import { useToast } from "../composables/useToast";
+import { useStudent } from "../composables/useStudent";
 
 defineProps<{
   open: boolean;
@@ -101,6 +102,7 @@ const emit = defineEmits<{
 const route = useRoute();
 const router = useRouter();
 const { success, error } = useToast();
+const { endSession } = useStudent();
 
 const handleResetCache = async () => {
   try {
@@ -113,7 +115,7 @@ const handleResetCache = async () => {
 };
 
 const handleLogout = () => {
-  localStorage.clear();
+  endSession();
   router.replace("/");
 };
 </script>
