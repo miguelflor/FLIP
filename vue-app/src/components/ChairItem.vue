@@ -28,7 +28,9 @@ import { FolderDown } from "lucide-vue-next";
 import { invoke } from "@tauri-apps/api/core";
 import { PERIOD_N, PERIOD_TYPE, UNIDADE, YEAR } from "../lib/clipVars";
 import { extractYearForRequest } from "../lib/academic";
+import { storage } from "../lib/storage";
 import { useToast } from "../composables/useToast";
+import { useStudent } from "../composables/useStudent";
 
 interface ChairType {
   href: string;
@@ -60,6 +62,7 @@ const props = defineProps<Props>();
 
 const loading = ref(false);
 const { error, success } = useToast();
+const { sessionId, currentStudentId } = useStudent();
 
 const parseHrefParams = (href: string) => {
   const params: Record<string, string> = {};
@@ -81,16 +84,21 @@ const handleDownload = async () => {
   loading.value = true;
 
   try {
-    const sessionId = localStorage.getItem("clipSessionId");
-    if (!sessionId) {
+    if (!sessionId.value) {
       error("Not authenticated. Please log in again.");
       loading.value = false;
       return;
     }
 
-    const selectedYear = localStorage.getItem("selected_year");
+    const selectedYear = storage.get("selectedYear");
     if (!selectedYear) {
       error("Please select a year.");
+      loading.value = false;
+      return;
+    }
+
+    if (!currentStudentId.value) {
+      error("No student selected. Please select a student from the navbar.");
       loading.value = false;
       return;
     }
@@ -98,7 +106,7 @@ const handleDownload = async () => {
     const hrefParams = parseHrefParams(props.chair.href);
 
     const params: FileParams = {
-      session_id: sessionId,
+      session_id: sessionId.value,
       period: hrefParams[PERIOD_N] || "",
       unit_id: hrefParams[UNIDADE] || "",
       file_type: "all",
@@ -108,13 +116,11 @@ const handleDownload = async () => {
     };
 
     const year = extractYearForRequest(selectedYear);
-    const studentId = localStorage.getItem("selected_student_id");
-    if (!studentId) {
-      error("No student selected. Please select a student from the navbar.");
-      loading.value = false;
-      return;
-    }
-    const res = await invoke<FileResponse>("get_file", { params, studentId, year });
+    const res = await invoke<FileResponse>("get_file", {
+      params,
+      studentId: currentStudentId.value,
+      year,
+    });
 
     if (!res.success || !res.data) {
       error(res.error || "Failed to download file");

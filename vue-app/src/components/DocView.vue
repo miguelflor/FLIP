@@ -101,12 +101,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue';
-import { invoke } from '@tauri-apps/api/core';
+import { computed, toRef } from 'vue';
 import { FolderOpen } from 'lucide-vue-next';
 import ChairItem from './ChairItem.vue';
 import { PeriodType } from '../lib/clipVars';
-import { extractYearForRequest } from '../lib/academic';
+import { useClipQuery } from '../composables/useClipQuery';
 
 const props = defineProps<{
   studentId: string | null;
@@ -134,58 +133,41 @@ interface ChairsResponse {
 // Fixed widths so the skeleton bars don't jitter on every re-render.
 const SKELETON_WIDTHS = [72, 88, 64, 81, 69];
 
-const loading = ref(true);
-const chairs = ref<ChairsByPeriod>({});
-const error = ref<string | null>(null);
+const {
+  data: response,
+  loading,
+  error: queryError,
+  refresh: refreshChairs,
+} = useClipQuery<ChairsResponse>(
+  'get_chairs',
+  toRef(props, 'studentId'),
+  toRef(props, 'year'),
+  { noStudentMessage: 'Por favor, selecione um aluno.' },
+);
 
-const hasAnyChairs = computed(() => {
-  return Object.values(chairs.value).some(cs => cs.length > 0);
+// Convert from Rust naming (s1, s2, t1, t2) to the period keys used in the UI.
+const chairs = computed<ChairsByPeriod>(() => {
+  const res = response.value;
+  if (!res?.success || !res.chairs) return {};
+  return {
+    [PeriodType.S + '1']: res.chairs.s1 ?? [],
+    [PeriodType.S + '2']: res.chairs.s2 ?? [],
+    [PeriodType.T + '1']: res.chairs.t1 ?? [],
+    [PeriodType.T + '2']: res.chairs.t2 ?? [],
+  };
 });
 
-const refreshChairs = () => {
-  if (!props.studentId) {
-    error.value = 'Por favor, selecione um aluno.';
-    return;
-  }
-  handleChairs(props.studentId, props.year ?? undefined, false);
-};
+// The backend reports failures in-band, so surface those alongside transport errors.
+const error = computed(() => {
+  if (queryError.value) return queryError.value;
+  const res = response.value;
+  if (res && !res.success) return res.error ?? 'Failed to fetch chairs';
+  return null;
+});
 
-const handleChairs = async (studentId: string, year?: string, useCache: boolean = true) => {
-  loading.value = true;
-  error.value = null;
-  try {
-    const sessionId = localStorage.getItem('clipSessionId');
-    if (!sessionId) {
-      error.value = 'Not authenticated. Please log in again.';
-      loading.value = false;
-      return;
-    }
-
-    const params: Record<string, string | boolean> = { sessionId, studentId, useCache };
-    if (year) {
-      params.year = extractYearForRequest(year);
-    }
-
-    const res = await invoke<ChairsResponse>('get_chairs', params);
-
-    if (res.success && res.chairs) {
-      // Convert from Rust naming (s1, s2, t1, t2) to JS naming
-      chairs.value = {
-        [PeriodType.S + '1']: res.chairs.s1 || [],
-        [PeriodType.S + '2']: res.chairs.s2 || [],
-        [PeriodType.T + '1']: res.chairs.t1 || [],
-        [PeriodType.T + '2']: res.chairs.t2 || [],
-      };
-    } else {
-      error.value = res.error || 'Failed to fetch chairs';
-    }
-  } catch (err) {
-    console.error('Error fetching chairs:', err);
-    error.value = 'Erro ao carregar ficheiros recentes. Por favor, tente novamente mais tarde.';
-  } finally {
-    loading.value = false;
-  }
-};
+const hasAnyChairs = computed(() =>
+  Object.values(chairs.value).some(cs => cs.length > 0),
+);
 
 const getPeriodName = (periodKey: string) => {
   if (periodKey === PeriodType.S + '1') return '1º Semestre';
@@ -194,16 +176,4 @@ const getPeriodName = (periodKey: string) => {
   if (periodKey === PeriodType.T + '2') return '2º Trimestre';
   return periodKey;
 };
-
-onMounted(() => {
-  if (props.studentId) {
-    handleChairs(props.studentId, props.year ?? undefined);
-  } else {
-    loading.value = false;
-  }
-});
-
-watch([() => props.studentId, () => props.year], ([newStudentId, newYear]) => {
-  if (newStudentId) handleChairs(newStudentId, newYear ?? undefined);
-});
 </script>

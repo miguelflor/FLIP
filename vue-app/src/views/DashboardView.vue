@@ -27,58 +27,47 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
-import { invoke } from '@tauri-apps/api/core';
+import { computed, ref, watch } from 'vue';
 import BaseDropdown from '../components/BaseDropdown.vue';
 import ScheduleCard from '../components/ScheduleCard.vue';
 import DocView from '../components/DocView.vue';
 import { useStudent } from '../composables/useStudent';
+import { useClipQuery } from '../composables/useClipQuery';
+import { storage } from '../lib/storage';
 
 const { currentStudentId } = useStudent();
 
-const selectedYear = ref<string | null>(localStorage.getItem('selected_year'));
-const availableYears = ref<string[]>([]);
+const selectedYear = ref<string | null>(storage.get('selectedYear'));
 const isYearDropdownOpen = ref(false);
 
-const fetchAvailableYears = async (studentId: string) => {
-  try {
-    const sessionId = localStorage.getItem('clipSessionId');
-    if (!sessionId) return;
+// This command takes no year, so a constant ref keeps the query keyed on the
+// student alone — defaulting selectedYear below therefore can't retrigger it.
+const noYear = ref<string | null>(null);
+const { data: yearsResponse } = useClipQuery<{ success: boolean; years: string[] }>(
+  'get_available_years',
+  currentStudentId,
+  noYear,
+);
 
-    const res = await invoke<{ success: boolean; years: string[] }>('get_available_years', {
-      sessionId,
-      studentId,
-    });
+const availableYears = computed(() => {
+  const res = yearsResponse.value;
+  return res?.success ? res.years : [];
+});
 
-    if (res.success) {
-      availableYears.value = res.years;
-      if (res.years.length > 0 && (!selectedYear.value || !res.years.includes(selectedYear.value))) {
-        selectedYear.value = res.years[0];
-        localStorage.setItem('selected_year', selectedYear.value);
-      }
-    }
-  } catch (e) {
-    console.error('Error fetching years:', e);
+// Fall back to the most recent year whenever the remembered one isn't offered.
+watch(availableYears, (years) => {
+  if (years.length && (!selectedYear.value || !years.includes(selectedYear.value))) {
+    selectYear(years[0]);
   }
+});
+
+const selectYear = (year: string) => {
+  selectedYear.value = year;
+  storage.set('selectedYear', year);
 };
 
-onMounted(() => {
-  if (currentStudentId.value) {
-    fetchAvailableYears(currentStudentId.value);
-  }
-});
-
-watch(currentStudentId, (newId) => {
-  if (newId) {
-    availableYears.value = [];
-    selectedYear.value = null;
-    fetchAvailableYears(newId);
-  }
-});
-
 const handleSelectYear = (year: string) => {
-  selectedYear.value = year;
-  localStorage.setItem('selected_year', year);
+  selectYear(year);
   isYearDropdownOpen.value = false;
 };
 </script>

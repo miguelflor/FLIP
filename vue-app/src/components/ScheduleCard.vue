@@ -199,10 +199,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
-import { invoke } from "@tauri-apps/api/core";
+import { computed, toRef } from "vue";
 import { Calendar, MapPin } from "lucide-vue-next";
-import { extractYearForRequest } from "../lib/academic";
+import { useClipQuery } from "../composables/useClipQuery";
 
 const props = defineProps<{
   studentId: string | null;
@@ -236,9 +235,18 @@ interface ScheduleItem {
 
 const HOUR_PX = 64;
 
-const schedule = ref<ScheduleItem[]>([]);
-const loading = ref(true);
-const error = ref<string | null>(null);
+const {
+  data: scheduleData,
+  loading,
+  error,
+  refresh: refreshSchedule,
+} = useClipQuery<ScheduleItem[]>(
+  "get_schedule",
+  toRef(props, "studentId"),
+  toRef(props, "year"),
+);
+
+const schedule = computed(() => scheduleData.value ?? []);
 
 const weekDays: { key: Weekday; label: string }[] = [
   { key: "Monday", label: "Segunda" },
@@ -274,40 +282,6 @@ const toTop = (hm: HourMinute) =>
 
 const toHeight = (start: HourMinute, end: HourMinute) =>
   ((end.hour * 60 + end.min - (start.hour * 60 + start.min)) / 60) * HOUR_PX;
-
-const refreshSchedule = () => {
-  loadSchedule(props.studentId ?? undefined, props.year ?? undefined, false);
-};
-
-const loadSchedule = async (studentId?: string, year?: string, useCache: boolean = true) => {
-  const sessionId = localStorage.getItem("clipSessionId");
-  if (!sessionId) {
-    error.value = "Sessão não encontrada";
-    loading.value = false;
-    return;
-  }
-  loading.value = true;
-  error.value = null;
-  try {
-    const params: Record<string, string | boolean> = { sessionId, useCache };
-    if (studentId) params.studentId = studentId;
-    if (year) params.year = extractYearForRequest(year);
-    const result = await invoke<ScheduleItem[]>("get_schedule", params);
-    schedule.value = result;
-  } catch (e) {
-    error.value = String(e);
-  } finally {
-    loading.value = false;
-  }
-};
-
-onMounted(() => {
-  if (props.studentId) loadSchedule(props.studentId, props.year ?? undefined);
-});
-
-watch([() => props.studentId, () => props.year], ([newStudentId, newYear]) => {
-  if (newStudentId) loadSchedule(newStudentId, newYear ?? undefined);
-});
 
 const formatTime = (hm: HourMinute) =>
   `${String(hm.hour).padStart(2, "0")}:${String(hm.min).padStart(2, "0")}`;
