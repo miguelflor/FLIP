@@ -27,6 +27,7 @@ import { ref } from "vue";
 import { FolderDown } from "lucide-vue-next";
 import { invoke } from "@tauri-apps/api/core";
 import { PERIOD_N, PERIOD_TYPE, UNIDADE, YEAR } from "../lib/clipVars";
+import { extractYearForRequest } from "../lib/academic";
 import { useToast } from "../composables/useToast";
 
 interface ChairType {
@@ -74,14 +75,6 @@ const parseHrefParams = (href: string) => {
     }
   }
   return params;
-};
-
-const extractYearForRequest = (yearStr: string): string => {
-  const parts = yearStr.split('/');
-  if (parts.length === 2) {
-    return '20' + parts[1];
-  }
-  return yearStr;
 };
 
 const handleDownload = async () => {

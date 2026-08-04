@@ -106,6 +106,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { FolderOpen } from 'lucide-vue-next';
 import ChairItem from './ChairItem.vue';
 import { PeriodType } from '../lib/clipVars';
+import { extractYearForRequest } from '../lib/academic';
 
 const props = defineProps<{
   studentId: string | null;
@@ -140,15 +141,6 @@ const error = ref<string | null>(null);
 const hasAnyChairs = computed(() => {
   return Object.values(chairs.value).some(cs => cs.length > 0);
 });
-
-// Convert year format from "2024/25" to "2025"
-const extractYearForRequest = (yearStr: string): string => {
-  const parts = yearStr.split('/');
-  if (parts.length === 2) {
-    return '20' + parts[1];
-  }
-  return yearStr;
-};
 
 const refreshChairs = () => {
   if (!props.studentId) {

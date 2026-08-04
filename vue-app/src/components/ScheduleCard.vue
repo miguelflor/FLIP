@@ -202,6 +202,7 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { Calendar, MapPin } from "lucide-vue-next";
+import { extractYearForRequest } from "../lib/academic";
 
 const props = defineProps<{
   studentId: string | null;
@@ -238,13 +239,6 @@ const HOUR_PX = 64;
 const schedule = ref<ScheduleItem[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
-
-// Convert year format from "2024/25" to "2025"
-const extractYearForRequest = (yearStr: string): string => {
-  const parts = yearStr.split('/');
-  if (parts.length === 2) return '20' + parts[1];
-  return yearStr;
-};
 
 const weekDays: { key: Weekday; label: string }[] = [
   { key: "Monday", label: "Segunda" },
