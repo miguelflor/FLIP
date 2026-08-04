@@ -199,7 +199,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, toRef } from "vue";
+import { computed, onMounted, onUnmounted, ref, toRef } from "vue";
 import { Calendar, MapPin } from "lucide-vue-next";
 import { useClipQuery } from "../composables/useClipQuery";
 
@@ -234,6 +234,29 @@ interface ScheduleItem {
 }
 
 const HOUR_PX = 64;
+
+/** ISO weekday numbers (Mon=1 … Sun=7), as used by both the grid and the export. */
+const WEEKDAY_INDEX: Record<Weekday, number> = {
+  Monday: 1,
+  Tuesday: 2,
+  Wednesday: 3,
+  Thursday: 4,
+  Friday: 5,
+  Saturday: 6,
+  Sunday: 7,
+};
+
+/** `Date#getDay` uses Sun=0, so it is remapped onto the ISO numbering above. */
+const isoDay = (date: Date) => (date.getDay() === 0 ? 7 : date.getDay());
+
+const weekdayFromDate = (date: Date): Weekday | null => {
+  const iso = isoDay(date);
+  return (
+    (Object.keys(WEEKDAY_INDEX) as Weekday[]).find(
+      (day) => WEEKDAY_INDEX[day] === iso,
+    ) ?? null
+  );
+};
 
 const {
   data: scheduleData,
@@ -286,8 +309,18 @@ const toHeight = (start: HourMinute, end: HourMinute) =>
 const formatTime = (hm: HourMinute) =>
   `${String(hm.hour).padStart(2, "0")}:${String(hm.min).padStart(2, "0")}`;
 
-const getScheduleForDay = (day: Weekday) =>
-  schedule.value.filter((item) => item.weekday === day);
+// Grouped once per schedule change rather than re-filtering the whole list for
+// each of the five day columns on every render.
+const scheduleByDay = computed(() => {
+  const byDay = new Map<Weekday, ScheduleItem[]>();
+  for (const day of weekDays) byDay.set(day.key, []);
+  for (const item of schedule.value) {
+    byDay.get(item.weekday)?.push(item);
+  }
+  return byDay;
+});
+
+const getScheduleForDay = (day: Weekday) => scheduleByDay.value.get(day) ?? [];
 
 const getTypeStyle = (type: ClassType) => {
   switch (type) {
@@ -302,30 +335,32 @@ const getTypeStyle = (type: ClassType) => {
   }
 };
 
-const isToday = (day: Weekday) => {
-  const map: Record<number, Weekday> = {
-    1: "Monday",
-    2: "Tuesday",
-    3: "Wednesday",
-    4: "Thursday",
-    5: "Friday",
-  };
-  return map[new Date().getDay()] === day;
+/**
+ * Today's column key. Held in a ref rather than derived per render: a computed
+ * reading `new Date()` would cache the first value forever, and this is a desktop
+ * app that stays open across midnight, so the highlight is refreshed on a timer.
+ */
+const todayKey = ref(weekdayFromDate(new Date()));
+let midnightTimer: number | undefined;
+
+const scheduleMidnightRefresh = () => {
+  const now = new Date();
+  const midnight = new Date(now);
+  midnight.setHours(24, 0, 0, 0);
+  midnightTimer = window.setTimeout(() => {
+    todayKey.value = weekdayFromDate(new Date());
+    scheduleMidnightRefresh();
+  }, midnight.getTime() - now.getTime());
 };
 
+onMounted(scheduleMidnightRefresh);
+onUnmounted(() => clearTimeout(midnightTimer));
+
+const isToday = (day: Weekday) => todayKey.value === day;
+
 const getNextOccurrence = (day: Weekday, hm: HourMinute) => {
-  const dayIndex: Record<Weekday, number> = {
-    Monday: 1,
-    Tuesday: 2,
-    Wednesday: 3,
-    Thursday: 4,
-    Friday: 5,
-    Saturday: 6,
-    Sunday: 7,
-  };
   const today = new Date();
-  const todayIdx = today.getDay() === 0 ? 7 : today.getDay();
-  const diff = dayIndex[day] - todayIdx;
+  const diff = WEEKDAY_INDEX[day] - isoDay(today);
   const next = new Date(today);
   next.setDate(today.getDate() + (diff >= 0 ? diff : diff + 7));
   next.setHours(hm.hour, hm.min, 0, 0);
