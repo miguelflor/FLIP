@@ -16,12 +16,14 @@
       <!-- Header -->
       <div class="px-6 py-4 border-b border-slate-200 shrink-0 flex items-center justify-between">
         <div class="flex items-center min-w-0">
-          <h2 class="text-xl font-bold text-slate-900 truncate">FLIP</h2>
+          <h2 class="text-xl font-bold text-slate-900 truncate">
+            FLIP
+          </h2>
         </div>
         <button
-          @click="emit('close')"
           class="md:hidden p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
           title="Fechar"
+          @click="emit('close')"
         >
           <X class="w-5 h-5" />
         </button>
@@ -61,18 +63,18 @@
       <!-- Bottom actions -->
       <div class="p-4 border-t border-slate-200 space-y-2">
         <button
-          @click="handleResetCache"
           class="cursor-pointer w-full flex items-center justify-center space-x-2 px-3 py-2 text-slate-500 hover:text-slate-700 hover:bg-slate-200 rounded-lg transition-all duration-200 group whitespace-nowrap"
           title="Limpar cache"
+          @click="handleResetCache"
         >
           <RefreshCw class="w-4 h-4 shrink-0" />
           <span class="text-sm font-medium">Limpar cache</span>
         </button>
 
         <button
-          @click="handleLogout"
           class="cursor-pointer w-full flex items-center justify-center space-x-2 px-3 py-2 text-slate-500 hover:text-slate-700 hover:bg-slate-200 rounded-lg transition-all duration-200 group whitespace-nowrap"
           title="Terminar sessão"
+          @click="handleLogout"
         >
           <LogOut class="w-4 h-4 shrink-0" />
           <span class="text-sm font-medium">Sair</span>
@@ -105,6 +107,7 @@ const handleResetCache = async () => {
     await invoke('reset_cache');
     success('Cache limpa com sucesso');
   } catch (e) {
+    console.error('Error resetting cache:', e);
     error('Erro ao limpar cache');
   }
 };

@@ -1,15 +1,20 @@
 <template>
-  <div class="bg-white rounded-xl shadow p-4" id="pdfs">
+  <div
+    id="pdfs"
+    class="bg-white rounded-xl shadow p-4"
+  >
     <div class="flex items-center space-x-2 mb-2">
       <FolderOpen class="w-5 h-5 text-slate-600" />
-      <h3 class="text-lg font-bold text-slate-900">Ficheiros das Cadeiras</h3>
+      <h3 class="text-lg font-bold text-slate-900">
+        Ficheiros das Cadeiras
+      </h3>
     </div>
 
     <!-- Refresh button -->
     <button
-      @click="refreshChairs"
       :disabled="loading"
       class="text-xs text-gray-500 hover:text-gray-700 mb-2 flex items-center"
+      @click="refreshChairs"
     >
       <svg 
         :class="['w-3 h-3 mr-1', { 'animate-spin': loading }]" 
@@ -29,48 +34,68 @@
 
     <ul class="space-y-2 text-sm">
       <!-- Loading state -->
-      <div v-if="loading" class="animate-pulse space-y-3">
-        <div v-for="i in 5" :key="i" class="flex items-center">
-          <div class="h-4 w-4 bg-gray-200 rounded mr-2"></div>
+      <div
+        v-if="loading"
+        class="animate-pulse space-y-3"
+      >
+        <div
+          v-for="i in 5"
+          :key="i"
+          class="flex items-center"
+        >
+          <div class="h-4 w-4 bg-gray-200 rounded mr-2" />
           <div 
             class="h-4 bg-gray-200 rounded" 
             :style="{ width: `${Math.floor(Math.random() * 30) + 60}%` }"
-          ></div>
+          />
         </div>
       </div>
       <!-- Error state -->
-      <div v-else-if="error" class="text-red-500 py-2">
+      <div
+        v-else-if="error"
+        class="text-red-500 py-2"
+      >
         <p>{{ error }}</p>
         <button
-          @click="refreshChairs"
           class="text-blue-500 hover:underline mt-1"
+          @click="refreshChairs"
         >
           Tentar novamente
         </button>
       </div>
       <!-- Data state -->
-      <div v-else-if="hasAnyChairs" class="space-y-4">
+      <div
+        v-else-if="hasAnyChairs"
+        class="space-y-4"
+      >
         <div 
           v-for="[periodKey, cs] in Object.entries(chairs)" 
           :key="periodKey"
         >
           <div v-if="cs.length > 0">
-            <h4 class="font-medium text-gray-700 mb-2">{{ getPeriodName(periodKey) }}</h4>
+            <h4 class="font-medium text-gray-700 mb-2">
+              {{ getPeriodName(periodKey) }}
+            </h4>
             <ul class="space-y-2 pl-2">
-              <Chair 
-                v-for="(chair, idx) in cs" 
-                :key="idx" 
-                :chair="chair" 
-                :idx="idx" 
+              <ChairItem
+                v-for="(chair, idx) in cs"
+                :key="idx"
+                :chair="chair"
+                :idx="idx"
               />
             </ul>
           </div>
         </div>
       </div>
       <!-- Empty state -->
-      <div v-else class="text-gray-500 py-6 text-center">
+      <div
+        v-else
+        class="text-gray-500 py-6 text-center"
+      >
         <p>Não foram encontrados ficheiros recentes.</p>
-        <p class="text-sm mt-1">Por favor, verifique se está autenticado.</p>
+        <p class="text-sm mt-1">
+          Por favor, verifique se está autenticado.
+        </p>
       </div>
     </ul>
   </div>
@@ -80,7 +105,7 @@
 import { ref, onMounted, computed, watch } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 import { FolderOpen } from 'lucide-vue-next';
-import Chair from './Chair.vue';
+import ChairItem from './ChairItem.vue';
 import { PeriodType } from '../lib/clipVars';
 
 const props = defineProps<{

@@ -2,7 +2,7 @@
   <div>
     <!-- Year filter -->
     <div class="flex flex-wrap items-center gap-2 sm:gap-4 mb-4 sm:mb-6">
-      <Dropdown
+      <BaseDropdown
         :options="availableYears"
         :selected="selectedYear"
         placeholder="Selecionar Ano"
@@ -14,8 +14,14 @@
 
     <!-- Panels -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-      <ScheduleCard :student-id="currentStudentId" :year="selectedYear" />
-      <DocView :student-id="currentStudentId" :year="selectedYear" />
+      <ScheduleCard
+        :student-id="currentStudentId"
+        :year="selectedYear"
+      />
+      <DocView
+        :student-id="currentStudentId"
+        :year="selectedYear"
+      />
     </div>
   </div>
 </template>
@@ -23,7 +29,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
-import Dropdown from '../components/Dropdown.vue';
+import BaseDropdown from '../components/BaseDropdown.vue';
 import ScheduleCard from '../components/ScheduleCard.vue';
 import DocView from '../components/DocView.vue';
 import { useStudent } from '../composables/useStudent';

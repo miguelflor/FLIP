@@ -5,14 +5,14 @@
         <span
           v-if="loading"
           class="animate-spin inline-block rounded-full border-4 h-5 w-5 border-slate-600 border-t-transparent align-[-0.125em]"
-        ></span>
+        />
         <button
           v-else
-          @click="handleDownload"
           class="text-slate-600 hover:text-slate-800 cursor-pointer flex items-center justify-center"
           :disabled="loading"
           type="button"
           style="min-width: 20px; min-height: 20px"
+          @click="handleDownload"
         >
           <FolderDown class="h-5 w-5" />
         </button>

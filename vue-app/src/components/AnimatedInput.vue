@@ -23,10 +23,7 @@
       ref="inputRef"
       :type="type"
       :value="modelValue"
-      @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
       :required="required"
-      @focus="focused = true"
-      @blur="focused = false"
       class="w-full px-4 py-4 pt-6 text-white placeholder-transparent outline-none relative z-10 font-light text-lg transition-all duration-500"
       :style="{
         background: focused ?
@@ -42,7 +39,10 @@
           : `0 4px 16px rgba(0, 0, 0, 0.05), 
              inset 0 1px 0 rgba(255, 255, 255, 0.2)`,
       }"
-    />
+      @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
+      @focus="focused = true"
+      @blur="focused = false"
+    >
 
     <!-- Gentle Glow -->
     <div

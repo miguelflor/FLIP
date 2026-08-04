@@ -9,33 +9,34 @@
       <div class="flex items-center space-x-3">
         <Calendar class="w-5 h-5 text-slate-500" />
         <div>
-          <h3 class="text-lg font-bold text-slate-900">Horário Semanal</h3>
-          <p class="text-xs text-slate-400">Segunda a Sexta</p>
+          <h3 class="text-lg font-bold text-slate-900">
+            Horário Semanal
+          </h3>
+          <p class="text-xs text-slate-400">
+            Segunda a Sexta
+          </p>
         </div>
       </div>
       <div class="flex items-center space-x-4">
         <div class="flex items-center space-x-3 text-xs text-slate-500">
           <span class="flex items-center gap-1.5">
-            <span class="w-2.5 h-2.5 rounded-sm bg-blue-400 inline-block"></span
-            >Teórica
+            <span class="w-2.5 h-2.5 rounded-sm bg-blue-400 inline-block" />Teórica
           </span>
           <span class="flex items-center gap-1.5">
             <span
               class="w-2.5 h-2.5 rounded-sm bg-emerald-400 inline-block"
-            ></span
-            >Prática
+            />Prática
           </span>
           <span class="flex items-center gap-1.5">
             <span
               class="w-2.5 h-2.5 rounded-sm bg-violet-400 inline-block"
-            ></span
-            >Teórico-Prática
+            />Teórico-Prática
           </span>
         </div>
         <button
-          @click="refreshSchedule"
           :disabled="loading"
           class="flex items-center space-x-1 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-md hover:shadow-sm transition-all text-xs font-medium hover:bg-slate-50 disabled:opacity-50"
+          @click="refreshSchedule"
         >
           <svg
             :class="['w-3.5 h-3.5', { 'animate-spin': loading }]"
@@ -53,10 +54,14 @@
           <span>Atualizar</span>
         </button>
         <button
-          @click="exportAllToGoogleCalendar"
           class="flex items-center space-x-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-md hover:shadow-sm transition-all text-xs font-medium hover:bg-slate-50"
+          @click="exportAllToGoogleCalendar"
         >
-          <img src="/google-logo.svg" alt="Google" class="w-4 h-4" />
+          <img
+            src="/google-logo.svg"
+            alt="Google"
+            class="w-4 h-4"
+          >
           <span>Exportar tudo</span>
         </button>
       </div>
@@ -71,18 +76,27 @@
     </div>
 
     <!-- Error -->
-    <div v-else-if="error" class="text-center py-16 text-red-400 text-sm">
+    <div
+      v-else-if="error"
+      class="text-center py-16 text-red-400 text-sm"
+    >
       {{ error }}
     </div>
 
     <!-- Calendar grid -->
-    <div v-else class="flex pb-4">
+    <div
+      v-else
+      class="flex pb-4"
+    >
       <!-- Time gutter -->
       <div
         class="flex-none w-14 border-r border-slate-100 bg-slate-50/60 shrink-0"
       >
-        <div style="height: 48px"></div>
-        <div :style="{ height: gridHeight + 'px' }" class="relative">
+        <div style="height: 48px" />
+        <div
+          :style="{ height: gridHeight + 'px' }"
+          class="relative"
+        >
           <div
             v-for="hour in hours"
             :key="hour"
@@ -114,25 +128,28 @@
             <span
               v-if="isToday(day.key)"
               class="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block"
-            ></span>
+            />
           </div>
 
           <!-- Events area -->
-          <div class="relative" :style="{ height: gridHeight + 'px' }">
+          <div
+            class="relative"
+            :style="{ height: gridHeight + 'px' }"
+          >
             <!-- Hour lines -->
             <div
               v-for="hour in hours"
               :key="hour"
               class="absolute w-full border-t border-slate-100"
               :style="{ top: toTop({ hour, min: 0 }) + 'px' }"
-            ></div>
+            />
             <!-- Half-hour lines -->
             <div
               v-for="hour in hours.slice(0, -1)"
               :key="'half-' + hour"
               class="absolute w-full border-t border-slate-50"
               :style="{ top: toTop({ hour, min: 30 }) + 'px' }"
-            ></div>
+            />
 
             <!-- Events -->
             <div
@@ -154,9 +171,7 @@
                 <span class="text-[11px] font-bold leading-tight truncate">{{
                   item.class
                 }}</span>
-                <span class="text-[10px] opacity-60 leading-tight truncate"
-                  >{{ item.class_type }}.{{ item.class_number }}</span
-                >
+                <span class="text-[10px] opacity-60 leading-tight truncate">{{ item.class_type }}.{{ item.class_number }}</span>
                 <span
                   class="mt-auto text-[10px] opacity-55 leading-tight truncate flex items-center gap-0.5"
                 >
@@ -165,11 +180,15 @@
               </div>
               <!-- Export button on hover -->
               <button
-                @click.stop="exportToGoogleCalendar(item)"
                 class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded bg-white/60 hover:bg-white/90"
                 title="Exportar para Google Calendar"
+                @click.stop="exportToGoogleCalendar(item)"
               >
-                <img src="/google-logo.svg" alt="Google" class="w-3 h-3" />
+                <img
+                  src="/google-logo.svg"
+                  alt="Google"
+                  class="w-3 h-3"
+                >
               </button>
             </div>
           </div>

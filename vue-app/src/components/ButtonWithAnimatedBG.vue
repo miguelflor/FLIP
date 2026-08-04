@@ -6,11 +6,17 @@
       :disabled="loading"
       @click="handleClick"
     >
-      <span v-if="loading" style="display: flex; align-items: center; justify-content: center; width: 100%">
-        <div class="loading-animation" style="left: 50%; transform: translate(-50%, -50%)">
-          <div class="orb orb-1"></div>
-          <div class="orb orb-2"></div>
-          <div class="orb orb-3"></div>
+      <span
+        v-if="loading"
+        style="display: flex; align-items: center; justify-content: center; width: 100%"
+      >
+        <div
+          class="loading-animation"
+          style="left: 50%; transform: translate(-50%, -50%)"
+        >
+          <div class="orb orb-1" />
+          <div class="orb orb-2" />
+          <div class="orb orb-3" />
         </div>
       </span>
       <span v-else>

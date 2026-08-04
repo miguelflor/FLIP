@@ -4,15 +4,15 @@
       <div class="flex items-center gap-2 sm:gap-4 min-w-0">
         <!-- Sidebar toggle -->
         <button
-          @click="emit('toggle-sidebar')"
           class="shrink-0 p-2 -ml-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
           title="Alternar menu"
+          @click="emit('toggle-sidebar')"
         >
           <Menu class="w-5 h-5" />
         </button>
 
         <!-- Student Dropdown -->
-        <Dropdown
+        <BaseDropdown
           :options="Object.keys(alunoIds)"
           :selected="selectedAlunoId"
           placeholder="Selecionar Aluno"
@@ -38,7 +38,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { Menu } from 'lucide-vue-next';
-import Dropdown from './Dropdown.vue';
+import BaseDropdown from './BaseDropdown.vue';
 import UserProfile from './UserProfile.vue';
 import { useStudent } from '../composables/useStudent';
 
