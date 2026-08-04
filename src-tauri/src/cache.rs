@@ -1,6 +1,7 @@
-use crate::url::UrlType::{Documents, Schedule, StudentInfo};
+use crate::url::UrlType::{Documents, Photo, Schedule, StudentInfo};
 use crate::url::{Url, UrlType};
 use crate::utils::decode_latin1;
+use base64::{engine::general_purpose::STANDARD, Engine};
 use chrono::{DateTime, Duration, Utc};
 use keyring::Entry;
 use rand::RngCore;
@@ -45,7 +46,11 @@ impl CacheHandler {
         }
 
         let html_bytes = response.bytes().await.map_err(|e| e.to_string())?;
-        let html = decode_latin1(&html_bytes);
+        // Photos are binary: store them base64-encoded so they survive as TEXT.
+        let html = match url.url_type {
+            UrlType::Photo => STANDARD.encode(&html_bytes),
+            _ => decode_latin1(&html_bytes),
+        };
 
         let db = self.db.lock().await;
         let result = db.execute(
@@ -114,6 +119,7 @@ impl CacheHandler {
 fn cache_duration(url_type: &UrlType) -> Duration {
     match url_type {
         StudentInfo => Duration::days(7),
+        Photo => Duration::days(7),
         Documents => Duration::hours(10),
         Schedule => Duration::days(1),
     }

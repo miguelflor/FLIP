@@ -33,6 +33,8 @@ const fetchInfo = async (studentId: string, force = false) => {
       sessionId,
       studentId,
     });
+    console.log(res);
+    console.log(res.photo_data);
 
     studentName.value = res.student_name;
     studentCourse.value = res.course;

@@ -10,6 +10,7 @@ pub enum UrlType {
     StudentInfo,
     Schedule,
     Documents,
+    Photo,
 }
 
 #[derive(Debug, Clone)]

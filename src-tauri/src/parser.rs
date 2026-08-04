@@ -6,10 +6,11 @@ use strum::IntoEnumIterator;
 use crate::constants::{N_ROWS_SCHEDULE_TABLE, PERIOD_N, PERIOD_TYPE};
 use crate::types::{Chair, ChairsByPeriod, ClassType, ScheduleItem, Weekday};
 use crate::types::{HourMinute, Schedule};
+use crate::url::{Url, UrlType};
 
 // Helper struct for parsing student info
 pub struct ParsedStudentInfo {
-    pub photo_url: String,
+    pub photo_url: Url,
     pub student_name: String,
     pub course: String,
 }
@@ -104,7 +105,10 @@ pub fn extract_student_info(html: &str) -> Option<ParsedStudentInfo> {
     })?;
 
     Some(ParsedStudentInfo {
-        photo_url,
+        photo_url: Url {
+            value: photo_url,
+            url_type: UrlType::Photo,
+        },
         student_name,
         course,
     })

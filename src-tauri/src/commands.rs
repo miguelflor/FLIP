@@ -104,14 +104,8 @@ pub async fn get_student_info(
 
     // Extract student info from HTML
     if let Some(parsed_info) = extract_student_info(&html) {
-        // Fetch the photo image and convert to base64
-        let photo_data = match client.get(&parsed_info.photo_url).send().await {
-            Ok(img_response) => match img_response.bytes().await {
-                Ok(img_bytes) => Some(STANDARD.encode(&img_bytes)),
-                Err(_) => None,
-            },
-            Err(_) => None,
-        };
+        // Photo comes back from the cache already base64-encoded
+        let photo_data = cache.get(&parsed_info.photo_url, &client).await.ok();
 
         Ok(StudentInfo {
             photo_data,
@@ -346,7 +340,6 @@ pub async fn get_schedule(
         .to_string();
 
     let url = Url::schedule(&resolved_id, year.as_deref());
-    println!("[SCHEDULE URL] {}", url.value);
 
     let html = if use_cache.unwrap_or(true) {
         cache.get(&url, &client).await?
