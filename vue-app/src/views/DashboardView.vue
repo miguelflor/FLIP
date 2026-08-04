@@ -6,9 +6,7 @@
         :options="availableYears"
         :selected="selectedYear"
         placeholder="Selecionar Ano"
-        :open="isYearDropdownOpen"
-        @select="handleSelectYear"
-        @update:open="(v) => isYearDropdownOpen = v"
+        @select="selectYear"
       />
     </div>
 
@@ -38,7 +36,6 @@ import { storage } from '../lib/storage';
 const { currentStudentId } = useStudent();
 
 const selectedYear = ref<string | null>(storage.get('selectedYear'));
-const isYearDropdownOpen = ref(false);
 
 // This command takes no year, so a constant ref keeps the query keyed on the
 // student alone — defaulting selectedYear below therefore can't retrigger it.
@@ -64,10 +61,5 @@ watch(availableYears, (years) => {
 const selectYear = (year: string) => {
   selectedYear.value = year;
   storage.set('selectedYear', year);
-};
-
-const handleSelectYear = (year: string) => {
-  selectYear(year);
-  isYearDropdownOpen.value = false;
 };
 </script>

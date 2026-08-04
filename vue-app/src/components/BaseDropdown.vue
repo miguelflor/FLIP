@@ -2,23 +2,25 @@
   <div class="relative">
     <button
       class="flex items-center space-x-2 px-4 py-2 text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all duration-200 group"
-      @click="isOpen = !isOpen"
+      type="button"
+      @click="open = !open"
     >
       <span class="text-sm font-medium">{{ selected ?? placeholder }}</span>
       <ChevronDown
         class="w-4 h-4 transition-transform duration-200"
-        :class="{ 'rotate-180': isOpen }"
+        :class="{ 'rotate-180': open }"
       />
     </button>
 
     <div
-      v-if="isOpen"
+      v-if="open"
       class="absolute mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50"
     >
       <div class="py-1">
         <button
           v-for="option in options"
           :key="option"
+          type="button"
           :class="[
             'w-full text-left px-4 py-2 text-sm transition-colors',
             selected === option
@@ -35,31 +37,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
 import { ChevronDown } from 'lucide-vue-next';
 
-const props = defineProps<{
+defineProps<{
   options: string[];
   selected: string | null;
   placeholder: string;
-  open?: boolean;
 }>();
 
 const emit = defineEmits<{
   select: [option: string];
-  'update:open': [open: boolean];
 }>();
 
-const isOpen = ref(props.open ?? false);
-
-// Keep internal state in sync with parent so dropdowns can close each other.
-watch(() => props.open, (val) => {
-  if (val !== undefined) isOpen.value = val;
-});
-watch(isOpen, (val) => emit('update:open', val));
+/**
+ * Open state, exposed as `v-model:open` so a parent can close this dropdown
+ * (for instance when opening another one) without owning it.
+ */
+const open = defineModel<boolean>('open', { default: false });
 
 const select = (option: string) => {
-  isOpen.value = false;
+  open.value = false;
   emit('select', option);
 };
 </script>

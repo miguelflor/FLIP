@@ -16,9 +16,7 @@
           :options="Object.keys(alunoIds)"
           :selected="selectedAlunoId"
           placeholder="Selecionar Aluno"
-          :open="isDropdownOpen"
-          @select="handleSelectStudent"
-          @update:open="(v) => isDropdownOpen = v"
+          @select="selectStudent"
         />
       </div>
 
@@ -36,7 +34,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
 import { Menu } from 'lucide-vue-next';
 import BaseDropdown from './BaseDropdown.vue';
 import UserProfile from './UserProfile.vue';
@@ -47,11 +44,4 @@ const emit = defineEmits<{
 }>();
 
 const { alunoIds, selectedAlunoId, studentName, studentCourse, studentPhotoUrl, loadingStudentInfo, selectStudent } = useStudent();
-
-const isDropdownOpen = ref(false);
-
-const handleSelectStudent = (displayName: string) => {
-  selectStudent(displayName);
-  isDropdownOpen.value = false;
-};
 </script>
