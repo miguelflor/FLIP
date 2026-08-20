@@ -33,6 +33,11 @@
 - Export entire schedule with one click
 - Automatic recurring event creation
 
+### **Cache**
+- All requests are cache
+- The timeout is different for each url
+- The cache is stored encrypted
+
 ### **Fast & Native**
 - Native desktop application built with Rust
 - Lightning-fast performance
