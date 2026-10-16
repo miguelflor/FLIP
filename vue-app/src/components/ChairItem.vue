@@ -52,28 +52,37 @@
       >
         {{ files.length ? 'Nenhum ficheiro encontrado.' : 'Esta cadeira não tem ficheiros.' }}
       </p>
-      <ul
+      <div
         v-else
-        class="space-y-1 max-h-64 overflow-y-auto"
+        class="space-y-3 max-h-64 overflow-y-auto"
       >
-        <li
-          v-for="f in filtered"
-          :key="f.href"
-          class="flex items-center gap-2 min-w-0"
+        <section
+          v-for="[type, group] in sections"
+          :key="type"
         >
-          <button
-            type="button"
-            class="shrink-0 text-slate-600 hover:text-slate-800 cursor-pointer disabled:opacity-50"
-            :disabled="downloading.has(f.href)"
-            :title="`Descarregar ${f.name}`"
-            @click="downloadOne(f)"
-          >
-            <Download class="h-4 w-4" />
-          </button>
-          <span class="truncate">{{ f.name }}</span>
-          <span class="shrink-0 text-xs text-slate-500">{{ f.type_name.replace(/_/g, ' ') }}</span>
-        </li>
-      </ul>
+          <h5 class="font-medium text-slate-700 mb-1">
+            {{ SECTION_LABELS[type] ?? type }} ({{ group.length }})
+          </h5>
+          <ul class="space-y-1">
+            <li
+              v-for="f in group"
+              :key="f.href"
+              class="flex items-center gap-2 min-w-0"
+            >
+              <button
+                type="button"
+                class="shrink-0 text-slate-600 hover:text-slate-800 cursor-pointer disabled:opacity-50"
+                :disabled="downloading.has(f.href)"
+                :title="`Descarregar ${f.name}`"
+                @click="downloadOne(f)"
+              >
+                <Download class="h-4 w-4" />
+              </button>
+              <span class="truncate">{{ f.name }}</span>
+            </li>
+          </ul>
+        </section>
+      </div>
     </div>
   </li>
 </template>
@@ -213,11 +222,34 @@ const listing = ref(false);
 const files = ref<CourseFile[] | null>(null);
 const downloading = ref(new Set<string>());
 
+// CLIP's section names, keyed by the backend's type_name (FILE_TYPES in constants.rs).
+const SECTION_LABELS: Record<string, string> = {
+  Multimedia: "Material Multimédia",
+  Problemas: "Problemas",
+  Protocolos: "Protocolos",
+  Seminarios: "Seminários",
+  Exames: "Exames",
+  Testes: "Testes",
+  Textos_de_Apoio: "Textos de Apoio",
+  Outros: "Outros",
+};
+
 const filtered = computed(() => {
   const q = query.value.trim().toLowerCase();
   return (files.value ?? []).filter(
-    (f) => f.name.toLowerCase().includes(q) || f.type_name.toLowerCase().includes(q),
+    (f) =>
+      f.name.toLowerCase().includes(q) ||
+      (SECTION_LABELS[f.type_name] ?? f.type_name).toLowerCase().includes(q),
   );
+});
+
+// Backend returns files in CLIP's section order, so a Map keeps it; empty sections never appear.
+const sections = computed(() => {
+  const groups = new Map<string, CourseFile[]>();
+  for (const f of filtered.value) {
+    groups.set(f.type_name, [...(groups.get(f.type_name) ?? []), f]);
+  }
+  return [...groups];
 });
 
 const toggleOpen = async () => {
