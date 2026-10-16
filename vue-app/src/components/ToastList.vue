@@ -8,13 +8,14 @@
         v-for="toast in toasts"
         :key="toast.id"
         :class="[
-          'mb-2 max-w-sm w-full shadow-lg rounded-lg overflow-hidden transform transition-all duration-300',
+          'mb-2 max-w-sm w-full shadow-lg rounded-lg overflow-hidden transform transition-all duration-300 bg-white border',
           toast.type === 'error'
-            ? 'bg-red-50 border border-red-200 text-red-800'
-            : 'bg-green-50 border border-green-200 text-green-800'
+            ? 'border-red-200 text-red-800'
+            : 'border-green-200 text-green-800'
         ]"
       >
-        <div class="p-4 flex items-center gap-3">
+        <!-- Tint sits on an opaque bg-white so it stays readable when the tint is translucent (dark theme) -->
+        <div :class="['p-4 flex items-center gap-3', toast.type === 'error' ? 'bg-red-50' : 'bg-green-50']">
           <CheckCircle
             v-if="toast.type === 'success'"
             class="h-5 w-5 text-green-600 shrink-0"

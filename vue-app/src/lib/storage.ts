@@ -11,6 +11,7 @@ const KEYS = {
   selectedAlunoId: 'selected_aluno_id',
   selectedYear: 'selected_year',
   selectedPeriod: 'selected_period',
+  theme: 'theme',
 } as const;
 
 export type StorageKey = keyof typeof KEYS;

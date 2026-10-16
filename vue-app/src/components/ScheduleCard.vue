@@ -83,7 +83,7 @@
           <div
             v-for="hour in hours"
             :key="hour"
-            class="absolute right-2 text-[10px] text-slate-400 font-medium select-none"
+            class="absolute right-2 text-[10px] text-slate-500 font-medium select-none"
             :style="{ top: toTop({ hour, min: 0 }) - 8 + 'px' }"
           >
             {{ String(hour).padStart(2, "0") }}:00
@@ -154,9 +154,9 @@
                 <span class="text-[11px] font-bold leading-tight truncate">{{
                   item.class
                 }}</span>
-                <span class="text-[10px] opacity-60 leading-tight truncate">{{ item.class_type }}.{{ item.class_number }}</span>
+                <span class="text-[10px] opacity-80 leading-tight truncate">{{ item.class_type }}.{{ item.class_number }}</span>
                 <span
-                  class="mt-auto text-[10px] opacity-55 leading-tight truncate flex items-center gap-0.5"
+                  class="mt-auto text-[10px] opacity-80 leading-tight truncate flex items-center gap-0.5"
                 >
                   <MapPin class="w-2.5 h-2.5 shrink-0" />{{ item.location }}
                 </span>
