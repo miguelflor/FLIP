@@ -98,6 +98,7 @@ impl Schedule {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
 
