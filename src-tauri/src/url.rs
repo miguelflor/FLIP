@@ -45,8 +45,13 @@ impl Url {
     }
 
     // Ex.: https://clip.fct.unl.pt/utente/eu/aluno/ano_lectivo/hor%E1rio?ano_lectivo=2026&institui%E7%E3o=97747&aluno=132271&tipo_de_per%EDodo_lectivo=s&per%EDodo_lectivo=2
-    pub fn schedule(student: &str, year: Option<&str>) -> Self {
+    /// `period` is a ChairsByPeriod key ("s1", "s2", "t1", "t2"); anything else falls back to today's semester.
+    pub fn schedule(student: &str, year: Option<&str>, period: Option<&str>) -> Self {
         let sem = get_semester();
+        let (period_type, period_n) = match period {
+            Some(p @ ("s1" | "s2" | "t1" | "t2")) => p.split_at(1),
+            _ => (sem.url_type(), sem.url_num()),
+        };
         let lective_year = year.map(|y| y.to_string()).unwrap_or_else(get_lective_year);
         // TODO: institui%E7%E3o (97747 = FCT) is hardcoded for now; extract it dynamically from CLIP HTML.
         Self {
@@ -57,9 +62,9 @@ impl Url {
                 STUDENT,
                 student,
                 PERIOD_TYPE,
-                sem.url_type(),
+                period_type,
                 PERIOD_N,
-                sem.url_num()
+                period_n
             ),
             url_type: UrlType::Schedule,
         }

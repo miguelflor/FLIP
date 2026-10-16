@@ -1,12 +1,14 @@
 <template>
   <div class="relative">
     <button
-      class="flex items-center space-x-2 px-4 py-2 text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all duration-200 group"
+      class="flex items-center space-x-2 px-4 py-2 text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all duration-200 group disabled:opacity-60 disabled:pointer-events-none"
       type="button"
+      :disabled="disabled"
       @click="open = !open"
     >
       <span class="text-sm font-medium">{{ selected ?? placeholder }}</span>
       <ChevronDown
+        v-if="!disabled"
         class="w-4 h-4 transition-transform duration-200"
         :class="{ 'rotate-180': open }"
       />
@@ -43,6 +45,7 @@ defineProps<{
   options: string[];
   selected: string | null;
   placeholder: string;
+  disabled?: boolean;
 }>();
 
 const emit = defineEmits<{

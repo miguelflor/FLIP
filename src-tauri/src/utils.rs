@@ -13,22 +13,14 @@ use crate::types::Semester;
 ///   2nd Semester: 23 Feb – 07 Jul
 pub fn get_semester() -> Semester {
     let today = Local::now().date_naive();
-    let year = today.year();
+    let md = (today.month(), today.day());
 
-    // Boundaries relative to the end-year of the lective cycle
-    let s1_start = NaiveDate::from_ymd_opt(year - 1, 9, 2).unwrap();
-    let s1_end = NaiveDate::from_ymd_opt(year, 1, 17).unwrap();
-    let mid_end = NaiveDate::from_ymd_opt(year, 2, 22).unwrap();
-    let s2_end = NaiveDate::from_ymd_opt(year, 7, 7).unwrap();
-
-    if today >= s1_start && today <= s1_end {
+    if md >= (9, 2) || md <= (1, 17) {
         Semester::First
-    } else if today > s1_end && today <= mid_end {
+    } else if md <= (2, 22) {
         Semester::MidYear
-    } else if today > mid_end && today <= s2_end {
-        Semester::Second
     } else {
-        // Between Jul and Sep — treat as upcoming 1st semester
+        // 23 Feb – 1 Sep: 2nd semester (Jul–Aug still belongs to the ending lective year)
         Semester::Second
     }
 }

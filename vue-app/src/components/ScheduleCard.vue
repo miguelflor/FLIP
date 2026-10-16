@@ -206,6 +206,7 @@ import { useClipQuery } from "../composables/useClipQuery";
 const props = defineProps<{
   studentId: string | null;
   year: string | null;
+  period: string | null;
 }>();
 
 type Weekday =
@@ -267,6 +268,7 @@ const {
   "get_schedule",
   toRef(props, "studentId"),
   toRef(props, "year"),
+  { params: computed(() => ({ period: props.period })) },
 );
 
 const schedule = computed(() => scheduleData.value ?? []);

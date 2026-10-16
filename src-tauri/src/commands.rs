@@ -329,6 +329,7 @@ pub async fn get_schedule(
     session_id: String,
     student_id: Option<String>,
     year: Option<String>,
+    period: Option<String>,
     use_cache: Option<bool>,
 ) -> Result<Schedule, String> {
     let (client, student_ids) = get_session(&state, &session_id)?;
@@ -339,7 +340,7 @@ pub async fn get_schedule(
         .ok_or("There is no student id")?
         .to_string();
 
-    let url = Url::schedule(&resolved_id, year.as_deref());
+    let url = Url::schedule(&resolved_id, year.as_deref(), period.as_deref());
 
     let html = if use_cache.unwrap_or(true) {
         cache.get(&url, &client).await?

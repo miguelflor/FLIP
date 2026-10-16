@@ -8,6 +8,8 @@ export interface ClipQueryOptions {
   noStudentMessage?: string;
   /** Message shown when there is no active session. */
   noSessionMessage?: string;
+  /** Extra command arguments; the query re-runs when they change. Null values are omitted. */
+  params?: Ref<Record<string, string | null>>;
 }
 
 /**
@@ -57,6 +59,9 @@ export function useClipQuery<T>(
         useCache,
       };
       if (year.value) params.year = extractYearForRequest(year.value);
+      for (const [k, v] of Object.entries(options.params?.value ?? {})) {
+        if (v !== null) params[k] = v;
+      }
 
       const result = await invoke<T>(command, params);
       if (runId !== latestRun) return;
@@ -70,7 +75,7 @@ export function useClipQuery<T>(
     }
   };
 
-  watch([studentId, year], () => run(), { immediate: true });
+  watch([studentId, year, () => options.params?.value], () => run(), { immediate: true });
 
   return {
     data,
