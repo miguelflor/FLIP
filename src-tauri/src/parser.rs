@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use scraper::{Html, Selector};
+use scraper::{ElementRef, Html, Selector};
 use strum::IntoEnumIterator;
 
 use crate::constants::{N_ROWS_SCHEDULE_TABLE, PERIOD_N, PERIOD_TYPE};
-use crate::types::{Chair, ChairsByPeriod, ClassType, ScheduleItem, Weekday};
+use crate::types::{Chair, ChairsByPeriod, ClassType, CourseFile, ScheduleItem, Weekday};
 use crate::types::{HourMinute, Schedule};
 use crate::url::{Url, UrlType};
 use crate::utils::decode_latin1;
@@ -161,13 +161,51 @@ pub fn parse_file_urls(html: &str) -> Vec<String> {
     return d;
 }
 
+/// Files in a CLIP documents page. Each link's table row ends in date, size, uploader and an empty cell.
+pub fn parse_files(html: &str, type_name: &str) -> Vec<CourseFile> {
+    let document = Html::parse_document(html);
+    let link_selector = Selector::parse("a[href*='/objecto?']").unwrap();
+    let td_selector = Selector::parse("td").unwrap();
+
+    document
+        .select(&link_selector)
+        .filter_map(|a| {
+            let href = a.value().attr("href")?.to_string();
+            let cells: Vec<String> = a
+                .ancestors()
+                .filter_map(ElementRef::wrap)
+                .find(|e| e.value().name() == "tr")
+                .map(|tr| {
+                    tr.select(&td_selector)
+                        .map(|td| td.text().collect::<String>().trim().to_string())
+                        .collect()
+                })
+                .unwrap_or_default();
+            let [date, size, uploader] = match cells.as_slice() {
+                [.., d, s, u, _] => [d.clone(), s.clone(), u.clone()],
+                _ => Default::default(),
+            };
+            Some(CourseFile {
+                name: file_name_from_href(&href),
+                type_name: type_name.to_string(),
+                href,
+                date,
+                size,
+                uploader,
+            })
+        })
+        .collect()
+}
+
 /// File name from a CLIP `/objecto?...` href: the last `=` value, percent-decoded as ISO-8859-1.
 pub fn file_name_from_href(href: &str) -> String {
     let raw = href.split('=').next_back().unwrap_or("unknown").as_bytes();
     let mut bytes = Vec::with_capacity(raw.len());
     let mut i = 0;
     while i < raw.len() {
-        let hex = raw.get(i + 1..i + 3).and_then(|h| std::str::from_utf8(h).ok());
+        let hex = raw
+            .get(i + 1..i + 3)
+            .and_then(|h| std::str::from_utf8(h).ok());
         match (raw[i], hex.and_then(|h| u8::from_str_radix(h, 16).ok())) {
             (b'%', Some(b)) => {
                 bytes.push(b);
@@ -316,5 +354,21 @@ mod tests {
         assert_eq!(urls.len(), 2);
         assert_eq!(file_name_from_href(&urls[0]), "Aula 1.pdf");
         assert_eq!(file_name_from_href(&urls[1]), "Exame época.pdf");
+    }
+
+    #[test]
+    fn parses_file_row_details() {
+        let html = r#"<table><tr>
+            <td><a href="/objecto?oid=1&oin=Aula%201.pdf">Aula 1.pdf</a></td>
+            <td> 2026.09.14 10:30 </td><td>245 Kb</td><td>Ana Silva</td><td></td>
+        </tr></table>"#;
+        let f = &parse_files(html, "Outros")[0];
+        assert_eq!(
+            (f.name.as_str(), f.type_name.as_str()),
+            ("Aula 1.pdf", "Outros")
+        );
+        assert_eq!(f.date, "2026.09.14 10:30");
+        assert_eq!(f.size, "245 Kb");
+        assert_eq!(f.uploader, "Ana Silva");
     }
 }

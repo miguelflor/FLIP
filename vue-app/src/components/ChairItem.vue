@@ -78,7 +78,10 @@
               >
                 <Download class="h-4 w-4" />
               </button>
-              <span class="truncate">{{ f.name }}</span>
+              <span
+                class="truncate"
+                :title="fileDetails(f)"
+              >{{ f.name }}</span>
             </li>
           </ul>
         </section>
@@ -123,6 +126,9 @@ interface CourseFile {
   name: string;
   type_name: string;
   href: string;
+  date: string;
+  size: string;
+  uploader: string;
 }
 
 interface Props {
@@ -252,6 +258,11 @@ const sections = computed(() => {
   return [...groups];
 });
 
+const fileDetails = (f: CourseFile) =>
+  [f.name, f.date && `Data: ${f.date}`, f.size && `Tamanho: ${f.size}`, f.uploader && `Por: ${f.uploader}`]
+    .filter(Boolean)
+    .join("\n");
+
 const toggleOpen = async () => {
   open.value = !open.value;
   if (!open.value || files.value || listing.value) return;
@@ -279,10 +290,12 @@ const downloadOne = async (f: CourseFile) => {
       sessionId: sessionId.value,
       href: f.href,
     });
-    if (res.data) saveBase64(res.data, res.filename || f.name);
+    if (!res.data) return error(res.error || `Error downloading ${f.name}.`);
+    saveBase64(res.data, res.filename || f.name);
+    success(`${res.filename || f.name} downloaded!`);
   } catch (err: unknown) {
     console.error("Error downloading file:", err);
-    error(`Error downloading ${f.name}.`);
+    error(`Error downloading ${f.name}: ${err}`);
   } finally {
     downloading.value.delete(f.href);
   }

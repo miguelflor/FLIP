@@ -14,7 +14,7 @@ use crate::cache::CacheHandler;
 use crate::constants::{CLIP_BASE, CLIP_HOME, FILE_TYPES, USER_AGENT};
 use crate::parser::{
     extract_aluno_ids, extract_student_info, file_name_from_href, parse_chairs, parse_file_urls,
-    parse_schedule,
+    parse_files, parse_schedule,
 };
 use crate::session::get_session;
 use crate::types::{
@@ -345,15 +345,9 @@ pub async fn list_files(
                 code,
             );
             tokio::spawn(async move {
-                let html = cache.get(&url, &client).await.unwrap_or_default();
-                parse_file_urls(&html)
-                    .into_iter()
-                    .map(|href| CourseFile {
-                        name: file_name_from_href(&href),
-                        type_name: name.to_string(),
-                        href,
-                    })
-                    .collect()
+                // CLIP file links expire with the session, so cached pages yield 404s
+                let html = cache.put(&url, &client).await.unwrap_or_default();
+                parse_files(&html, name)
             })
         })
         .collect();

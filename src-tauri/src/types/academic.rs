@@ -41,6 +41,9 @@ pub struct CourseFile {
     pub name: String,
     pub type_name: String,
     pub href: String,
+    pub date: String,
+    pub size: String,
+    pub uploader: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
