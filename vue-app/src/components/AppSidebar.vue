@@ -2,9 +2,9 @@
   <aside
     :class="[
       'bg-linear-to-b from-slate-50 to-slate-100 border-r border-slate-200 flex flex-col h-screen shrink-0 transition-all duration-300 ease-in-out',
-      'fixed inset-y-0 left-0 z-40 w-64 md:static md:z-auto md:translate-x-0',
+      'fixed inset-y-0 left-0 z-40 w-52 md:static md:z-auto md:translate-x-0',
       open ? 'translate-x-0' : '-translate-x-full',
-      open ? 'md:w-64' : 'md:w-0 md:border-r-0',
+      open ? 'md:w-52' : 'md:w-0 md:border-r-0',
     ]"
   >
     <div
@@ -14,7 +14,7 @@
       ]"
     >
       <!-- Header -->
-      <div class="px-6 py-4 border-b border-slate-200 shrink-0 flex items-center justify-between">
+      <div class="h-16 px-4 border-b border-slate-200 shrink-0 flex items-center justify-between">
         <div class="flex items-center min-w-0">
           <h2 class="text-xl font-bold text-slate-900 truncate">
             FLIP
@@ -30,16 +30,16 @@
       </div>
 
       <!-- Navigation -->
-      <nav class="p-4 space-y-2 grow overflow-y-auto flex-1">
+      <nav class="px-3 pb-3 pt-4 sm:pt-6 space-y-1 grow overflow-y-auto flex-1">
         <RouterLink
           to="/app/dashboard"
-          class="flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 group whitespace-nowrap"
+          class="flex items-center space-x-3 px-3 py-2 text-sm rounded-lg transition-all duration-200 group whitespace-nowrap"
           :class="route.name === 'dashboard'
             ? 'bg-white shadow-sm text-blue-700'
             : 'text-slate-700 hover:bg-white hover:shadow-sm'"
         >
           <LayoutDashboard
-            class="w-5 h-5 shrink-0"
+            class="w-4 h-4 shrink-0"
             :class="route.name === 'dashboard' ? 'text-blue-600' : 'text-slate-500 group-hover:text-blue-600'"
           />
           <span class="font-medium">Dashboard</span>
@@ -47,13 +47,13 @@
 
         <RouterLink
           to="/app/files"
-          class="flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 group whitespace-nowrap"
+          class="flex items-center space-x-3 px-3 py-2 text-sm rounded-lg transition-all duration-200 group whitespace-nowrap"
           :class="route.name === 'files'
             ? 'bg-white shadow-sm text-blue-700'
             : 'text-slate-700 hover:bg-white hover:shadow-sm'"
         >
           <FolderOpen
-            class="w-5 h-5 shrink-0"
+            class="w-4 h-4 shrink-0"
             :class="route.name === 'files' ? 'text-blue-600' : 'text-slate-500 group-hover:text-blue-600'"
           />
           <span class="font-medium">Ficheiros</span>
@@ -61,7 +61,7 @@
       </nav>
 
       <!-- Bottom actions -->
-      <div class="p-4 border-t border-slate-200 space-y-2">
+      <div class="p-3 border-t border-slate-200 space-y-1">
         <button
           class="cursor-pointer w-full flex items-center justify-center space-x-2 px-3 py-2 text-slate-500 hover:text-slate-700 hover:bg-slate-200 rounded-lg transition-all duration-200 group whitespace-nowrap"
           title="Limpar cache"

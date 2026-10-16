@@ -4,65 +4,48 @@
   >
     <!-- Header -->
     <div
-      class="flex items-center justify-between px-6 py-4 border-b border-slate-100"
+      class="flex items-start justify-between gap-3 px-4 py-3 border-b border-slate-100"
     >
-      <div class="flex items-center space-x-3">
-        <Calendar class="w-5 h-5 text-slate-500" />
-        <div>
-          <h3 class="text-lg font-bold text-slate-900">
+      <div class="min-w-0">
+        <div class="flex items-center gap-2">
+          <Calendar class="w-5 h-5 text-slate-500 shrink-0" />
+          <h3 class="text-lg font-bold text-slate-900 whitespace-nowrap">
             Horário Semanal
           </h3>
-          <p class="text-xs text-slate-400">
-            Segunda a Sexta
-          </p>
         </div>
-      </div>
-      <div class="flex items-center space-x-4">
-        <div class="flex items-center space-x-3 text-xs text-slate-500">
+        <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 whitespace-nowrap">
           <span class="flex items-center gap-1.5">
             <span class="w-2.5 h-2.5 rounded-sm bg-blue-400 inline-block" />Teórica
           </span>
           <span class="flex items-center gap-1.5">
-            <span
-              class="w-2.5 h-2.5 rounded-sm bg-emerald-400 inline-block"
-            />Prática
+            <span class="w-2.5 h-2.5 rounded-sm bg-emerald-400 inline-block" />Prática
           </span>
           <span class="flex items-center gap-1.5">
-            <span
-              class="w-2.5 h-2.5 rounded-sm bg-violet-400 inline-block"
-            />Teórico-Prática
+            <span class="w-2.5 h-2.5 rounded-sm bg-violet-400 inline-block" />Teórico-Prática
           </span>
         </div>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
         <button
           :disabled="loading"
-          class="flex items-center space-x-1 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-md hover:shadow-sm transition-all text-xs font-medium hover:bg-slate-50 disabled:opacity-50"
+          title="Atualizar"
+          class="flex items-center gap-1.5 p-2 xl:px-3 xl:py-1.5 bg-white border border-slate-200 text-slate-600 rounded-md hover:shadow-sm transition-all text-xs font-medium hover:bg-slate-50 disabled:opacity-50 whitespace-nowrap"
           @click="refreshSchedule"
         >
-          <svg
-            :class="['w-3.5 h-3.5', { 'animate-spin': loading }]"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-            />
-          </svg>
-          <span>Atualizar</span>
+          <RefreshCw :class="['w-3.5 h-3.5', { 'animate-spin': loading }]" />
+          <span class="hidden xl:inline">Atualizar</span>
         </button>
         <button
-          class="flex items-center space-x-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-md hover:shadow-sm transition-all text-xs font-medium hover:bg-slate-50"
+          title="Exportar tudo para Google Calendar"
+          class="flex items-center gap-1.5 p-2 xl:px-3 xl:py-1.5 bg-white border border-slate-200 text-slate-600 rounded-md hover:shadow-sm transition-all text-xs font-medium hover:bg-slate-50 whitespace-nowrap"
           @click="exportAllToGoogleCalendar"
         >
           <img
             src="/google-logo.svg"
             alt="Google"
-            class="w-4 h-4"
+            class="w-3.5 h-3.5"
           >
-          <span>Exportar tudo</span>
+          <span class="hidden xl:inline">Exportar tudo</span>
         </button>
       </div>
     </div>
@@ -86,11 +69,11 @@
     <!-- Calendar grid -->
     <div
       v-else
-      class="flex pb-4"
+      class="flex pb-4 overflow-x-auto"
     >
       <!-- Time gutter -->
       <div
-        class="flex-none w-14 border-r border-slate-100 bg-slate-50/60 shrink-0"
+        class="flex-none w-12 border-r border-slate-100 bg-slate-50/60 shrink-0"
       >
         <div style="height: 48px" />
         <div
@@ -109,7 +92,7 @@
       </div>
 
       <!-- Day columns -->
-      <div class="flex-1 grid grid-cols-5 min-w-[560px]">
+      <div class="flex-1 grid grid-cols-5 min-w-[420px]">
         <div
           v-for="day in weekDays"
           :key="day.key"
@@ -200,7 +183,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, toRef } from "vue";
-import { Calendar, MapPin } from "lucide-vue-next";
+import { Calendar, MapPin, RefreshCw } from "lucide-vue-next";
 import { useClipQuery } from "../composables/useClipQuery";
 
 const props = defineProps<{
@@ -234,7 +217,7 @@ interface ScheduleItem {
   class_type: ClassType;
 }
 
-const HOUR_PX = 64;
+const HOUR_PX = 52;
 
 /** ISO weekday numbers (Mon=1 … Sun=7), as used by both the grid and the export. */
 const WEEKDAY_INDEX: Record<Weekday, number> = {

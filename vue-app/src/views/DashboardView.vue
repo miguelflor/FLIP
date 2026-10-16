@@ -18,7 +18,7 @@
     </div>
 
     <!-- Panels -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] items-start gap-4 sm:gap-6">
       <ScheduleCard
         :student-id="currentStudentId"
         :year="selectedYear"

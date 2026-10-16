@@ -1,5 +1,5 @@
 <template>
-  <div class="flex items-center space-x-3">
+  <div class="flex items-center space-x-3 min-w-0">
     <!-- Loading skeleton -->
     <template v-if="loading">
       <div class="hidden sm:block text-right space-y-1.5">
@@ -11,17 +11,17 @@
 
     <!-- Loaded content -->
     <template v-else>
-      <div class="hidden sm:block text-right">
-        <p class="text-sm font-semibold text-slate-900">
+      <div class="hidden sm:block text-right min-w-0 max-w-64">
+        <p class="text-sm font-semibold text-slate-900 truncate">
           {{ name || 'Estudante' }}
         </p>
-        <p class="text-xs text-slate-500">
+        <p class="text-xs text-slate-500 truncate">
           {{ course ? course.split('-')[0].trim() : 'Curso' }}
         </p>
       </div>
       <div
         v-if="photoUrl"
-        class="w-10 h-10 rounded-full overflow-hidden ring-2 ring-slate-200 shadow-sm hover:ring-blue-400 transition-all duration-200"
+        class="shrink-0 w-10 h-10 rounded-full overflow-hidden ring-2 ring-slate-200 shadow-sm hover:ring-blue-400 transition-all duration-200"
       >
         <img
           :src="photoUrl"
@@ -31,7 +31,7 @@
       </div>
       <div
         v-else
-        class="w-10 h-10 rounded-full overflow-hidden ring-2 ring-slate-200 bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center"
+        class="shrink-0 w-10 h-10 rounded-full overflow-hidden ring-2 ring-slate-200 bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center"
       >
         <span class="text-white font-bold text-sm">{{ (name ? name[0] : 'E').toUpperCase() }}</span>
       </div>

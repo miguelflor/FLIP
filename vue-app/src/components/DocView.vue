@@ -1,38 +1,26 @@
 <template>
   <div
     id="pdfs"
-    class="bg-white rounded-xl shadow p-4"
+    class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"
   >
-    <div class="flex items-center space-x-2 mb-2">
-      <FolderOpen class="w-5 h-5 text-slate-600" />
-      <h3 class="text-lg font-bold text-slate-900">
-        Ficheiros das Cadeiras
-      </h3>
+    <div class="flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-100">
+      <div class="flex items-center gap-2 min-w-0">
+        <FolderOpen class="w-5 h-5 text-slate-500 shrink-0" />
+        <h3 class="text-lg font-bold text-slate-900 truncate">
+          Ficheiros das Cadeiras
+        </h3>
+      </div>
+      <button
+        :disabled="loading"
+        title="Atualizar"
+        class="shrink-0 p-2 bg-white border border-slate-200 text-slate-600 rounded-md hover:shadow-sm transition-all hover:bg-slate-50 disabled:opacity-50"
+        @click="refreshChairs"
+      >
+        <RefreshCw :class="['w-3.5 h-3.5', { 'animate-spin': loading }]" />
+      </button>
     </div>
 
-    <!-- Refresh button -->
-    <button
-      :disabled="loading"
-      class="text-xs text-gray-500 hover:text-gray-700 mb-2 flex items-center"
-      @click="refreshChairs"
-    >
-      <svg 
-        :class="['w-3 h-3 mr-1', { 'animate-spin': loading }]" 
-        fill="none" 
-        stroke="currentColor" 
-        viewBox="0 0 24 24"
-      >
-        <path 
-          stroke-linecap="round" 
-          stroke-linejoin="round" 
-          stroke-width="2" 
-          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" 
-        />
-      </svg>
-      {{ loading ? 'Carregando...' : 'Atualizar' }}
-    </button>
-
-    <ul class="space-y-2 text-sm">
+    <ul class="p-4 space-y-2 text-sm">
       <!-- Loading state -->
       <div
         v-if="loading"
@@ -102,7 +90,7 @@
 
 <script setup lang="ts">
 import { computed, toRef } from 'vue';
-import { FolderOpen } from 'lucide-vue-next';
+import { FolderOpen, RefreshCw } from 'lucide-vue-next';
 import ChairItem from './ChairItem.vue';
 import { PeriodType } from '../lib/clipVars';
 import { useClipQuery } from '../composables/useClipQuery';

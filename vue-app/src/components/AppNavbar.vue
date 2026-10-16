@@ -1,6 +1,6 @@
 <template>
-  <header class="w-full bg-white border-b border-slate-200">
-    <div class="flex justify-between items-center gap-3 px-4 sm:px-6 py-3">
+  <header class="h-16 shrink-0 w-full bg-white border-b border-slate-200">
+    <div class="h-full flex justify-between items-center gap-3 px-4 sm:px-6">
       <div class="flex items-center gap-2 sm:gap-4 min-w-0">
         <!-- Sidebar toggle -->
         <button
@@ -21,7 +21,7 @@
       </div>
 
       <!-- User profile -->
-      <div class="shrink-0">
+      <div class="min-w-0">
         <UserProfile
           :name="studentName"
           :course="studentCourse"

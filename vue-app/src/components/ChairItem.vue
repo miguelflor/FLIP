@@ -1,6 +1,6 @@
 <template>
   <li class="transition-all duration-200 hover:translate-x-1">
-    <span class="flex items-center">
+    <span class="flex items-center min-w-0">
       <span class="mr-2 flex items-center justify-center h-5 w-5">
         <span
           v-if="loading"
