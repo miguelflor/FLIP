@@ -21,6 +21,7 @@ struct CacheEntry {
     updated_at: DateTime<Utc>,
 }
 
+#[derive(Clone)]
 pub struct CacheHandler {
     db: Arc<Mutex<Connection>>,
 }

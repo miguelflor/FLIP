@@ -13,11 +13,12 @@ use zip::ZipWriter;
 use crate::cache::CacheHandler;
 use crate::constants::{CLIP_BASE, CLIP_HOME, FILE_TYPES, USER_AGENT};
 use crate::parser::{
-    extract_aluno_ids, extract_student_info, parse_chairs, parse_file_urls, parse_schedule,
+    extract_aluno_ids, extract_student_info, file_name_from_href, parse_chairs, parse_file_urls,
+    parse_schedule,
 };
 use crate::session::get_session;
 use crate::types::{
-    ChairsResponse, FileParams, FileResponse, LoginResponse, Schedule, StudentInfo,
+    ChairsResponse, CourseFile, FileParams, FileResponse, LoginResponse, Schedule, StudentInfo,
 };
 use crate::url::Url;
 use crate::utils::get_type_name;
@@ -256,7 +257,7 @@ pub async fn get_file(
                         return None;
                     }
 
-                    let filename = href.split('=').next_back().unwrap_or("unknown");
+                    let filename = file_name_from_href(&href);
                     let file_data = match file_response.bytes().await {
                         Ok(b) => b,
                         Err(_) => return None,
@@ -318,6 +319,79 @@ pub async fn get_file(
         success: true,
         data: Some(base64_data),
         filename: Some(format!("{}-{}.zip", params.name, params.period)),
+        error: None,
+    })
+}
+
+#[command]
+pub async fn list_files(
+    state: State<'_, AppState>,
+    cache: State<'_, CacheHandler>,
+    params: FileParams,
+    student_id: String,
+) -> Result<Vec<CourseFile>, String> {
+    let (client, _) = get_session(&state, &params.session_id)?;
+
+    let handles: VecThr<Vec<CourseFile>> = FILE_TYPES
+        .iter()
+        .map(|(code, name)| {
+            let (client, cache) = (client.clone(), cache.inner().clone());
+            let url = Url::documents(
+                &student_id,
+                &params.year,
+                &params.period,
+                &params.type_period,
+                &params.unit_id,
+                code,
+            );
+            tokio::spawn(async move {
+                let html = cache.get(&url, &client).await.unwrap_or_default();
+                parse_file_urls(&html)
+                    .into_iter()
+                    .map(|href| CourseFile {
+                        name: file_name_from_href(&href),
+                        type_name: name.to_string(),
+                        href,
+                    })
+                    .collect()
+            })
+        })
+        .collect();
+
+    let mut files = Vec::new();
+    for h in handles {
+        files.extend(h.await.unwrap_or_default());
+    }
+    Ok(files)
+}
+
+#[command]
+pub async fn download_file(
+    state: State<'_, AppState>,
+    session_id: String,
+    href: String,
+) -> Result<FileResponse, String> {
+    let (client, _) = get_session(&state, &session_id)?;
+
+    // Only CLIP document links: keeps the authenticated client off arbitrary URLs
+    if !href.starts_with('/') || !href.contains("/objecto?") {
+        return Err("Invalid file link".to_string());
+    }
+
+    let response = client
+        .get(format!("{}{}", CLIP_BASE, href))
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    if !response.status().is_success() {
+        return Err(format!("Download failed ({})", response.status()));
+    }
+    let bytes = response.bytes().await.map_err(|e| e.to_string())?;
+
+    Ok(FileResponse {
+        success: true,
+        data: Some(STANDARD.encode(&bytes)),
+        filename: Some(file_name_from_href(&href)),
         error: None,
     })
 }

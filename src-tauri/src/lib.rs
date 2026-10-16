@@ -66,6 +66,8 @@ pub fn run() {
             commands::get_chairs,
             commands::get_available_years,
             commands::get_file,
+            commands::list_files,
+            commands::download_file,
             commands::get_schedule,
             commands::reset_cache
         ])

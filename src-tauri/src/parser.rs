@@ -7,6 +7,7 @@ use crate::constants::{N_ROWS_SCHEDULE_TABLE, PERIOD_N, PERIOD_TYPE};
 use crate::types::{Chair, ChairsByPeriod, ClassType, ScheduleItem, Weekday};
 use crate::types::{HourMinute, Schedule};
 use crate::url::{Url, UrlType};
+use crate::utils::decode_latin1;
 
 // Helper struct for parsing student info
 pub struct ParsedStudentInfo {
@@ -160,6 +161,31 @@ pub fn parse_file_urls(html: &str) -> Vec<String> {
     return d;
 }
 
+/// File name from a CLIP `/objecto?...` href: the last `=` value, percent-decoded as ISO-8859-1.
+pub fn file_name_from_href(href: &str) -> String {
+    let raw = href.split('=').next_back().unwrap_or("unknown").as_bytes();
+    let mut bytes = Vec::with_capacity(raw.len());
+    let mut i = 0;
+    while i < raw.len() {
+        let hex = raw.get(i + 1..i + 3).and_then(|h| std::str::from_utf8(h).ok());
+        match (raw[i], hex.and_then(|h| u8::from_str_radix(h, 16).ok())) {
+            (b'%', Some(b)) => {
+                bytes.push(b);
+                i += 3;
+            }
+            (b'+', _) => {
+                bytes.push(b' ');
+                i += 1;
+            }
+            (b, _) => {
+                bytes.push(b);
+                i += 1;
+            }
+        }
+    }
+    decode_latin1(&bytes)
+}
+
 pub fn extract_years(html: &str) -> Vec<String> {
     let document = Html::parse_document(html);
 
@@ -275,4 +301,20 @@ pub fn parse_schedule(html: &str) -> Result<Schedule, String> {
         }
     }
     Ok(schedule)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_file_urls_and_names() {
+        let html = r#"<a href="/objecto?oid=1&oin=Aula%201.pdf">a</a>
+            <a href="/other">x</a>
+            <a href="/objecto?oid=2&oin=Exame+%E9poca.pdf">b</a>"#;
+        let urls = parse_file_urls(html);
+        assert_eq!(urls.len(), 2);
+        assert_eq!(file_name_from_href(&urls[0]), "Aula 1.pdf");
+        assert_eq!(file_name_from_href(&urls[1]), "Exame época.pdf");
+    }
 }

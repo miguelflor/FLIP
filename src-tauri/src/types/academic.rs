@@ -37,6 +37,13 @@ pub struct FileResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CourseFile {
+    pub name: String,
+    pub type_name: String,
+    pub href: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileParams {
     pub session_id: String,
     pub period: String,
