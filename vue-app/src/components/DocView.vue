@@ -21,6 +21,14 @@
     </div>
 
     <ul class="p-4 space-y-2 text-sm">
+      <input
+        v-if="hasAnyChairs && !loading && !error"
+        v-model="query"
+        type="search"
+        placeholder="Procurar ficheiros..."
+        aria-label="Procurar ficheiros"
+        class="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-md outline-none focus:border-blue-500"
+      >
       <!-- Loading state -->
       <div
         v-if="loading"
@@ -69,6 +77,7 @@
                 v-for="chair in cs"
                 :key="chair.href"
                 :chair="chair"
+                :query="query"
               />
             </ul>
           </div>
@@ -89,7 +98,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, toRef } from 'vue';
+import { computed, ref, toRef } from 'vue';
 import { FolderOpen, RefreshCw } from 'lucide-vue-next';
 import ChairItem from './ChairItem.vue';
 import { PeriodType } from '../lib/clipVars';
@@ -117,6 +126,8 @@ interface ChairsResponse {
   };
   error?: string;
 }
+
+const query = ref('');
 
 // Fixed widths so the skeleton bars don't jitter on every re-render.
 const SKELETON_WIDTHS = [72, 88, 64, 81, 69];

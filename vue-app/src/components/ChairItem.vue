@@ -21,25 +21,18 @@
       <button
         type="button"
         class="flex items-center gap-1 min-w-0 cursor-pointer text-left hover:text-blue-700"
-        :aria-expanded="open"
+        :aria-expanded="expanded"
         @click="toggleOpen"
       >
-        <ChevronRight :class="['h-4 w-4 shrink-0 text-slate-400 transition-transform', { 'rotate-90': open }]" />
+        <ChevronRight :class="['h-4 w-4 shrink-0 text-slate-400 transition-transform', { 'rotate-90': expanded }]" />
         <span class="truncate">{{ chair.text }}</span>
       </button>
     </span>
 
     <div
-      v-if="open"
+      v-if="expanded"
       class="mt-2 ml-7 space-y-2"
     >
-      <input
-        v-model="query"
-        type="search"
-        placeholder="Procurar ficheiros..."
-        aria-label="Procurar ficheiros"
-        class="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-md outline-none focus:border-blue-500"
-      >
       <p
         v-if="listing"
         class="text-slate-500"
@@ -90,8 +83,13 @@
   </li>
 </template>
 
+<script lang="ts">
+// Shared across all chairs: background file listings run one after another.
+const preload = { queue: Promise.resolve() };
+</script>
+
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onBeforeUnmount, ref } from "vue";
 import { ChevronRight, Download, FolderDown } from "lucide-vue-next";
 import { invoke } from "@tauri-apps/api/core";
 import { PERIOD_N, PERIOD_TYPE, UNIDADE, YEAR } from "../lib/clipVars";
@@ -133,6 +131,7 @@ interface CourseFile {
 
 interface Props {
   chair: ChairType;
+  query: string;
 }
 
 const props = defineProps<Props>();
@@ -223,7 +222,6 @@ const handleDownload = async () => {
 };
 
 const open = ref(false);
-const query = ref("");
 const listing = ref(false);
 const files = ref<CourseFile[] | null>(null);
 const downloading = ref(new Set<string>());
@@ -241,7 +239,7 @@ const SECTION_LABELS: Record<string, string> = {
 };
 
 const filtered = computed(() => {
-  const q = query.value.trim().toLowerCase();
+  const q = props.query.trim().toLowerCase();
   return (files.value ?? []).filter(
     (f) =>
       f.name.toLowerCase().includes(q) ||
@@ -263,9 +261,17 @@ const fileDetails = (f: CourseFile) =>
     .filter(Boolean)
     .join("\n");
 
-const toggleOpen = async () => {
-  open.value = !open.value;
-  if (!open.value || files.value || listing.value) return;
+// A search opens every chair with matching files.
+const expanded = computed(() => open.value || (!!props.query.trim() && filtered.value.length > 0));
+
+const toggleOpen = () => {
+  open.value = !expanded.value;
+  if (open.value) loadFiles();
+};
+
+
+const loadFiles = async () => {
+  if (files.value || listing.value) return;
   const params = buildParams();
   if (!params) return;
   listing.value = true;
@@ -281,6 +287,12 @@ const toggleOpen = async () => {
     listing.value = false;
   }
 };
+
+// Preload every chair's files in the background, one chair at a time, so search covers them.
+// Opening a chair calls loadFiles directly, jumping ahead of this queue.
+let alive = true;
+onBeforeUnmount(() => (alive = false));
+preload.queue = preload.queue.then(() => (alive ? loadFiles() : undefined));
 
 const downloadOne = async (f: CourseFile) => {
   if (!sessionId.value) return error("Not authenticated. Please log in again.");
