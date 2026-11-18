@@ -1,5 +1,5 @@
-mod commands;
 mod cache;
+mod commands;
 mod constants;
 mod parser;
 mod session;
@@ -10,11 +10,11 @@ mod utils;
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use cache::setup_cache;
 use parking_lot::Mutex;
 use reqwest::Client;
 use reqwest_cookie_store::CookieStoreMutex;
 use serde::Deserialize;
-use cache::setup_cache;
 
 #[derive(Deserialize)]
 struct Config {
@@ -69,6 +69,7 @@ pub fn run() {
             commands::list_files,
             commands::download_file,
             commands::get_schedule,
+            commands::get_tests,
             commands::reset_cache
         ])
         .run(tauri::generate_context!())

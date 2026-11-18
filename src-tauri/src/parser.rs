@@ -4,7 +4,7 @@ use scraper::{ElementRef, Html, Selector};
 use strum::IntoEnumIterator;
 
 use crate::constants::{N_ROWS_SCHEDULE_TABLE, PERIOD_N, PERIOD_TYPE};
-use crate::types::{Chair, ChairsByPeriod, ClassType, CourseFile, ScheduleItem, Weekday};
+use crate::types::{Chair, ChairsByPeriod, ClassType, CourseFile, ScheduleItem, Test, Weekday};
 use crate::types::{HourMinute, Schedule};
 use crate::url::{Url, UrlType};
 use crate::utils::decode_latin1;
@@ -341,6 +341,58 @@ pub fn parse_schedule(html: &str) -> Result<Schedule, String> {
     Ok(schedule)
 }
 
+/// Tests from CLIP's "Testes de avaliação" page: one form for tests open for enrollment,
+/// one ("Anular" button) for tests already enrolled in. Rows are
+/// [checkbox, unit, name, "date<br>(time)", "room<br>room..."]. Sorted by date and time.
+pub fn parse_tests(html: &str) -> Vec<Test> {
+    let doc = Html::parse_document(html);
+    let form_sel = Selector::parse("form").unwrap();
+    let enrolled_sel = Selector::parse("input[name^='submit:ir']").unwrap();
+    let tr_sel = Selector::parse("tr").unwrap();
+    let td_sel = Selector::parse("td").unwrap();
+    let texts = |td: &ElementRef| -> Vec<String> {
+        td.text()
+            .map(|t| t.trim().to_string())
+            .filter(|t| !t.is_empty())
+            .collect()
+    };
+
+    // References, so the per-form `move` closure captures borrows instead of the values
+    let (td_sel, texts) = (&td_sel, &texts);
+    let mut tests: Vec<Test> = doc
+        .select(&form_sel)
+        .flat_map(|form| {
+            let enrolled = form.select(&enrolled_sel).next().is_some();
+            form.select(&tr_sel).filter_map(move |tr| {
+                let tds: Vec<_> = tr.select(td_sel).collect();
+                let [_, unit, name, when, rooms] = tds.as_slice() else {
+                    return None;
+                };
+                // Unit's own text, without the red " (*)" automatic-enrollment marker
+                let unit: String = unit
+                    .children()
+                    .filter_map(|n| n.value().as_text())
+                    .map(|t| &**t)
+                    .collect();
+                let when = texts(when);
+                Some(Test {
+                    unit: unit.trim().to_string(),
+                    name: texts(name).join(" "),
+                    date: when.first()?.clone(),
+                    time: when
+                        .get(1)
+                        .map(|t| t.trim_matches(['(', ')']).to_string())
+                        .unwrap_or_default(),
+                    rooms: texts(rooms),
+                    enrolled,
+                })
+            })
+        })
+        .collect();
+    tests.sort_by(|a, b| (&a.date, &a.time).cmp(&(&b.date, &b.time)));
+    tests
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -370,5 +422,33 @@ mod tests {
         assert_eq!(f.date, "2026.09.14 10:30");
         assert_eq!(f.size, "245 Kb");
         assert_eq!(f.uploader, "Ana Silva");
+    }
+
+    #[test]
+    fn parses_tests() {
+        let html = r#"
+        <form><input type="submit" name="submit:ep:p1" value="Inscrever"><table>
+          <tr><th></th><th>Unidade curricular</th><th>Avaliação</th><th>Data</th><th>Sala(s)</th></tr>
+          <tr><td><input type="checkbox"></td><td>Redes</td><td>Exame</td><td>2027-01-20<br>(09:00)</td><td><small>&nbsp;</small></td></tr>
+        </table></form>
+        <form><input type="submit" name="submit:ir:p1" value="Anular"><table>
+          <tr><td align="center" colspan="3">Não existem testes</td></tr>
+          <tr><td>&nbsp;</td><td>Computação em Cloud<span style="color:#ff0000"> (*)</span></td><td>1º Teste</td>
+              <td>2026-10-26<br>(18:30)</td><td><small>Ed 2: 127/Ed.II<br>Ed 2: 128/Ed.II<br></small></td></tr>
+        </table></form>"#;
+        let t = parse_tests(html);
+        assert_eq!(t.len(), 2);
+        assert_eq!(
+            (
+                t[0].unit.as_str(),
+                t[0].name.as_str(),
+                t[0].date.as_str(),
+                t[0].time.as_str()
+            ),
+            ("Computação em Cloud", "1º Teste", "2026-10-26", "18:30")
+        );
+        assert_eq!(t[0].rooms, ["Ed 2: 127/Ed.II", "Ed 2: 128/Ed.II"]);
+        assert!(t[0].enrolled);
+        assert!(!t[1].enrolled && t[1].rooms.is_empty());
     }
 }

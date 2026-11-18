@@ -14,11 +14,12 @@ use crate::cache::CacheHandler;
 use crate::constants::{CLIP_BASE, CLIP_HOME, FILE_TYPES, USER_AGENT};
 use crate::parser::{
     extract_aluno_ids, extract_student_info, file_name_from_href, parse_chairs, parse_file_urls,
-    parse_files, parse_schedule,
+    parse_files, parse_schedule, parse_tests,
 };
 use crate::session::get_session;
 use crate::types::{
     ChairsResponse, CourseFile, FileParams, FileResponse, LoginResponse, Schedule, StudentInfo,
+    Test,
 };
 use crate::url::Url;
 use crate::utils::get_type_name;
@@ -417,6 +418,26 @@ pub async fn get_schedule(
     };
 
     parse_schedule(&html)
+}
+
+#[command]
+pub async fn get_tests(
+    state: State<'_, AppState>,
+    cache: State<'_, CacheHandler>,
+    session_id: String,
+    student_id: String,
+    year: Option<String>,
+    period: Option<String>,
+    use_cache: Option<bool>,
+) -> Result<Vec<Test>, String> {
+    let (client, _) = get_session(&state, &session_id)?;
+    let url = Url::tests(&student_id, year.as_deref(), period.as_deref());
+    let html = if use_cache.unwrap_or(true) {
+        cache.get(&url, &client).await?
+    } else {
+        cache.put(&url, &client).await?
+    };
+    Ok(parse_tests(&html))
 }
 
 #[command]

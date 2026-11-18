@@ -24,10 +24,18 @@
         :year="selectedYear"
         :period="selectedPeriod"
       />
-      <DocView
-        :student-id="currentStudentId"
-        :year="selectedYear"
-      />
+      <div class="space-y-4 sm:space-y-6">
+        <TestsCard
+          v-if="isCurrentPeriod"
+          :student-id="currentStudentId"
+          :year="selectedYear"
+          :period="selectedPeriod"
+        />
+        <DocView
+          :student-id="currentStudentId"
+          :year="selectedYear"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -37,9 +45,11 @@ import { computed, ref, watch } from 'vue';
 import BaseDropdown from '../components/BaseDropdown.vue';
 import ScheduleCard from '../components/ScheduleCard.vue';
 import DocView from '../components/DocView.vue';
+import TestsCard from '../components/TestsCard.vue';
 import { useStudent } from '../composables/useStudent';
 import { useClipQuery } from '../composables/useClipQuery';
 import { storage } from '../lib/storage';
+import { extractYearForRequest } from '../lib/academic';
 
 const { currentStudentId } = useStudent();
 
@@ -100,13 +110,24 @@ const selectPeriodLabel = (label: string) => {
   if (period) selectPeriod(period);
 };
 
-// Fall back to today's semester (23 Feb – 1 Sep is the 2nd), else the first period offered.
+// Today's semester (23 Feb – 1 Sep is the 2nd) and lective year (rolls over on 2 Sep, e.g. "2027" for 2026/27)
+const today = new Date();
+const md = (today.getMonth() + 1) * 100 + today.getDate();
+const currentPeriod: Period = md >= 223 && md < 902 ? 's2' : 's1';
+const currentYear = String(today.getFullYear() + (md >= 902 ? 1 : 0));
+
+// CLIP's tests page only lists the current semester
+const isCurrentPeriod = computed(
+  () =>
+    selectedPeriod.value === currentPeriod &&
+    !!selectedYear.value &&
+    extractYearForRequest(selectedYear.value) === currentYear,
+);
+
+// Fall back to today's semester, else the first period offered.
 watch(availablePeriods, (periods) => {
   if (!periods.length || (selectedPeriod.value && periods.includes(selectedPeriod.value))) return;
-  const today = new Date();
-  const md = (today.getMonth() + 1) * 100 + today.getDate();
-  const current: Period = md >= 223 && md < 902 ? 's2' : 's1';
-  selectPeriod(periods.includes(current) ? current : periods[0]);
+  selectPeriod(periods.includes(currentPeriod) ? currentPeriod : periods[0]);
 });
 
 const selectYear = (year: string) => {

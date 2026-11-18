@@ -1,4 +1,4 @@
-use crate::url::UrlType::{Documents, Photo, Schedule, StudentInfo};
+use crate::url::UrlType::{Documents, Photo, Schedule, StudentInfo, Tests};
 use crate::url::{Url, UrlType};
 use crate::utils::decode_latin1;
 use base64::{engine::general_purpose::STANDARD, Engine};
@@ -122,7 +122,7 @@ fn cache_duration(url_type: &UrlType) -> Duration {
         StudentInfo => Duration::days(7),
         Photo => Duration::days(7),
         Documents => Duration::hours(10),
-        Schedule => Duration::days(1),
+        Schedule | Tests => Duration::days(1),
     }
 }
 

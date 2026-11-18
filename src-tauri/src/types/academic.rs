@@ -46,6 +46,20 @@ pub struct CourseFile {
     pub uploader: String,
 }
 
+/// A test from CLIP's "Testes de avaliação" page.
+#[derive(Debug, Clone, Serialize)]
+pub struct Test {
+    pub unit: String,
+    pub name: String,
+    /// "YYYY-MM-DD"
+    pub date: String,
+    /// "HH:MM"
+    pub time: String,
+    pub rooms: Vec<String>,
+    /// False when the test is only open for enrollment.
+    pub enrolled: bool,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileParams {
     pub session_id: String,
