@@ -3,6 +3,7 @@ use std::io::{Cursor, Write};
 use std::sync::Arc;
 
 use base64::{engine::general_purpose::STANDARD, Engine};
+use keyring::Entry;
 use reqwest::Client;
 use reqwest_cookie_store::{CookieStore, CookieStoreMutex};
 use tauri::{command, State};
@@ -10,7 +11,7 @@ use uuid::Uuid;
 use zip::write::SimpleFileOptions;
 use zip::ZipWriter;
 
-use crate::cache::CacheHandler;
+use crate::cache::{CacheHandler, APP_NAME};
 use crate::constants::{CLIP_BASE, CLIP_HOME, FILE_TYPES, USER_AGENT};
 use crate::parser::{
     extract_aluno_ids, extract_student_info, file_name_from_href, parse_chairs, parse_file_urls,
@@ -27,11 +28,72 @@ use crate::{AppState, Session};
 
 type VecThr<T> = Vec<tokio::task::JoinHandle<T>>;
 
+const INVALID_CREDENTIALS: &str = "Login Error - Invalid Credentials";
+
+fn credentials_entry() -> keyring::Result<Entry> {
+    Entry::new(APP_NAME, "credentials")
+}
+
+// Keyring failures (e.g. no Secret Service on Linux) mean "not remembered", never a login error.
+fn save_credentials(username: &str, password: &str) {
+    if let (Ok(entry), Ok(json)) = (
+        credentials_entry(),
+        serde_json::to_string(&(username, password)),
+    ) {
+        let _ = entry.set_password(&json);
+    }
+}
+
+fn load_credentials() -> Option<(String, String)> {
+    let json = credentials_entry().ok()?.get_password().ok()?;
+    serde_json::from_str(&json).ok()
+}
+
+fn forget_credentials() {
+    if let Ok(entry) = credentials_entry() {
+        let _ = entry.delete_credential();
+    }
+}
+
 #[command]
 pub async fn login(
     state: State<'_, AppState>,
     username: String,
     password: String,
+    remember: bool,
+) -> Result<LoginResponse, String> {
+    let response = authenticate(&state, &username, &password).await?;
+    if remember {
+        save_credentials(&username, &password);
+    }
+    Ok(response)
+}
+
+/// Logs in with the credentials saved in the OS keyring. `None` when nothing is saved
+/// or the saved password was rejected (in which case it is forgotten).
+#[command]
+pub async fn auto_login(state: State<'_, AppState>) -> Result<Option<LoginResponse>, String> {
+    let Some((username, password)) = load_credentials() else {
+        return Ok(None);
+    };
+    match authenticate(&state, &username, &password).await {
+        Err(e) if e == INVALID_CREDENTIALS => {
+            forget_credentials();
+            Ok(None)
+        }
+        result => result.map(Some),
+    }
+}
+
+#[command]
+pub fn forget_login() {
+    forget_credentials();
+}
+
+async fn authenticate(
+    state: &State<'_, AppState>,
+    username: &str,
+    password: &str,
 ) -> Result<LoginResponse, String> {
     let cookie_store = Arc::new(CookieStoreMutex::new(CookieStore::default()));
 
@@ -43,8 +105,8 @@ pub async fn login(
         .map_err(|e| e.to_string())?;
 
     let mut form_data = HashMap::new();
-    form_data.insert("identificador".to_string(), username);
-    form_data.insert("senha".to_string(), password);
+    form_data.insert("identificador".to_string(), username.to_string());
+    form_data.insert("senha".to_string(), password.to_string());
 
     // Step 1: Submit login
     let login_response = client
@@ -58,7 +120,7 @@ pub async fn login(
     if login_response.status().is_success() {
         let html = login_response.text().await.unwrap();
         if html.contains("Autenticação inválida") {
-            return Err("Login Error - Invalid Credentials".to_string());
+            return Err(INVALID_CREDENTIALS.to_string());
         }
         let session_id = Uuid::new_v4().to_string();
 

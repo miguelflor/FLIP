@@ -102,6 +102,15 @@
         </div>
       </div>
 
+      <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
+        <input
+          v-model="remember"
+          type="checkbox"
+          class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+        >
+        Lembrar-me neste computador
+      </label>
+
       <!-- Submit Button -->
       <button
         type="submit"
@@ -152,6 +161,7 @@ const { startSession } = useStudent();
 const username = ref('');
 const password = ref('');
 const showPassword = ref(false);
+const remember = ref(false);
 const loading = ref(false);
 
 type LoginResponse = {
@@ -164,8 +174,9 @@ const handleSubmit = async () => {
 
   try {
     const loginResponse = await invoke<LoginResponse>('login', {
-      username: username.value, 
-      password: password.value 
+      username: username.value,
+      password: password.value,
+      remember: remember.value,
     });
     startSession(loginResponse.session_id, loginResponse.aluno_ids);
     await router.push('/app/dashboard');
@@ -178,4 +189,5 @@ const handleSubmit = async () => {
     loading.value = false;
   }
 };
+
 </script>

@@ -26,10 +26,41 @@
         </p>
       </div>
 
-      <LoginForm />
+      <!-- Trying the login saved in the OS keyring: no form unless it fails -->
+      <div
+        v-if="autoLoggingIn"
+        class="flex items-center justify-center gap-3 text-gray-600"
+        role="status"
+      >
+        <svg
+          class="animate-spin h-5 w-5 text-blue-600"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            class="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            stroke-width="4"
+          />
+          <path
+            class="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+          />
+        </svg>
+        Entrando...
+      </div>
+
+      <LoginForm v-else />
 
       <!-- Footer -->
-      <p class="text-center text-sm text-gray-500">
+      <p
+        v-if="!autoLoggingIn"
+        class="text-center text-sm text-gray-500"
+      >
         Faça login com as suas credenciais do CLIP
       </p>
     </div>
@@ -37,5 +68,33 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { invoke } from '@tauri-apps/api/core';
 import LoginForm from '../components/LoginForm.vue';
+import { useStudent } from '../composables/useStudent';
+
+type LoginResponse = {
+  session_id: string;
+  aluno_ids: Record<string, string>;
+};
+
+const router = useRouter();
+const { startSession } = useStudent();
+const autoLoggingIn = ref(true);
+
+// On success we navigate away with the spinner still up, so the form never flashes.
+onMounted(async () => {
+  try {
+    const saved = await invoke<LoginResponse | null>('auto_login');
+    if (saved) {
+      startSession(saved.session_id, saved.aluno_ids);
+      await router.push('/app/dashboard');
+      return;
+    }
+  } catch (err) {
+    console.error('Auto login failed:', err);
+  }
+  autoLoggingIn.value = false;
+});
 </script>

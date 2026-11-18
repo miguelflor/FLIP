@@ -14,7 +14,7 @@ use tauri::Manager;
 use tokio::sync::Mutex;
 
 const DB_NAME: &str = "cache.db";
-const APP_NAME: &str = "flip";
+pub const APP_NAME: &str = "flip";
 
 struct CacheEntry {
     html: String,

@@ -115,6 +115,7 @@ const handleResetCache = async () => {
 };
 
 const handleLogout = () => {
+  invoke('forget_login').catch((e) => console.error('Error forgetting login:', e));
   endSession();
   router.replace("/");
 };
