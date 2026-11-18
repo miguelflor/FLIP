@@ -47,6 +47,15 @@
           >
           <span class="hidden xl:inline">Exportar tudo</span>
         </button>
+        <button
+          :disabled="loading || !!error"
+          title="Exportar como PNG"
+          class="flex items-center gap-1.5 p-2 xl:px-3 xl:py-1.5 bg-white border border-slate-200 text-slate-600 rounded-md hover:shadow-sm transition-all text-xs font-medium hover:bg-slate-50 disabled:opacity-50 whitespace-nowrap"
+          @click="exportPng"
+        >
+          <ImageDown class="w-3.5 h-3.5" />
+          <span class="hidden xl:inline">PNG</span>
+        </button>
       </div>
     </div>
 
@@ -69,6 +78,7 @@
     <!-- Calendar grid -->
     <div
       v-else
+      ref="gridEl"
       class="flex pb-4 overflow-x-auto"
     >
       <!-- Time gutter -->
@@ -103,14 +113,14 @@
             :class="[
               'h-12 flex items-center justify-center border-b border-slate-100 text-sm font-semibold gap-1.5',
               isToday(day.key)
-                ? 'text-blue-600 bg-blue-50/60'
+                ? 'text-blue-600 bg-blue-50/60 in-[.exporting]:text-slate-500 in-[.exporting]:bg-white'
                 : 'text-slate-500 bg-white',
             ]"
           >
             {{ day.label }}
             <span
               v-if="isToday(day.key)"
-              class="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block"
+              class="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block in-[.exporting]:hidden"
             />
           </div>
 
@@ -183,8 +193,10 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, toRef } from "vue";
-import { Calendar, MapPin, RefreshCw } from "lucide-vue-next";
+import { Calendar, ImageDown, MapPin, RefreshCw } from "lucide-vue-next";
+import { toPng } from "html-to-image";
 import { useClipQuery } from "../composables/useClipQuery";
+import { useToast } from "../composables/useToast";
 
 const props = defineProps<{
   studentId: string | null;
@@ -218,6 +230,7 @@ interface ScheduleItem {
 }
 
 const HOUR_PX = 52;
+const EXPORT_WIDTH = 960;
 
 /** ISO weekday numbers (Mon=1 … Sun=7), as used by both the grid and the export. */
 const WEEKDAY_INDEX: Record<Weekday, number> = {
@@ -366,6 +379,40 @@ const exportToGoogleCalendar = (item: ScheduleItem) => {
     `&location=${encodeURIComponent(item.location)}` +
     `&recur=RRULE:FREQ=WEEKLY`;
   window.open(url, "_blank");
+};
+
+const { success: toastSuccess, error: toastError } = useToast();
+const gridEl = ref<HTMLElement | null>(null);
+
+const exportPng = async () => {
+  const el = gridEl.value;
+  if (!el) return;
+  // Capture an offscreen copy laid out at a fixed width, so every export looks
+  // the same and the visible grid never changes. `.exporting` hides the today
+  // highlight (see the `in-[.exporting]` classes in the template).
+  const stage = document.createElement("div");
+  stage.className = "exporting";
+  Object.assign(stage.style, { position: "fixed", left: "-10000px", top: "0" });
+  const copy = el.cloneNode(true) as HTMLElement;
+  copy.style.width = `${EXPORT_WIDTH}px`;
+  stage.appendChild(copy);
+  document.body.appendChild(stage);
+  try {
+    const url = await toPng(copy, {
+      pixelRatio: 2,
+      backgroundColor: getComputedStyle(el.parentElement!).backgroundColor,
+    });
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `horario${props.year ? "-" + props.year : ""}.png`;
+    a.click();
+    toastSuccess("Horário exportado!");
+  } catch (err) {
+    console.error("Error exporting schedule:", err);
+    toastError(`Erro ao exportar horário: ${err}`);
+  } finally {
+    stage.remove();
+  }
 };
 
 const exportAllToGoogleCalendar = () => {
