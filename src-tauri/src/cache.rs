@@ -9,6 +9,7 @@ use reqwest::Client;
 use rusqlite::{params, Connection, OptionalExtension};
 use std::error::Error;
 use std::fs;
+use std::path::Path;
 use std::sync::Arc;
 use tauri::Manager;
 use tokio::sync::Mutex;
@@ -132,21 +133,27 @@ pub fn setup_cache(app: &mut tauri::App) -> Result<(), Box<dyn Error>> {
     fs::create_dir_all(&data_dir)?;
 
     let db_path = data_dir.join(DB_NAME);
-    let conn = Connection::open(&db_path)?;
     let key = get_or_create_db_key()?;
-    conn.pragma_update(None, "key", key)?;
-
-    let create_result = conn.execute_batch(
-        "CREATE TABLE IF NOT EXISTS html_cache (url TEXT PRIMARY KEY, html TEXT NOT NULL, updated_at TEXT NOT NULL);",
-    );
-
-    if let Err(e) = create_result {
-        fs::remove_file(&db_path)?;
-        return Err(e.into());
-    }
-
-    app.manage(CacheHandler::new(conn));
+    app.manage(CacheHandler::new(open_or_recreate(&db_path, &key)?));
     Ok(())
+}
+
+// The cache is disposable: if it can't be opened (e.g. the key was lost), start a fresh one.
+fn open_or_recreate(db_path: &Path, key: &str) -> rusqlite::Result<Connection> {
+    open_db(db_path, key).or_else(|_| {
+        // open_db has dropped its connection, so Windows lets us delete the file.
+        let _ = fs::remove_file(db_path);
+        open_db(db_path, key)
+    })
+}
+
+fn open_db(db_path: &Path, key: &str) -> rusqlite::Result<Connection> {
+    let conn = Connection::open(db_path)?;
+    conn.pragma_update(None, "key", key)?;
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS html_cache (url TEXT PRIMARY KEY, html TEXT NOT NULL, updated_at TEXT NOT NULL);",
+    )?;
+    Ok(conn)
 }
 
 fn get_or_create_db_key() -> Result<String, Box<dyn Error>> {
@@ -188,6 +195,24 @@ mod tests {
 
     fn mock_html_endpoint(server: &mut Server, path: &str, body: &str) -> Mock {
         server.mock("GET", path).with_body(body).create()
+    }
+
+    #[test]
+    fn open_or_recreate_recovers_from_wrong_key() {
+        let path = std::env::temp_dir().join(format!("flip-test-{}.db", generate_random_key()));
+        let conn = open_or_recreate(&path, "key-a").unwrap();
+        conn.execute("INSERT INTO html_cache VALUES ('u', 'h', 't')", [])
+            .unwrap();
+        drop(conn);
+
+        // Lost key: the old file is unreadable, so a fresh empty cache replaces it.
+        let conn = open_or_recreate(&path, "key-b").unwrap();
+        let rows: i64 = conn
+            .query_row("SELECT COUNT(*) FROM html_cache", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(rows, 0);
+        drop(conn);
+        fs::remove_file(&path).unwrap();
     }
 
     #[tokio::test]
