@@ -8,7 +8,8 @@
     "preview": "cd vue-app && npm run preview",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "tauri:build": "tauri build",
+    "tauri:build:windows": "tauri build --target x86_64-pc-windows-gnu"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.10.1"
