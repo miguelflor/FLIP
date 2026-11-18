@@ -12,6 +12,33 @@ export interface ClipQueryOptions {
   params?: Ref<Record<string, string | null>>;
 }
 
+// Queries in progress across every panel; see whenIdle.
+const inFlight = ref(0);
+const { loadingStudentInfo } = useStudent();
+
+/** Resolves once `busy()` is false, re-checking whenever what it reads changes. */
+async function waitWhile(busy: () => boolean) {
+  while (busy()) await new Promise((resolve) => watch(busy, resolve, { once: true }));
+}
+
+/**
+ * Resolves once nothing on screen is loading (the panels and the student's name, course
+ * and photo), so background work never competes with them for CLIP.
+ */
+export const whenIdle = () => waitWhile(() => inFlight.value > 0 || loadingStudentInfo.value);
+
+/**
+ * The name, course and photo take two CLIP requests in a row (the photo's URL is on the
+ * profile page), so panels wait for them; otherwise the photo queues behind every panel and
+ * the profile shows last. Instant when cached. Capped so a stuck profile can't blank the page.
+ */
+const PROFILE_HEAD_START_MS = 5000;
+const profileFirst = () =>
+  Promise.race([
+    waitWhile(() => loadingStudentInfo.value),
+    new Promise((resolve) => setTimeout(resolve, PROFILE_HEAD_START_MS)),
+  ]);
+
 /**
  * Runs a Tauri command that is scoped to a student and academic year, and
  * re-runs it whenever either changes.
@@ -52,7 +79,11 @@ export function useClipQuery<T>(
 
     loading.value = true;
     error.value = null;
+    inFlight.value++;
     try {
+      await profileFirst();
+      if (runId !== latestRun) return;
+
       const params: Record<string, string | boolean> = {
         sessionId: sessionId.value,
         studentId: studentId.value,
@@ -71,6 +102,7 @@ export function useClipQuery<T>(
       console.error(`Error running "${command}":`, e);
       error.value = String(e);
     } finally {
+      inFlight.value--;
       if (runId === latestRun) loading.value = false;
     }
   };

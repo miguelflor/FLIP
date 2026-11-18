@@ -28,16 +28,24 @@ const currentStudentId = computed(() => {
   return alunoIds.value[selectedAlunoId.value] ?? null;
 });
 
+// The student whose info is being fetched. Login and the app layout both ask for it at once,
+// so a second request for the same student is dropped, and a switch to another student
+// discards the older answer instead of letting it overwrite the newer one.
+let fetchingId: string | null = null;
+
 const fetchInfo = async (studentId: string, force = false) => {
+  if (fetchingId === studentId) return;
   if (!force && currentLoadedId.value === studentId) return;
   if (!sessionId.value) return;
 
+  fetchingId = studentId;
   loadingStudentInfo.value = true;
   try {
     const res = await invoke<StudentInfo>('get_student_info', {
       sessionId: sessionId.value,
       studentId,
     });
+    if (fetchingId !== studentId) return;
     studentName.value = res.student_name;
     studentCourse.value = res.course;
     studentPhotoUrl.value = res.photo_data ? `data:image/jpeg;base64,${res.photo_data}` : null;
@@ -45,7 +53,10 @@ const fetchInfo = async (studentId: string, force = false) => {
   } catch (e) {
     console.error('Error fetching student info:', e);
   } finally {
-    loadingStudentInfo.value = false;
+    if (fetchingId === studentId) {
+      fetchingId = null;
+      loadingStudentInfo.value = false;
+    }
   }
 };
 
@@ -69,6 +80,8 @@ const endSession = () => {
   studentCourse.value = null;
   studentPhotoUrl.value = null;
   currentLoadedId.value = null;
+  fetchingId = null;
+  loadingStudentInfo.value = false;
 };
 
 const selectStudent = (displayName: string | null) => {

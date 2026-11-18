@@ -97,6 +97,7 @@ import { extractYearForRequest } from "../lib/academic";
 import { storage } from "../lib/storage";
 import { useToast } from "../composables/useToast";
 import { useStudent } from "../composables/useStudent";
+import { whenIdle } from "../composables/useClipQuery";
 
 interface ChairType {
   href: string;
@@ -288,11 +289,16 @@ const loadFiles = async () => {
   }
 };
 
-// Preload every chair's files in the background, one chair at a time, so search covers them.
-// Opening a chair calls loadFiles directly, jumping ahead of this queue.
+// Preload every chair's files in the background, so they show (and search finds them) at once.
+// One chair at a time, each only once nothing on screen is loading, so the schedule, tests and
+// profile come first. Opening a chair calls loadFiles directly, jumping ahead of this queue.
 let alive = true;
 onBeforeUnmount(() => (alive = false));
-preload.queue = preload.queue.then(() => (alive ? loadFiles() : undefined));
+preload.queue = preload.queue.then(async () => {
+  if (!alive) return;
+  await whenIdle();
+  if (alive) await loadFiles();
+});
 
 const downloadOne = async (f: CourseFile) => {
   if (!sessionId.value) return error("Not authenticated. Please log in again.");
