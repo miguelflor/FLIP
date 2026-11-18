@@ -8,12 +8,19 @@ use crate::AppState;
 
 pub const SESSION_EXPIRED: &str = "Sessão expirada, inicie sessão novamente";
 
+/// An HTTP client logged into CLIP, and the user it is logged in as.
+#[derive(Clone)]
+pub struct ClipClient {
+    pub http: Client,
+    pub username: String,
+}
+
 /// Retrieves the HTTP client and aluno_ids for the given session.
 /// Returns `Err` if the session is not found or has expired.
 pub fn get_session(
     state: &State<'_, AppState>,
     session_id: &str,
-) -> Result<(Client, HashMap<String, String>), String> {
+) -> Result<(ClipClient, HashMap<String, String>), String> {
     let sessions = state.sessions.lock();
     match sessions.get(session_id) {
         Some(s) => Ok((s.client.clone(), s.aluno_ids.clone())),
@@ -24,17 +31,26 @@ pub fn get_session(
 /// GETs a CLIP url. When CLIP's session has expired it serves its login page instead,
 /// so this logs the same client back in with the saved login and retries once.
 // ponytail: parallel fetches (list_files) may each re-login at once; add a lock if CLIP minds.
-pub async fn fetch(client: &Client, url: &str) -> Result<Vec<u8>, String> {
-    match get(client, url).await? {
+pub async fn fetch(client: &ClipClient, url: &str) -> Result<Vec<u8>, String> {
+    match get(&client.http, url).await? {
         Some(bytes) => Ok(bytes),
         None => {
-            let (username, password) = load_credentials().ok_or(SESSION_EXPIRED)?;
-            post_login(client, &username, &password).await?;
-            get(client, url)
+            let password =
+                saved_password_for(&client.username, load_credentials()).ok_or(SESSION_EXPIRED)?;
+            post_login(&client.http, &client.username, &password).await?;
+            get(&client.http, url)
                 .await?
                 .ok_or_else(|| SESSION_EXPIRED.to_string())
         }
     }
+}
+
+/// The saved password, only if it belongs to `username`: the keyring may hold another
+/// person's login, and re-logging this client with it would switch accounts.
+fn saved_password_for(username: &str, saved: Option<(String, String)>) -> Option<String> {
+    saved
+        .filter(|(user, _)| user == username)
+        .map(|(_, pass)| pass)
 }
 
 /// `None` when CLIP answered with its login page.
@@ -71,6 +87,14 @@ mod tests {
         ));
     }
 
+    #[test]
+    fn relogin_only_with_own_saved_password() {
+        let saved = || Some(("a.user".to_string(), "pw".to_string()));
+        assert_eq!(saved_password_for("a.user", saved()).as_deref(), Some("pw"));
+        assert_eq!(saved_password_for("b.user", saved()), None);
+        assert_eq!(saved_password_for("a.user", None), None);
+    }
+
     #[tokio::test]
     async fn fetch_passes_through_normal_pages() {
         let mut server = mockito::Server::new_async().await;
@@ -79,7 +103,11 @@ mod tests {
             .with_header("content-type", "text/html")
             .with_body("<html>ok</html>")
             .create();
-        let bytes = fetch(&Client::new(), &format!("{}/page", server.url()))
+        let client = ClipClient {
+            http: Client::new(),
+            username: String::new(),
+        };
+        let bytes = fetch(&client, &format!("{}/page", server.url()))
             .await
             .unwrap();
         assert_eq!(bytes, b"<html>ok</html>");

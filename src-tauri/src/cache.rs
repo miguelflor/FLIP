@@ -1,4 +1,4 @@
-use crate::session::fetch;
+use crate::session::{fetch, ClipClient};
 use crate::url::UrlType::{Documents, Photo, Schedule, StudentInfo, Tests};
 use crate::url::{Url, UrlType};
 use crate::utils::decode_latin1;
@@ -6,7 +6,6 @@ use base64::{engine::general_purpose::STANDARD, Engine};
 use chrono::{DateTime, Duration, Utc};
 use keyring::Entry;
 use rand::RngCore;
-use reqwest::Client;
 use rusqlite::{params, Connection, OptionalExtension};
 use std::error::Error;
 use std::fs;
@@ -36,7 +35,7 @@ impl CacheHandler {
     }
 
     // Fetches url, stores result in cache, and returns the html.
-    pub async fn put(&self, url: &Url, client: &Client) -> Result<String, String> {
+    pub async fn put(&self, url: &Url, client: &ClipClient) -> Result<String, String> {
         let now = Utc::now();
         let html_bytes = fetch(client, &url.value).await?;
         // Photos are binary: store them base64-encoded so they survive as TEXT.
@@ -69,7 +68,7 @@ impl CacheHandler {
     }
 
     // Returns cached html if fresh, otherwise fetches and updates the cache.
-    pub async fn get(&self, url: &Url, client: &Client) -> Result<String, String> {
+    pub async fn get(&self, url: &Url, client: &ClipClient) -> Result<String, String> {
         let result = self
             .db
             .lock()
@@ -175,6 +174,14 @@ mod tests {
     use super::*;
     use crate::url::{Url, UrlType};
     use mockito::{Mock, Server};
+    use reqwest::Client;
+
+    fn client() -> ClipClient {
+        ClipClient {
+            http: Client::new(),
+            username: String::new(),
+        }
+    }
 
     fn setup_cache() -> CacheHandler {
         let conn = Connection::open_in_memory().unwrap();
@@ -212,7 +219,7 @@ mod tests {
         let mock = mock_html_endpoint(&mut server, "/page", "<html>hello</html>");
 
         let cache = setup_cache();
-        let client = Client::new();
+        let client = client();
         let url = Url {
             value: format!("{}/page", server.url()),
             url_type: UrlType::Documents,
@@ -229,7 +236,7 @@ mod tests {
         let mock = mock_html_endpoint(&mut server, "/page", "<html>first</html>");
 
         let cache = setup_cache();
-        let client = Client::new();
+        let client = client();
         let url = Url {
             value: format!("{}/page", server.url()),
             url_type: UrlType::Documents,
@@ -253,7 +260,7 @@ mod tests {
     #[tokio::test]
     async fn get_refreshes_cache_when_expired() {
         let cache = setup_cache();
-        let client = Client::new();
+        let client = client();
 
         let mut server = Server::new_async().await;
         let url = Url {
@@ -285,7 +292,7 @@ mod tests {
         let mock = server.mock("GET", "/fail").with_status(500).create();
 
         let cache = setup_cache();
-        let client = Client::new();
+        let client = client();
         let url = Url {
             value: format!("{}/fail", server.url()),
             url_type: UrlType::Documents,
@@ -303,7 +310,7 @@ mod tests {
         let _m1 = mock_html_endpoint(&mut server, "/page", "<html>v1</html>");
 
         let cache = setup_cache();
-        let client = Client::new();
+        let client = client();
         let url = Url {
             value: format!("{}/page", server.url()),
             url_type: UrlType::Documents,

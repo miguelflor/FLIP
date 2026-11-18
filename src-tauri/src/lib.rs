@@ -12,9 +12,9 @@ use std::sync::Arc;
 
 use cache::setup_cache;
 use parking_lot::Mutex;
-use reqwest::Client;
 use reqwest_cookie_store::CookieStoreMutex;
 use serde::Deserialize;
+use session::ClipClient;
 
 #[derive(Deserialize)]
 struct Config {
@@ -23,7 +23,7 @@ struct Config {
 
 // Session data stored in app state
 pub struct Session {
-    pub client: Client,
+    pub client: ClipClient,
     #[allow(dead_code)]
     pub cookie_store: Arc<CookieStoreMutex>,
     pub aluno_ids: HashMap<String, String>,

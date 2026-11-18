@@ -17,7 +17,7 @@ use crate::parser::{
     extract_aluno_ids, extract_student_info, file_name_from_href, parse_chairs, parse_file_urls,
     parse_files, parse_schedule, parse_tests,
 };
-use crate::session::{fetch, get_session};
+use crate::session::{fetch, get_session, ClipClient};
 use crate::types::{
     ChairsResponse, CourseFile, FileParams, FileResponse, LoginResponse, Schedule, StudentInfo,
     Test,
@@ -120,7 +120,10 @@ async fn authenticate(
     let aluno_ids = extract_aluno_ids(&home_html);
 
     let session = Session {
-        client,
+        client: ClipClient {
+            http: client,
+            username: username.to_string(),
+        },
         cookie_store,
         aluno_ids: aluno_ids.clone(),
     };
