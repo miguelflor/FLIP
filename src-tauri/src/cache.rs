@@ -1,3 +1,4 @@
+use crate::session::fetch;
 use crate::url::UrlType::{Documents, Photo, Schedule, StudentInfo, Tests};
 use crate::url::{Url, UrlType};
 use crate::utils::decode_latin1;
@@ -37,17 +38,7 @@ impl CacheHandler {
     // Fetches url, stores result in cache, and returns the html.
     pub async fn put(&self, url: &Url, client: &Client) -> Result<String, String> {
         let now = Utc::now();
-        let response = client
-            .get(&url.value)
-            .send()
-            .await
-            .map_err(|e| e.to_string())?;
-
-        if !response.status().is_success() {
-            return Err(format!("Failed to scrape {}", url));
-        }
-
-        let html_bytes = response.bytes().await.map_err(|e| e.to_string())?;
+        let html_bytes = fetch(client, &url.value).await?;
         // Photos are binary: store them base64-encoded so they survive as TEXT.
         let html = match url.url_type {
             UrlType::Photo => STANDARD.encode(&html_bytes),

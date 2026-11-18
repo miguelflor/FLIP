@@ -17,13 +17,13 @@ use crate::parser::{
     extract_aluno_ids, extract_student_info, file_name_from_href, parse_chairs, parse_file_urls,
     parse_files, parse_schedule, parse_tests,
 };
-use crate::session::get_session;
+use crate::session::{fetch, get_session};
 use crate::types::{
     ChairsResponse, CourseFile, FileParams, FileResponse, LoginResponse, Schedule, StudentInfo,
     Test,
 };
 use crate::url::Url;
-use crate::utils::get_type_name;
+use crate::utils::{decode_latin1, get_type_name};
 use crate::{AppState, Session};
 
 type VecThr<T> = Vec<tokio::task::JoinHandle<T>>;
@@ -44,7 +44,7 @@ fn save_credentials(username: &str, password: &str) {
     }
 }
 
-fn load_credentials() -> Option<(String, String)> {
+pub(crate) fn load_credentials() -> Option<(String, String)> {
     let json = credentials_entry().ok()?.get_password().ok()?;
     serde_json::from_str(&json).ok()
 }
@@ -104,12 +104,47 @@ async fn authenticate(
         .build()
         .map_err(|e| e.to_string())?;
 
-    let mut form_data = HashMap::new();
-    form_data.insert("identificador".to_string(), username.to_string());
-    form_data.insert("senha".to_string(), password.to_string());
+    post_login(&client, username, password).await?;
 
-    // Step 1: Submit login
-    let login_response = client
+    let session_id = Uuid::new_v4().to_string();
+
+    let home = client
+        .get(CLIP_HOME)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let home_html = home.text().await.map_err(|e| e.to_string())?;
+
+    // Extract aluno IDs from the home page
+    let aluno_ids = extract_aluno_ids(&home_html);
+
+    let session = Session {
+        client,
+        cookie_store,
+        aluno_ids: aluno_ids.clone(),
+    };
+
+    let session_id_copy = session_id.clone();
+    state.sessions.lock().insert(session_id, session);
+
+    Ok(LoginResponse {
+        session_id: session_id_copy,
+        aluno_ids,
+    })
+}
+
+/// Logs `client` into CLIP; its cookie store then holds the new session.
+pub(crate) async fn post_login(
+    client: &Client,
+    username: &str,
+    password: &str,
+) -> Result<(), String> {
+    let mut form_data = HashMap::new();
+    form_data.insert("identificador", username);
+    form_data.insert("senha", password);
+
+    let response = client
         .post(CLIP_HOME)
         .header("Content-Type", "application/x-www-form-urlencoded")
         .form(&form_data)
@@ -117,40 +152,14 @@ async fn authenticate(
         .await
         .map_err(|e| e.to_string())?;
 
-    if login_response.status().is_success() {
-        let html = login_response.text().await.unwrap();
-        if html.contains("Autenticação inválida") {
-            return Err(INVALID_CREDENTIALS.to_string());
-        }
-        let session_id = Uuid::new_v4().to_string();
-
-        let home = client
-            .get(CLIP_HOME)
-            .send()
-            .await
-            .map_err(|e| e.to_string())?;
-
-        let home_html = home.text().await.map_err(|e| e.to_string())?;
-
-        // Extract aluno IDs from the home page
-        let aluno_ids = extract_aluno_ids(&home_html);
-
-        let session = Session {
-            client,
-            cookie_store,
-            aluno_ids: aluno_ids.clone(),
-        };
-
-        let session_id_copy = session_id.clone();
-        state.sessions.lock().insert(session_id, session);
-
-        Ok(LoginResponse {
-            session_id: session_id_copy,
-            aluno_ids,
-        })
-    } else {
-        Err("Login Failed - Clip Error".to_string())
+    if !response.status().is_success() {
+        return Err("Login Failed - Clip Error".to_string());
     }
+    let html = response.text().await.map_err(|e| e.to_string())?;
+    if html.contains("Autenticação inválida") {
+        return Err(INVALID_CREDENTIALS.to_string());
+    }
+    Ok(())
 }
 
 #[command]
@@ -287,16 +296,10 @@ pub async fn get_file(
 
             println!("{}", url);
 
-            let response = match client.get(&*url.value).send().await {
-                Ok(r) => r,
+            let html = match fetch(&client, &url.value).await {
+                Ok(bytes) => decode_latin1(&bytes),
                 Err(_) => return files,
             };
-
-            if !response.status().is_success() {
-                return files;
-            }
-
-            let html = response.text().await.unwrap_or_default();
             // std::fs::write("output.html", &html).expect("Could not write file");
             let file_urls = parse_file_urls(&html);
             let type_folder = format!("{}/{}", folder_name, get_type_name(&type_code));
@@ -311,20 +314,8 @@ pub async fn get_file(
 
                 let file_handle = tokio::spawn(async move {
                     let file_url = format!("{}{}", CLIP_BASE, href);
-                    let file_response = match client.get(&file_url).send().await {
-                        Ok(r) => r,
-                        Err(_) => return None,
-                    };
-
-                    if !file_response.status().is_success() {
-                        return None;
-                    }
-
+                    let file_data = fetch(&client, &file_url).await.ok()?;
                     let filename = file_name_from_href(&href);
-                    let file_data = match file_response.bytes().await {
-                        Ok(b) => b,
-                        Err(_) => return None,
-                    };
 
                     let zip_path = format!("{}/{}", type_folder, filename);
                     Some((zip_path, file_data.to_vec()))
@@ -435,15 +426,7 @@ pub async fn download_file(
         return Err("Invalid file link".to_string());
     }
 
-    let response = client
-        .get(format!("{}{}", CLIP_BASE, href))
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
-    if !response.status().is_success() {
-        return Err(format!("Download failed ({})", response.status()));
-    }
-    let bytes = response.bytes().await.map_err(|e| e.to_string())?;
+    let bytes = fetch(&client, &format!("{}{}", CLIP_BASE, href)).await?;
 
     Ok(FileResponse {
         success: true,
