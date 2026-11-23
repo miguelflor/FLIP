@@ -2,7 +2,7 @@ use crate::errors::CACHE_ERROR;
 use crate::session::{fetch, ClipClient};
 use crate::url::UrlType::{Documents, Photo, Schedule, StudentInfo, Tests};
 use crate::url::{Url, UrlType};
-use crate::utils::decode_latin1;
+use crate::utils::decode_clip_text;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use chrono::{DateTime, Duration, Utc};
 use keyring::Entry;
@@ -42,7 +42,7 @@ impl CacheHandler {
         // Photos are binary: store them base64-encoded so they survive as TEXT.
         let html = match url.url_type {
             UrlType::Photo => STANDARD.encode(&html_bytes),
-            _ => decode_latin1(&html_bytes),
+            _ => decode_clip_text(&html_bytes),
         };
 
         let db = self.db.lock().await;

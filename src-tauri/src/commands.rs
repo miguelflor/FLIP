@@ -25,7 +25,7 @@ use crate::types::{
     Test,
 };
 use crate::url::Url;
-use crate::utils::{decode_latin1, get_type_name};
+use crate::utils::{decode_clip_text, get_type_name};
 use crate::{AppState, Session};
 
 type VecThr<T> = Vec<tokio::task::JoinHandle<T>>;
@@ -286,7 +286,7 @@ pub async fn get_file(
             );
 
             let html = match fetch(&client, &url.value).await {
-                Ok(bytes) => decode_latin1(&bytes),
+                Ok(bytes) => decode_clip_text(&bytes),
                 Err(_) => return files,
             };
             let file_urls = parse_file_urls(&html);

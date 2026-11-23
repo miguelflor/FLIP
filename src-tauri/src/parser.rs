@@ -7,7 +7,7 @@ use crate::constants::{N_ROWS_SCHEDULE_TABLE, PERIOD_N, PERIOD_TYPE};
 use crate::types::{Chair, ChairsByPeriod, ClassType, CourseFile, ScheduleItem, Test, Weekday};
 use crate::types::{HourMinute, Schedule};
 use crate::url::{Url, UrlType};
-use crate::utils::decode_latin1;
+use crate::utils::decode_clip_text;
 
 // Helper struct for parsing student info
 pub struct ParsedStudentInfo {
@@ -219,7 +219,7 @@ pub fn file_name_from_href(href: &str) -> String {
             }
         }
     }
-    decode_latin1(&bytes)
+    decode_clip_text(&bytes)
 }
 
 pub fn extract_years(html: &str) -> Vec<String> {
@@ -404,6 +404,14 @@ mod tests {
         assert_eq!(urls.len(), 2);
         assert_eq!(file_name_from_href(&urls[0]), "Aula 1.pdf");
         assert_eq!(file_name_from_href(&urls[1]), "Exame época.pdf");
+    }
+
+    #[test]
+    fn decodes_windows_1252_file_names() {
+        assert_eq!(
+            file_name_from_href("/objecto?oid=3&oin=Aula%201%20%96%20Intro.pdf"),
+            "Aula 1 – Intro.pdf"
+        );
     }
 
     #[test]
