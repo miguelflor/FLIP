@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
@@ -14,5 +15,8 @@ export default defineConfig({
   base: './',
   build: {
     outDir: 'dist',
+  },
+  test: {
+    environment: 'happy-dom',
   },
 })
