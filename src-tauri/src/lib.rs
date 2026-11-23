@@ -1,6 +1,7 @@
 mod cache;
 mod commands;
 mod constants;
+mod downloads;
 mod errors;
 mod parser;
 mod session;
@@ -67,6 +68,7 @@ pub fn run() {
             commands::get_file,
             commands::list_files,
             commands::download_file,
+            commands::save_download,
             commands::get_schedule,
             commands::get_tests,
             commands::reset_cache

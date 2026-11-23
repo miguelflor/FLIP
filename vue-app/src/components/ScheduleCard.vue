@@ -194,9 +194,10 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, toRef } from "vue";
 import { Calendar, ImageDown, MapPin, RefreshCw } from "lucide-vue-next";
-import { toPng } from "html-to-image";
+import { toBlob } from "html-to-image";
 import { useClipQuery } from "../composables/useClipQuery";
 import { useToast } from "../composables/useToast";
+import { saveDownload, savedMessage } from "../lib/downloads";
 
 const props = defineProps<{
   studentId: string | null;
@@ -398,15 +399,14 @@ const exportPng = async () => {
   stage.appendChild(copy);
   document.body.appendChild(stage);
   try {
-    const url = await toPng(copy, {
+    const blob = await toBlob(copy, {
       pixelRatio: 2,
       backgroundColor: getComputedStyle(el.parentElement!).backgroundColor,
     });
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `horario${props.year ? "-" + props.year : ""}.png`;
-    a.click();
-    toastSuccess("Horário exportado!");
+    if (!blob) throw new Error("imagem vazia");
+    const name = `horario${props.year ? "-" + props.year.replace("/", "-") : ""}.png`;
+    const path = await saveDownload(name, new Uint8Array(await blob.arrayBuffer()));
+    toastSuccess(savedMessage(path));
   } catch (err) {
     console.error("Error exporting schedule:", err);
     toastError(`Erro ao exportar horário: ${err}`);

@@ -113,6 +113,7 @@ import { useToast } from "../composables/useToast";
 import { useStudent } from "../composables/useStudent";
 import { whenIdle } from "../composables/useClipQuery";
 import { listCourseFiles, type CourseFile } from "../composables/useCourseFiles";
+import { savedMessage } from "../lib/downloads";
 
 interface ChairType {
   href: string;
@@ -313,19 +314,17 @@ if (props.preload) {
 }
 
 const downloadOne = async (f: CourseFile) => {
-  if (!sessionId.value) return error("Not authenticated. Please log in again.");
+  if (!sessionId.value) return;
   downloading.value.add(f.href);
   try {
-    const res = await invoke<FileResponse>("download_file", {
+    const path = await invoke<string>("download_file", {
       sessionId: sessionId.value,
       href: f.href,
     });
-    if (!res.data) return error(res.error || `Error downloading ${f.name}.`);
-    saveBase64(res.data, res.filename || f.name);
-    success(`${res.filename || f.name} downloaded!`);
+    success(savedMessage(path));
   } catch (err: unknown) {
     console.error("Error downloading file:", err);
-    error(`Error downloading ${f.name}: ${err}`);
+    error(`Erro ao descarregar «${f.name}»: ${err}`);
   } finally {
     downloading.value.delete(f.href);
   }

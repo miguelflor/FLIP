@@ -4,13 +4,14 @@ use std::io::{Cursor, Write};
 use base64::{engine::general_purpose::STANDARD, Engine};
 use keyring::Entry;
 use reqwest::Client;
-use tauri::{command, State};
+use tauri::{command, AppHandle, State};
 use uuid::Uuid;
 use zip::write::SimpleFileOptions;
 use zip::ZipWriter;
 
 use crate::cache::{CacheHandler, APP_NAME};
 use crate::constants::{CLIP_BASE, CLIP_HOME, FILE_TYPES};
+use crate::downloads::{downloads_dir, save_new_file};
 use crate::errors::{
     http_error, net_error, INVALID_CREDENTIALS, INVALID_FILE_LINK, LOGIN_FAILED, NO_STUDENT_DATA,
     SCHEDULE_UNREADABLE, STUDENT_INFO_UNREADABLE,
@@ -450,27 +451,36 @@ async fn files_on_pages(
     Ok(files)
 }
 
+/// Downloads a CLIP file into the downloads folder, and returns where it was saved.
 #[command]
 pub async fn download_file(
+    app: AppHandle,
     state: State<'_, AppState>,
     session_id: String,
     href: String,
-) -> Result<FileResponse, String> {
+) -> Result<String, String> {
     let (client, _) = get_session(&state, &session_id)?;
 
     // Only CLIP document links: keeps the authenticated client off arbitrary URLs
-    if !href.starts_with('/') || !href.contains("/objecto?") {
+    if !is_clip_file_link(&href) {
         return Err(INVALID_FILE_LINK.to_string());
     }
 
     let bytes = fetch(&client, &format!("{}{}", CLIP_BASE, href)).await?;
+    let path = save_new_file(&downloads_dir(&app)?, &file_name_from_href(&href), &bytes)?;
+    Ok(path.display().to_string())
+}
 
-    Ok(FileResponse {
-        success: true,
-        data: Some(STANDARD.encode(&bytes)),
-        filename: Some(file_name_from_href(&href)),
-        error: None,
-    })
+fn is_clip_file_link(href: &str) -> bool {
+    href.starts_with('/') && href.contains("/objecto?")
+}
+
+/// Saves a file the app made itself (a schedule image or calendar) into the downloads folder,
+/// and returns where it was saved.
+#[command]
+pub fn save_download(app: AppHandle, name: String, data: Vec<u8>) -> Result<String, String> {
+    let path = save_new_file(&downloads_dir(&app)?, &name, &data)?;
+    Ok(path.display().to_string())
 }
 
 #[command]

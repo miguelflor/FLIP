@@ -5,6 +5,7 @@ import ChairItem from './ChairItem.vue';
 import { useStudent } from '../composables/useStudent';
 import { storage } from '../lib/storage';
 import { forgetCourseFiles } from '../composables/useCourseFiles';
+import { useToast } from '../composables/useToast';
 
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn() }));
 
@@ -98,5 +99,33 @@ describe('ChairItem preloading', () => {
     await again.get('button[aria-expanded]').trigger('click');
     expect(listCalls()).toHaveLength(1);
     expect(again.text()).toContain('Aula 1.pdf');
+  });
+});
+
+describe('ChairItem single download', () => {
+  beforeEach(() => {
+    vi.mocked(invoke).mockReset();
+    forgetCourseFiles();
+    useToast().toasts.value = [];
+    storage.set('selectedYear', '2025/26');
+    useStudent().startSession('session-1', { 'Ana Silva': '123' });
+  });
+
+  it('has the backend save the file and says where it went', async () => {
+    vi.mocked(invoke).mockImplementation(async (cmd) => {
+      if (cmd === 'list_files') return [file];
+      if (cmd === 'download_file') return '/home/ana/Downloads/Aula 1 (1).pdf';
+    });
+    const wrapper = mount(ChairItem, { props: { chair, query: '' } });
+    await wrapper.get('button[aria-expanded]').trigger('click');
+    await flushPromises();
+
+    await wrapper.get('button[title="Descarregar Aula 1.pdf"]').trigger('click');
+    await flushPromises();
+
+    expect(invoke).toHaveBeenCalledWith('download_file', { sessionId: 'session-1', href: file.href });
+    expect(useToast().toasts.value.map((t) => t.message)).toContain(
+      '«Aula 1 (1).pdf» guardado na pasta de transferências',
+    );
   });
 });
