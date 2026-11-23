@@ -1,6 +1,10 @@
 import { computed, ref } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 import { storage } from '../lib/storage';
+import { useToast } from './useToast';
+
+/** The backend's answer for a session it no longer has. Must match SESSION_EXPIRED in errors.rs. */
+export const SESSION_EXPIRED = 'Sessão expirada, inicie sessão novamente';
 
 type StudentInfo = {
   photo_data: string | null;
@@ -41,7 +45,7 @@ const fetchInfo = async (studentId: string, force = false) => {
   fetchingId = studentId;
   loadingStudentInfo.value = true;
   try {
-    const res = await invoke<StudentInfo>('get_student_info', {
+    const res = await invokeClip<StudentInfo>('get_student_info', {
       sessionId: sessionId.value,
       studentId,
     });
@@ -96,6 +100,23 @@ const selectStudent = (displayName: string | null) => {
 const init = () => {
   if (currentStudentId.value) fetchInfo(currentStudentId.value);
 };
+
+/**
+ * `invoke` for commands that use the session. When the backend says the session has expired
+ * (CLIP logged us out and there is no saved login to log back in with), the session ends here
+ * too, which takes the user back to the login page.
+ */
+export async function invokeClip<T>(command: string, args?: Record<string, unknown>): Promise<T> {
+  try {
+    return await invoke<T>(command, args);
+  } catch (e) {
+    if (String(e) === SESSION_EXPIRED && sessionId.value) {
+      endSession();
+      useToast().error(SESSION_EXPIRED);
+    }
+    throw e;
+  }
+}
 
 export function useStudent() {
   return {

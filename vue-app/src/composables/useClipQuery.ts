@@ -1,7 +1,6 @@
 import { ref, watch, type Ref } from 'vue';
-import { invoke } from '@tauri-apps/api/core';
 import { extractYearForRequest } from '../lib/academic';
-import { useStudent } from './useStudent';
+import { invokeClip, useStudent } from './useStudent';
 
 export interface ClipQueryOptions {
   /** Message shown when there is no student to query for. Defaults to no error. */
@@ -47,7 +46,7 @@ function sharedInvoke<T>(command: string, params: Record<string, string | boolea
   const key = JSON.stringify([command, Object.entries(params).sort(([a], [b]) => a.localeCompare(b))]);
   let request = pending.get(key);
   if (!request) {
-    request = invoke<T>(command, params).finally(() => pending.delete(key));
+    request = invokeClip<T>(command, params).finally(() => pending.delete(key));
     pending.set(key, request);
   }
   return request as Promise<T>;

@@ -105,10 +105,9 @@ const backgroundListings = { queue: Promise.resolve() };
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from "vue";
 import { ChevronRight, Download, FolderDown } from "lucide-vue-next";
-import { invoke } from "@tauri-apps/api/core";
 import { PERIOD_N, PERIOD_TYPE, UNIDADE, YEAR } from "../lib/clipVars";
 import { useToast } from "../composables/useToast";
-import { useStudent } from "../composables/useStudent";
+import { invokeClip, useStudent } from "../composables/useStudent";
 import { whenIdle } from "../composables/useClipQuery";
 import { listCourseFiles, type CourseFile, type UnitParams } from "../composables/useCourseFiles";
 import { savedMessage } from "../lib/downloads";
@@ -182,7 +181,7 @@ const handleDownload = async () => {
       error(`${props.chair.text} não tem ficheiros`);
       return;
     }
-    const res = await invoke<CourseDownload>("download_course", {
+    const res = await invokeClip<CourseDownload>("download_course", {
       sessionId: params.session_id,
       name: props.chair.text,
       year: params.year,
@@ -286,7 +285,7 @@ const downloadOne = async (f: CourseFile) => {
   if (!sessionId.value) return;
   downloading.value.add(f.href);
   try {
-    const path = await invoke<string>("download_file", {
+    const path = await invokeClip<string>("download_file", {
       sessionId: sessionId.value,
       href: f.href,
     });

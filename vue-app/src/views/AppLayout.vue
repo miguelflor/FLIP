@@ -29,12 +29,19 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import AppNavbar from '../components/AppNavbar.vue';
 import AppSidebar from '../components/AppSidebar.vue';
 import { useStudent } from '../composables/useStudent';
 
-const { init } = useStudent();
+const { init, isAuthenticated } = useStudent();
+const router = useRouter();
+
+// The session can end while a page is open (expired, logged out): back to login.
+watch(isAuthenticated, (authenticated) => {
+  if (!authenticated) router.replace('/');
+});
 
 const sidebarOpen = ref(window.innerWidth >= 768);
 

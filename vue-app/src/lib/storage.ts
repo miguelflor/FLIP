@@ -5,7 +5,7 @@
  * the aluno id map) is deliberately kept in memory: the Rust side stores each
  * session as a live `reqwest::Client` in an in-memory map, so a session id
  * cannot outlive the app process. Persisting one would only produce an id that
- * every command rejects as "Session not found or expired".
+ * every command rejects as expired.
  */
 const KEYS = {
   selectedAlunoId: 'selected_aluno_id',

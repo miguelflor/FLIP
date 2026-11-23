@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { invokeClip } from './useStudent';
 
 export interface CourseFile {
   name: string;
@@ -27,7 +27,7 @@ export function listCourseFiles(params: UnitParams, studentId: string): Promise<
   const key = JSON.stringify([params.session_id, studentId, params.year, params.type_period, params.period, params.unit_id]);
   let listing = listings.get(key);
   if (!listing) {
-    listing = invoke<CourseFile[]>('list_files', { params, studentId });
+    listing = invokeClip<CourseFile[]>('list_files', { params, studentId });
     // A failure isn't kept, so the next attempt asks CLIP again.
     listing.catch(() => listings.delete(key));
     listings.set(key, listing);

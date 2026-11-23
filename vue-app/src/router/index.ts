@@ -3,6 +3,7 @@ import LoginView from '../views/LoginView.vue'
 import AppLayout from '../views/AppLayout.vue'
 import DashboardView from '../views/DashboardView.vue'
 import FilesView from '../views/FilesView.vue'
+import { useStudent } from '../composables/useStudent'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -37,6 +38,12 @@ const router = createRouter({
       redirect: '/'
     }
   ]
+})
+
+// The app's pages need a session: without one (the app was reloaded, or the session
+// ended) they go to the login page, which logs back in by itself when it can.
+router.beforeEach((to) => {
+  if (to.path.startsWith('/app') && !useStudent().isAuthenticated.value) return '/'
 })
 
 export default router
