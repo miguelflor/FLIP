@@ -1,13 +1,4 @@
 /**
- *
- * @returns The current academic year as a string.
- */
-export const getCurrentAcademicYear = (): string => {
-  const now = new Date();
-  return (now.getMonth() >= 8 ? now.getFullYear() + 1 : now.getFullYear()).toString();
-};
-
-/**
  * Converts a displayed academic year into the form the CLIP backend expects.
  *
  * @param yearStr An academic year such as "2024/25".
