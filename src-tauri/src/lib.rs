@@ -8,11 +8,9 @@ mod url;
 mod utils;
 
 use std::collections::HashMap;
-use std::sync::Arc;
 
 use cache::setup_cache;
 use parking_lot::Mutex;
-use reqwest_cookie_store::CookieStoreMutex;
 use serde::Deserialize;
 use session::ClipClient;
 
@@ -24,8 +22,6 @@ struct Config {
 // Session data stored in app state
 pub struct Session {
     pub client: ClipClient,
-    #[allow(dead_code)]
-    pub cookie_store: Arc<CookieStoreMutex>,
     pub aluno_ids: HashMap<String, String>,
 }
 

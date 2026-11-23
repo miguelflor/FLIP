@@ -1339,12 +1339,10 @@ dependencies = [
  "serde",
  "serde_json",
  "strum",
- "strum_macros",
  "tauri",
  "tauri-build",
  "tauri-plugin-log",
  "tokio",
- "url",
  "uuid",
  "zip",
 ]

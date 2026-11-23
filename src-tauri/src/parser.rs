@@ -153,12 +153,10 @@ pub fn parse_file_urls(html: &str) -> Vec<String> {
     let document = Html::parse_document(html);
     let link_selector = Selector::parse("a[href*='/objecto?']").unwrap();
 
-    let d = document
+    document
         .select(&link_selector)
         .filter_map(|element| element.value().attr("href").map(String::from))
-        .collect();
-
-    return d;
+        .collect()
 }
 
 /// Files in a CLIP documents page. Each link's table row ends in date, size, uploader and an empty cell.

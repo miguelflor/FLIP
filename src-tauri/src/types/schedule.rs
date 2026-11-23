@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use strum_macros::EnumIter;
+use strum::EnumIter;
 
 #[derive(Serialize, Deserialize, EnumIter)]
 pub enum Weekday {

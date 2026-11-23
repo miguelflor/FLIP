@@ -95,10 +95,8 @@ async fn authenticate(
     username: &str,
     password: &str,
 ) -> Result<LoginResponse, String> {
-    let cookie_store = Arc::new(CookieStoreMutex::new(CookieStore::default()));
-
     let client = Client::builder()
-        .cookie_provider(cookie_store.clone())
+        .cookie_provider(Arc::new(CookieStoreMutex::new(CookieStore::default())))
         .user_agent(USER_AGENT)
         .redirect(reqwest::redirect::Policy::limited(10))
         .build()
@@ -124,7 +122,6 @@ async fn authenticate(
             http: client,
             username: username.to_string(),
         },
-        cookie_store,
         aluno_ids: aluno_ids.clone(),
     };
 
@@ -297,13 +294,10 @@ pub async fn get_file(
                 &type_code,
             );
 
-            println!("{}", url);
-
             let html = match fetch(&client, &url.value).await {
                 Ok(bytes) => decode_latin1(&bytes),
                 Err(_) => return files,
             };
-            // std::fs::write("output.html", &html).expect("Could not write file");
             let file_urls = parse_file_urls(&html);
             let type_folder = format!("{}/{}", folder_name, get_type_name(&type_code));
 
