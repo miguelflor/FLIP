@@ -34,6 +34,7 @@
         <DocView
           :student-id="currentStudentId"
           :year="selectedYear"
+          :period="selectedPeriod"
         />
       </div>
     </div>

@@ -23,7 +23,7 @@
 
 ### **Course Materials**
 - Browse all your course files by semester/trimester, grouped by CLIP section
-- Search files within a course or across all your courses at once
+- Search files within a course or across all the selected period's courses at once
 - See each file's date, size and uploader on hover
 - Download a single file, or every file from a course as one ZIP (organized into folders by file type)
 

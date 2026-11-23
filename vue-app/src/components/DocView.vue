@@ -75,9 +75,10 @@
             <ul class="space-y-2 pl-2">
               <ChairItem
                 v-for="chair in cs"
-                :key="chair.href"
+                :key="`${chair.href}#${listingsVersion}`"
                 :chair="chair"
                 :query="query"
+                :preload="periodKey === period"
               />
             </ul>
           </div>
@@ -103,10 +104,13 @@ import { FolderOpen, RefreshCw } from 'lucide-vue-next';
 import ChairItem from './ChairItem.vue';
 import { PeriodType } from '../lib/clipVars';
 import { useClipQuery } from '../composables/useClipQuery';
+import { forgetCourseFiles } from '../composables/useCourseFiles';
 
 const props = defineProps<{
   studentId: string | null;
   year: string | null;
+  /** The selected period: only its units' files are loaded ahead of time. */
+  period: string | null;
 }>();
 
 interface ChairData {
@@ -129,6 +133,14 @@ interface ChairsResponse {
 
 const query = ref('');
 
+// Bumped on refresh to remount the units, so they list their files anew.
+const listingsVersion = ref(0);
+const refreshChairs = () => {
+  forgetCourseFiles();
+  listingsVersion.value++;
+  refreshUnits();
+};
+
 // Fixed widths so the skeleton bars don't jitter on every re-render.
 const SKELETON_WIDTHS = [72, 88, 64, 81, 69];
 
@@ -136,7 +148,7 @@ const {
   data: response,
   loading,
   error: queryError,
-  refresh: refreshChairs,
+  refresh: refreshUnits,
 } = useClipQuery<ChairsResponse>(
   'get_chairs',
   toRef(props, 'studentId'),

@@ -99,7 +99,7 @@
 
 <script lang="ts">
 // Shared across all chairs: background file listings run one after another.
-const preload = { queue: Promise.resolve() };
+const backgroundListings = { queue: Promise.resolve() };
 </script>
 
 <script setup lang="ts">
@@ -112,6 +112,7 @@ import { storage } from "../lib/storage";
 import { useToast } from "../composables/useToast";
 import { useStudent } from "../composables/useStudent";
 import { whenIdle } from "../composables/useClipQuery";
+import { listCourseFiles, type CourseFile } from "../composables/useCourseFiles";
 
 interface ChairType {
   href: string;
@@ -135,18 +136,11 @@ interface FileParams {
   type_period: string;
 }
 
-interface CourseFile {
-  name: string;
-  type_name: string;
-  href: string;
-  date: string;
-  size: string;
-  uploader: string;
-}
-
 interface Props {
   chair: ChairType;
   query: string;
+  /** Load the files in the background, before the chair is opened. */
+  preload?: boolean;
 }
 
 const props = defineProps<Props>();
@@ -293,10 +287,7 @@ const loadFiles = async () => {
   listing.value = true;
   listError.value = null;
   try {
-    files.value = await invoke<CourseFile[]>("list_files", {
-      params,
-      studentId: currentStudentId.value,
-    });
+    files.value = await listCourseFiles(params, currentStudentId.value!);
   } catch (err: unknown) {
     // Shown inline when the chair is open; a failed background preload stays quiet
     // and is retried when the chair is opened.
@@ -307,16 +298,19 @@ const loadFiles = async () => {
   }
 };
 
-// Preload every chair's files in the background, so they show (and search finds them) at once.
-// One chair at a time, each only once nothing on screen is loading, so the schedule, tests and
-// profile come first. Opening a chair calls loadFiles directly, jumping ahead of this queue.
+// Preload the chair's files in the background, so they show (and search finds them) at once.
+// Only chairs asked to (the selected period's), one at a time, each only once nothing on screen
+// is loading, so the schedule, tests and profile come first. Opening a chair calls loadFiles
+// directly, jumping ahead of this queue.
 let alive = true;
 onBeforeUnmount(() => (alive = false));
-preload.queue = preload.queue.then(async () => {
-  if (!alive) return;
-  await whenIdle();
-  if (alive) await loadFiles();
-});
+if (props.preload) {
+  backgroundListings.queue = backgroundListings.queue.then(async () => {
+    if (!alive) return;
+    await whenIdle();
+    if (alive) await loadFiles();
+  });
+}
 
 const downloadOne = async (f: CourseFile) => {
   if (!sessionId.value) return error("Not authenticated. Please log in again.");

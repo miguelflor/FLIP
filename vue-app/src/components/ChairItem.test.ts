@@ -4,6 +4,7 @@ import { invoke } from '@tauri-apps/api/core';
 import ChairItem from './ChairItem.vue';
 import { useStudent } from '../composables/useStudent';
 import { storage } from '../lib/storage';
+import { forgetCourseFiles } from '../composables/useCourseFiles';
 
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn() }));
 
@@ -27,6 +28,8 @@ const answer = (listFiles: () => Promise<unknown>) =>
 
 describe('ChairItem file listing', () => {
   beforeEach(() => {
+    vi.mocked(invoke).mockReset();
+    forgetCourseFiles();
     vi.spyOn(console, 'error').mockImplementation(() => {});
     storage.set('selectedYear', '2025/26');
     useStudent().startSession('session-1', { 'Ana Silva': '123' });
@@ -60,5 +63,40 @@ describe('ChairItem file listing', () => {
     await flushPromises();
 
     expect(wrapper.text()).toContain('Esta cadeira não tem ficheiros.');
+  });
+});
+
+describe('ChairItem preloading', () => {
+  const listCalls = () => vi.mocked(invoke).mock.calls.filter(([c]) => c === 'list_files');
+
+  beforeEach(() => {
+    vi.mocked(invoke).mockReset();
+    forgetCourseFiles();
+    storage.set('selectedYear', '2025/26');
+    useStudent().startSession('session-1', { 'Ana Silva': '123' });
+    answer(() => Promise.resolve([file]));
+  });
+
+  it('leaves other periods\' units alone until opened', async () => {
+    const wrapper = mount(ChairItem, { props: { chair, query: '' } });
+    await flushPromises();
+    expect(listCalls()).toHaveLength(0);
+
+    await wrapper.get('button[aria-expanded]').trigger('click');
+    await flushPromises();
+    expect(listCalls()).toHaveLength(1);
+  });
+
+  it('loads the selected period\'s units in the background, once per session', async () => {
+    mount(ChairItem, { props: { chair, query: '', preload: true } });
+    await flushPromises();
+    expect(listCalls()).toHaveLength(1);
+
+    // Remounted (e.g. after switching year and back): the listing is remembered
+    const again = mount(ChairItem, { props: { chair, query: '', preload: true } });
+    await flushPromises();
+    await again.get('button[aria-expanded]').trigger('click');
+    expect(listCalls()).toHaveLength(1);
+    expect(again.text()).toContain('Aula 1.pdf');
   });
 });
