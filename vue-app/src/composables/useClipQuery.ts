@@ -39,6 +39,20 @@ const profileFirst = () =>
     new Promise((resolve) => setTimeout(resolve, PROFILE_HEAD_START_MS)),
   ]);
 
+// Identical requests already on their way to the backend, so panels asking for the same
+// data at once (the dashboard and the file list both need the units) share one CLIP request.
+const pending = new Map<string, Promise<unknown>>();
+
+function sharedInvoke<T>(command: string, params: Record<string, string | boolean>): Promise<T> {
+  const key = JSON.stringify([command, Object.entries(params).sort(([a], [b]) => a.localeCompare(b))]);
+  let request = pending.get(key);
+  if (!request) {
+    request = invoke<T>(command, params).finally(() => pending.delete(key));
+    pending.set(key, request);
+  }
+  return request as Promise<T>;
+}
+
 /**
  * Runs a Tauri command that is scoped to a student and academic year, and
  * re-runs it whenever either changes.
@@ -94,7 +108,7 @@ export function useClipQuery<T>(
         if (v !== null) params[k] = v;
       }
 
-      const result = await invoke<T>(command, params);
+      const result = await sharedInvoke<T>(command, params);
       if (runId !== latestRun) return;
       data.value = result;
     } catch (e) {
