@@ -294,6 +294,28 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn reset_empties_the_cache() {
+        let mut server = Server::new_async().await;
+        let _m = mock_html_endpoint(&mut server, "/page", "<html>hi</html>");
+        let cache = setup_cache();
+        let url = Url {
+            value: format!("{}/page", server.url()),
+            url_type: UrlType::StudentInfo,
+        };
+        cache.put(&url, &client()).await.unwrap();
+
+        cache.reset().await.unwrap();
+
+        let rows: i64 = cache
+            .db
+            .lock()
+            .await
+            .query_row("SELECT COUNT(*) FROM html_cache", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(rows, 0);
+    }
+
+    #[tokio::test]
     async fn put_returns_error_on_http_failure() {
         let mut server = Server::new_async().await;
         let mock = server.mock("GET", "/fail").with_status(500).create();

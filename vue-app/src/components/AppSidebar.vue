@@ -102,7 +102,7 @@ const emit = defineEmits<{
 const route = useRoute();
 const router = useRouter();
 const { success, error } = useToast();
-const { endSession } = useStudent();
+const { sessionId, endSession } = useStudent();
 
 const handleResetCache = async () => {
   try {
@@ -114,9 +114,14 @@ const handleResetCache = async () => {
   }
 };
 
-const handleLogout = () => {
-  invoke('forget_login').catch((e) => console.error('Error forgetting login:', e));
+// Leaves even if the backend call fails: staying logged in is worse than a stale session.
+const handleLogout = async () => {
+  try {
+    await invoke('logout', { sessionId: sessionId.value });
+  } catch (e) {
+    console.error('Error logging out:', e);
+  }
   endSession();
-  router.replace("/");
+  await router.replace("/");
 };
 </script>

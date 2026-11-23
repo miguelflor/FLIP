@@ -87,9 +87,17 @@ pub async fn auto_login(state: State<'_, AppState>) -> Result<Option<LoginRespon
     }
 }
 
+/// Ends the session: drops its logged-in client, forgets the saved login and clears the
+/// cache, so nothing of this account's is left on the computer.
 #[command]
-pub fn forget_login() {
+pub async fn logout(
+    state: State<'_, AppState>,
+    cache: State<'_, CacheHandler>,
+    session_id: String,
+) -> Result<(), String> {
+    state.sessions.lock().remove(&session_id);
     forget_credentials();
+    cache.reset().await
 }
 
 async fn authenticate(

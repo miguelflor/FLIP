@@ -60,7 +60,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::login,
             commands::auto_login,
-            commands::forget_login,
+            commands::logout,
             commands::get_student_info,
             commands::get_chairs,
             commands::get_available_years,
