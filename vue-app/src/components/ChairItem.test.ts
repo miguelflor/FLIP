@@ -129,3 +129,57 @@ describe('ChairItem single download', () => {
     );
   });
 });
+
+describe('ChairItem ZIP download', () => {
+  beforeEach(() => {
+    vi.mocked(invoke).mockReset();
+    forgetCourseFiles();
+    useToast().toasts.value = [];
+    useStudent().startSession('session-1', { 'Ana Silva': '123' });
+  });
+
+  const messages = () => useToast().toasts.value.map((t) => t.message);
+
+  it('lists the unit if needed, then zips exactly those files', async () => {
+    vi.mocked(invoke).mockImplementation(async (cmd) => {
+      if (cmd === 'list_files') return [file];
+      if (cmd === 'download_course') return { path: '/d/2026-Redes de Computadores.zip', saved: 1, failed: 0 };
+    });
+    const wrapper = mount(ChairItem, { props: { chair, query: '' } });
+
+    await wrapper.get('button[title="Descarregar tudo (zip)"]').trigger('click');
+    await flushPromises();
+
+    expect(invoke).toHaveBeenCalledWith('download_course', {
+      sessionId: 'session-1',
+      name: 'Redes de Computadores',
+      year: '2026',
+      files: [{ href: file.href, type_name: 'Outros' }],
+    });
+    expect(messages()).toEqual(['«2026-Redes de Computadores.zip» guardado na pasta de transferências']);
+  });
+
+  it('says how many files were left out', async () => {
+    vi.mocked(invoke).mockImplementation(async (cmd) => {
+      if (cmd === 'list_files') return [file, { ...file, href: '/objecto?oid=2&oin=b.pdf' }];
+      if (cmd === 'download_course') return { path: '/d/x.zip', saved: 1, failed: 1 };
+    });
+    const wrapper = mount(ChairItem, { props: { chair, query: '' } });
+
+    await wrapper.get('button[title="Descarregar tudo (zip)"]').trigger('click');
+    await flushPromises();
+
+    expect(messages()).toContain('1 de 2 ficheiros não foram descarregados');
+  });
+
+  it('does not ask for a ZIP of a unit without files', async () => {
+    vi.mocked(invoke).mockImplementation(async (cmd) => (cmd === 'list_files' ? [] : undefined));
+    const wrapper = mount(ChairItem, { props: { chair, query: '' } });
+
+    await wrapper.get('button[title="Descarregar tudo (zip)"]').trigger('click');
+    await flushPromises();
+
+    expect(vi.mocked(invoke).mock.calls.map(([c]) => c)).not.toContain('download_course');
+    expect(messages()).toEqual(['Redes de Computadores não tem ficheiros']);
+  });
+});

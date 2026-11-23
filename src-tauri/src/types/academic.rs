@@ -26,17 +26,6 @@ pub struct ChairsResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FileResponse {
-    pub success: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub filename: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub error: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CourseFile {
     pub name: String,
     pub type_name: String,
@@ -65,10 +54,23 @@ pub struct FileParams {
     pub session_id: String,
     pub period: String,
     pub unit_id: String,
-    pub file_type: String,
-    pub name: String,
     pub year: String,
     pub type_period: String,
+}
+
+/// A file to download, as list_files gave it.
+#[derive(Debug, Clone, Deserialize)]
+pub struct FileRef {
+    pub href: String,
+    pub type_name: String,
+}
+
+/// A unit's files saved as one ZIP.
+#[derive(Debug, Clone, Serialize)]
+pub struct CourseDownload {
+    pub path: String,
+    pub saved: usize,
+    pub failed: usize,
 }
 
 #[derive(Debug)]

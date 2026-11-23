@@ -65,7 +65,7 @@ pub fn run() {
             commands::get_student_info,
             commands::get_chairs,
             commands::get_available_years,
-            commands::get_file,
+            commands::download_course,
             commands::list_files,
             commands::download_file,
             commands::save_download,

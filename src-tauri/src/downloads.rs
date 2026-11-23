@@ -1,5 +1,6 @@
 // Saving downloads to disk: safe file names, and names that don't overwrite.
 
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 use tauri::{AppHandle, Manager};
@@ -76,6 +77,27 @@ pub fn unique_path(dir: &Path, name: &str) -> PathBuf {
     path
 }
 
+/// Entry names for a ZIP archive, kept unique: a ZIP can't hold two entries with one name.
+#[derive(Default)]
+pub struct ZipNames(HashSet<String>);
+
+impl ZipNames {
+    /// "dir/…/name", each part made safe, numbered if the archive already has that entry.
+    /// Case-insensitive, as the archive may be extracted on Windows or macOS.
+    pub fn entry(&mut self, dirs: &[&str], name: &str) -> String {
+        let dir: Vec<String> = dirs.iter().map(|d| sanitize_file_name(d)).collect();
+        let dir = dir.join("/");
+        let name = sanitize_file_name(name);
+        let mut entry = format!("{dir}/{name}");
+        let mut n = 2;
+        while !self.0.insert(entry.to_lowercase()) {
+            entry = format!("{dir}/{}", numbered(&name, n));
+            n += 1;
+        }
+        entry
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -119,5 +141,29 @@ mod tests {
         assert_eq!(std::fs::read(first).unwrap(), b"one");
         assert_eq!(std::fs::read(second).unwrap(), b"two");
         std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn zip_entries_stay_unique_and_inside_their_folder() {
+        let mut names = ZipNames::default();
+        let redes = ["2026-Redes", "Outros"];
+        assert_eq!(names.entry(&redes, "a.pdf"), "2026-Redes/Outros/a.pdf");
+        assert_eq!(names.entry(&redes, "a.pdf"), "2026-Redes/Outros/a (2).pdf");
+        // Case-insensitive, as on Windows and macOS: "a (2).pdf" is taken
+        assert_eq!(names.entry(&redes, "A.PDF"), "2026-Redes/Outros/A (3).PDF");
+        assert_eq!(names.entry(&redes, "README"), "2026-Redes/Outros/README");
+        assert_eq!(
+            names.entry(&redes, "README"),
+            "2026-Redes/Outros/README (2)"
+        );
+        assert_eq!(
+            names.entry(&["2026-Redes", "Testes"], "a.pdf"),
+            "2026-Redes/Testes/a.pdf"
+        );
+        assert_eq!(
+            names.entry(&redes, "../x.pdf"),
+            "2026-Redes/Outros/.._x.pdf"
+        );
+        assert_eq!(names.entry(&["A/B", ".."], "c"), "A_B/ficheiro/c");
     }
 }

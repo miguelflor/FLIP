@@ -149,16 +149,6 @@ pub fn parse_chairs(html: &str) -> ChairsByPeriod {
     }
 }
 
-pub fn parse_file_urls(html: &str) -> Vec<String> {
-    let document = Html::parse_document(html);
-    let link_selector = Selector::parse("a[href*='/objecto?']").unwrap();
-
-    document
-        .select(&link_selector)
-        .filter_map(|element| element.value().attr("href").map(String::from))
-        .collect()
-}
-
 /// Files in a CLIP documents page. Each link's table row ends in date, size, uploader and an empty cell.
 pub fn parse_files(html: &str, type_name: &str) -> Vec<CourseFile> {
     let document = Html::parse_document(html);
@@ -396,14 +386,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parses_file_urls_and_names() {
+    fn parses_file_links_and_names() {
         let html = r#"<a href="/objecto?oid=1&oin=Aula%201.pdf">a</a>
             <a href="/other">x</a>
             <a href="/objecto?oid=2&oin=Exame+%E9poca.pdf">b</a>"#;
-        let urls = parse_file_urls(html);
-        assert_eq!(urls.len(), 2);
-        assert_eq!(file_name_from_href(&urls[0]), "Aula 1.pdf");
-        assert_eq!(file_name_from_href(&urls[1]), "Exame época.pdf");
+        let names: Vec<_> = parse_files(html, "Outros")
+            .into_iter()
+            .map(|f| f.name)
+            .collect();
+        assert_eq!(names, ["Aula 1.pdf", "Exame época.pdf"]);
     }
 
     #[test]

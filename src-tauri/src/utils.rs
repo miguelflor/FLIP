@@ -1,6 +1,5 @@
 use chrono::{Datelike, Local, NaiveDate};
 
-use crate::constants::FILE_TYPES;
 use crate::types::Semester;
 
 // Utility Functions
@@ -37,14 +36,6 @@ pub fn get_lective_year() -> String {
     } else {
         year.to_string()
     }
-}
-
-pub fn get_type_name(type_code: &str) -> &str {
-    FILE_TYPES
-        .iter()
-        .find(|(code, _)| *code == type_code)
-        .map(|(_, name)| *name)
-        .unwrap_or("Desconhecido")
 }
 
 /// Decodes CLIP's pages, which declare ISO-8859-1. Like browsers, this reads them as

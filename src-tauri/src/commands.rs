@@ -1,34 +1,36 @@
 use std::collections::HashMap;
-use std::io::{Cursor, Write};
+use std::io::{Seek, Write};
+use std::sync::Arc;
 
-use base64::{engine::general_purpose::STANDARD, Engine};
 use keyring::Entry;
 use reqwest::Client;
 use tauri::{command, AppHandle, State};
+use tokio::sync::Semaphore;
+use tokio::task::JoinSet;
 use uuid::Uuid;
 use zip::write::SimpleFileOptions;
-use zip::ZipWriter;
+use zip::{CompressionMethod, ZipWriter};
 
 use crate::cache::{CacheHandler, APP_NAME};
 use crate::constants::{CLIP_BASE, CLIP_HOME, FILE_TYPES};
-use crate::downloads::{downloads_dir, save_new_file};
+use crate::downloads::{downloads_dir, save_new_file, unique_path, ZipNames};
 use crate::errors::{
     http_error, net_error, INVALID_CREDENTIALS, INVALID_FILE_LINK, LOGIN_FAILED, NO_STUDENT_DATA,
-    SCHEDULE_UNREADABLE, STUDENT_INFO_UNREADABLE,
+    SAVE_FAILED, SCHEDULE_UNREADABLE, STUDENT_INFO_UNREADABLE, ZIP_EMPTY,
 };
 use crate::parser::{
-    extract_aluno_ids, extract_student_info, file_name_from_href, parse_chairs, parse_file_urls,
-    parse_files, parse_schedule, parse_tests,
+    extract_aluno_ids, extract_student_info, file_name_from_href, parse_chairs, parse_files,
+    parse_schedule, parse_tests,
 };
 use crate::session::{
     fetch, get_session, get_student_session, is_login_page, new_http_client, ClipClient,
 };
 use crate::types::{
-    ChairsResponse, CourseFile, FileParams, FileResponse, LoginResponse, Schedule, StudentInfo,
-    Test,
+    ChairsResponse, CourseDownload, CourseFile, FileParams, FileRef, LoginResponse, Schedule,
+    StudentInfo, Test,
 };
 use crate::url::Url;
-use crate::utils::{decode_clip_text, get_type_name};
+use crate::utils::decode_clip_text;
 use crate::{AppState, Session};
 
 type VecThr<T> = Vec<tokio::task::JoinHandle<T>>;
@@ -277,128 +279,112 @@ pub async fn get_available_years(
     }))
 }
 
+/// How many files of a unit are fetched from CLIP at once.
+const PARALLEL_DOWNLOADS: usize = 4;
+
+/// Downloads the given files of a unit (as listed by list_files) into one ZIP in the
+/// downloads folder, a folder per file type. Files that fail are left out and counted.
 #[command]
-pub async fn get_file(
+pub async fn download_course(
+    app: AppHandle,
     state: State<'_, AppState>,
-    params: FileParams,
-    student_id: String,
+    session_id: String,
+    name: String,
     year: String,
-) -> Result<FileResponse, String> {
-    let client = get_student_session(&state, &params.session_id, &student_id)?;
-
-    let file_types: Vec<String> = if params.file_type == "all" {
-        FILE_TYPES
-            .iter()
-            .map(|(code, _)| code.to_string())
-            .collect()
-    } else {
-        vec![params.file_type.clone()]
-    };
-
-    let folder_name = format!("{}-{}", year, params.name);
-
-    // Spawn a task per file type
-    let mut handles: VecThr<Vec<(String, Vec<u8>)>> = Vec::new();
-
-    for type_code in file_types {
-        let client = client.clone();
-        let folder_name = folder_name.clone();
-        let params_year = params.year.clone();
-        let params_period = params.period.clone();
-        let params_type_period = params.type_period.clone();
-        let params_unit_id = params.unit_id.clone();
-        let student_id = student_id.clone();
-
-        let handle = tokio::spawn(async move {
-            let mut files: Vec<(String, Vec<u8>)> = Vec::new();
-
-            let url = Url::documents(
-                &student_id,
-                &params_year,
-                &params_period,
-                &params_type_period,
-                &params_unit_id,
-                &type_code,
-            );
-
-            let html = match fetch(&client, &url.value).await {
-                Ok(bytes) => decode_clip_text(&bytes),
-                Err(_) => return files,
-            };
-            let file_urls = parse_file_urls(&html);
-            let type_folder = format!("{}/{}", folder_name, get_type_name(&type_code));
-
-            // Spawn a subtask per file
-            let mut file_handles: VecThr<Option<(String, Vec<u8>)>> = Vec::new();
-
-            for href in file_urls {
-                let client = client.clone();
-                let type_folder = type_folder.clone();
-                let href = href.clone();
-
-                let file_handle = tokio::spawn(async move {
-                    let file_url = format!("{}{}", CLIP_BASE, href);
-                    let file_data = fetch(&client, &file_url).await.ok()?;
-                    let filename = file_name_from_href(&href);
-
-                    let zip_path = format!("{}/{}", type_folder, filename);
-                    Some((zip_path, file_data.to_vec()))
-                });
-
-                file_handles.push(file_handle);
-            }
-
-            for fh in file_handles {
-                if let Ok(Some(file)) = fh.await {
-                    files.push(file);
-                }
-            }
-
-            files
-        });
-        handles.push(handle);
+    files: Vec<FileRef>,
+) -> Result<CourseDownload, String> {
+    let (client, _) = get_session(&state, &session_id)?;
+    if files.is_empty() {
+        return Err(format!("{name} não tem ficheiros"));
+    }
+    // Only CLIP document links: keeps the authenticated client off arbitrary URLs
+    if !files.iter().all(|f| is_clip_file_link(&f.href)) {
+        return Err(INVALID_FILE_LINK.to_string());
     }
 
-    // Join all tasks and collect results
-    let mut total_files = 0;
-    let mut zip_buffer = Cursor::new(Vec::new());
-    {
-        let mut zip = ZipWriter::new(&mut zip_buffer);
-        let options =
-            SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+    let folder = format!("{year}-{name}");
+    let path = unique_path(&downloads_dir(&app)?, &format!("{folder}.zip"));
+    let file = std::fs::File::create(&path).map_err(|e| {
+        log::warn!("Cannot create {}: {e}", path.display());
+        SAVE_FAILED.to_string()
+    })?;
 
-        for handle in handles {
-            let files = handle.await.unwrap_or_default();
-            for (zip_path, file_data) in files {
-                if zip.start_file(&zip_path, options).is_ok() {
-                    let _ = zip.write_all(&file_data);
-                    total_files += 1;
-                }
+    match zip_files(&client, CLIP_BASE, &folder, files, file).await {
+        Ok(zipped) if zipped.saved > 0 => Ok(CourseDownload {
+            path: path.display().to_string(),
+            saved: zipped.saved,
+            failed: zipped.failed,
+        }),
+        // Nothing saved: no empty ZIP is left behind, and the error says why
+        other => {
+            let _ = std::fs::remove_file(&path);
+            Err(match other {
+                Ok(zipped) => zipped.first_error.unwrap_or_else(|| ZIP_EMPTY.to_string()),
+                Err(e) => e,
+            })
+        }
+    }
+}
+
+struct Zipped {
+    saved: usize,
+    failed: usize,
+    first_error: Option<String>,
+}
+
+/// Fetches `files` from `base`, a few at a time, writing each into a ZIP on `out` as it
+/// arrives, under "folder/type/name". Only the files being fetched are held in memory.
+async fn zip_files<W: Write + Seek>(
+    client: &ClipClient,
+    base: &str,
+    folder: &str,
+    files: Vec<FileRef>,
+    out: W,
+) -> Result<Zipped, String> {
+    // Entry names are given out in list order, so duplicates are numbered predictably.
+    let mut names = ZipNames::default();
+    let slots = Arc::new(Semaphore::new(PARALLEL_DOWNLOADS));
+    let mut downloads = JoinSet::new();
+    for file in files {
+        let entry = names.entry(&[folder, &file.type_name], &file_name_from_href(&file.href));
+        let (client, slots) = (client.clone(), slots.clone());
+        let url = format!("{base}{}", file.href);
+        downloads.spawn(async move {
+            let _slot = slots.acquire_owned().await;
+            (entry, fetch(&client, &url).await)
+        });
+    }
+
+    let write_error = |e: zip::result::ZipError| {
+        log::warn!("Cannot write ZIP: {e}");
+        SAVE_FAILED.to_string()
+    };
+    let options = SimpleFileOptions::default().compression_method(CompressionMethod::Deflated);
+    let mut zip = ZipWriter::new(out);
+    let mut zipped = Zipped {
+        saved: 0,
+        failed: 0,
+        first_error: None,
+    };
+    while let Some(done) = downloads.join_next().await {
+        match done
+            .map_err(|e| e.to_string())
+            .and_then(|(entry, data)| Ok((entry, data?)))
+        {
+            Ok((entry, data)) => {
+                zip.start_file(entry, options).map_err(write_error)?;
+                zip.write_all(&data).map_err(|e| write_error(e.into()))?;
+                zipped.saved += 1;
+            }
+            Err(e) => {
+                log::warn!("File left out of ZIP: {e}");
+                zipped.failed += 1;
+                zipped.first_error.get_or_insert(e);
             }
         }
-
-        zip.finish().map_err(|e| e.to_string())?;
     }
-
-    // Return error if no files were found
-    if total_files == 0 {
-        return Ok(FileResponse {
-            success: false,
-            data: None,
-            filename: None,
-            error: Some(format!("{} não tem ficheiros", params.name)),
-        });
-    }
-
-    let zip_data = zip_buffer.into_inner();
-    let base64_data = STANDARD.encode(&zip_data);
-
-    Ok(FileResponse {
-        success: true,
-        data: Some(base64_data),
-        filename: Some(format!("{}-{}.zip", params.name, params.period)),
-        error: None,
-    })
+    zip.finish().map_err(write_error)?;
+    Ok(zipped)
 }
 
 #[command]
@@ -629,6 +615,155 @@ mod tests {
             files_on_pages(&test_client(), pages).await.unwrap_err(),
             "O CLIP respondeu com um erro (503)"
         );
+    }
+
+    fn file_ref(oid: &str, name: &str, type_name: &str) -> FileRef {
+        FileRef {
+            href: format!("/objecto?oid={oid}&oin={name}"),
+            type_name: type_name.to_string(),
+        }
+    }
+
+    async fn serve_objects(
+        server: &mut mockito::Server,
+        objects: &[(&str, Result<&str, usize>)],
+    ) -> Vec<mockito::Mock> {
+        let mut mocks = Vec::new();
+        for (oid, answer) in objects {
+            let mock = server
+                .mock("GET", "/objecto")
+                .match_query(mockito::Matcher::UrlEncoded("oid".into(), oid.to_string()));
+            mocks.push(match answer {
+                Ok(body) => mock.with_body(*body).create(),
+                Err(status) => mock.with_status(*status).create(),
+            });
+        }
+        mocks
+    }
+
+    #[tokio::test]
+    async fn zips_files_by_type_numbering_duplicates_and_skipping_failures() {
+        let mut server = mockito::Server::new_async().await;
+        let _m = serve_objects(
+            &mut server,
+            &[
+                ("1", Ok("one")),
+                ("2", Ok("two")),
+                ("3", Err(500)),
+                ("4", Ok("four")),
+            ],
+        )
+        .await;
+        let files = vec![
+            file_ref("1", "a.pdf", "Outros"),
+            file_ref("2", "a.pdf", "Outros"),
+            file_ref("3", "b.pdf", "Outros"),
+            file_ref("4", "a.pdf", "Testes"),
+        ];
+
+        let mut out = std::io::Cursor::new(Vec::new());
+        let zipped = zip_files(&test_client(), &server.url(), "2026-Redes", files, &mut out)
+            .await
+            .unwrap();
+        assert_eq!((zipped.saved, zipped.failed), (3, 1));
+        assert_eq!(
+            zipped.first_error.as_deref(),
+            Some("O CLIP respondeu com um erro (500)")
+        );
+
+        let mut archive = zip::ZipArchive::new(out).unwrap();
+        let mut entries = HashMap::new();
+        for i in 0..archive.len() {
+            let mut entry = archive.by_index(i).unwrap();
+            let mut body = String::new();
+            std::io::Read::read_to_string(&mut entry, &mut body).unwrap();
+            entries.insert(entry.name().to_string(), body);
+        }
+        assert_eq!(
+            entries,
+            HashMap::from([
+                ("2026-Redes/Outros/a.pdf".to_string(), "one".to_string()),
+                ("2026-Redes/Outros/a (2).pdf".to_string(), "two".to_string()),
+                ("2026-Redes/Testes/a.pdf".to_string(), "four".to_string()),
+            ])
+        );
+    }
+
+    #[tokio::test]
+    async fn zip_fetches_at_most_a_few_files_at_once() {
+        use std::sync::atomic::{AtomicUsize, Ordering::SeqCst};
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        // Answers every request after a pause, recording how many it was serving at once.
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let (now, peak) = (Arc::new(AtomicUsize::new(0)), Arc::new(AtomicUsize::new(0)));
+        let (now_s, peak_s) = (now.clone(), peak.clone());
+        tokio::spawn(async move {
+            loop {
+                let (mut socket, _) = listener.accept().await.unwrap();
+                let (now, peak) = (now_s.clone(), peak_s.clone());
+                tokio::spawn(async move {
+                    let mut buf = [0u8; 1024];
+                    let _ = socket.read(&mut buf).await;
+                    peak.fetch_max(now.fetch_add(1, SeqCst) + 1, SeqCst);
+                    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+                    now.fetch_sub(1, SeqCst);
+                    let _ = socket
+                        .write_all(
+                            b"HTTP/1.1 200 OK\r\ncontent-length: 1\r\nconnection: close\r\n\r\nx",
+                        )
+                        .await;
+                });
+            }
+        });
+
+        let files = (0..12)
+            .map(|i| file_ref(&i.to_string(), &format!("{i}.pdf"), "Outros"))
+            .collect();
+        let zipped = zip_files(
+            &test_client(),
+            &format!("http://{addr}"),
+            "x",
+            files,
+            std::io::Cursor::new(Vec::new()),
+        )
+        .await
+        .unwrap();
+        assert_eq!(zipped.saved, 12);
+        let peak = peak.load(SeqCst);
+        assert!(
+            peak > 1 && peak <= PARALLEL_DOWNLOADS,
+            "peak of {peak} at once"
+        );
+    }
+
+    #[tokio::test]
+    async fn zip_reports_why_nothing_was_saved() {
+        let mut server = mockito::Server::new_async().await;
+        let _m = serve_objects(&mut server, &[("1", Err(404))]).await;
+        let mut out = std::io::Cursor::new(Vec::new());
+        let zipped = zip_files(
+            &test_client(),
+            &server.url(),
+            "x",
+            vec![file_ref("1", "a.pdf", "Outros")],
+            &mut out,
+        )
+        .await
+        .unwrap();
+        assert_eq!((zipped.saved, zipped.failed), (0, 1));
+        assert_eq!(
+            zipped.first_error.as_deref(),
+            Some("O CLIP respondeu com um erro (404)")
+        );
+    }
+
+    #[test]
+    fn only_clip_file_links_are_fetched() {
+        assert!(is_clip_file_link("/objecto?oid=1&oin=a.pdf"));
+        assert!(!is_clip_file_link("https://evil.example/objecto?oid=1"));
+        assert!(!is_clip_file_link("/utente/eu/aluno"));
     }
 
     #[test]

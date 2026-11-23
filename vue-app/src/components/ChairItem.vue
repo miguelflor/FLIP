@@ -107,34 +107,15 @@ import { computed, onBeforeUnmount, ref } from "vue";
 import { ChevronRight, Download, FolderDown } from "lucide-vue-next";
 import { invoke } from "@tauri-apps/api/core";
 import { PERIOD_N, PERIOD_TYPE, UNIDADE, YEAR } from "../lib/clipVars";
-import { extractYearForRequest } from "../lib/academic";
-import { storage } from "../lib/storage";
 import { useToast } from "../composables/useToast";
 import { useStudent } from "../composables/useStudent";
 import { whenIdle } from "../composables/useClipQuery";
-import { listCourseFiles, type CourseFile } from "../composables/useCourseFiles";
+import { listCourseFiles, type CourseFile, type UnitParams } from "../composables/useCourseFiles";
 import { savedMessage } from "../lib/downloads";
 
 interface ChairType {
   href: string;
   text: string;
-}
-
-interface FileResponse {
-  success: boolean;
-  data?: string;
-  filename?: string;
-  error?: string;
-}
-
-interface FileParams {
-  session_id: string;
-  period: string;
-  unit_id: string;
-  file_type: string;
-  name: string;
-  year: string;
-  type_period: string;
 }
 
 interface Props {
@@ -166,18 +147,10 @@ const parseHrefParams = (href: string) => {
   return params;
 };
 
-// Builds the request params, or toasts why it can't and returns null.
-const buildParams = (): FileParams | null => {
-  if (!sessionId.value) {
-    error("Not authenticated. Please log in again.");
-    return null;
-  }
-  if (!storage.get("selectedYear")) {
-    error("Please select a year.");
-    return null;
-  }
-  if (!currentStudentId.value) {
-    error("No student selected. Please select a student from the navbar.");
+// The unit's identifiers, from its CLIP link. Null (with a toast) without a session.
+const buildParams = (): UnitParams | null => {
+  if (!sessionId.value || !currentStudentId.value) {
+    error("Sessão não encontrada. Inicie sessão novamente.");
     return null;
   }
 
@@ -186,46 +159,42 @@ const buildParams = (): FileParams | null => {
     session_id: sessionId.value,
     period: hrefParams[PERIOD_N] || "",
     unit_id: hrefParams[UNIDADE] || "",
-    file_type: "all",
-    name: props.chair.text,
     year: hrefParams[YEAR] || "",
     type_period: hrefParams[PERIOD_TYPE] || "",
   };
 };
 
-const saveBase64 = (data: string, filename: string, type = "application/octet-stream") => {
-  const blob = new Blob([Uint8Array.from(atob(data), (c) => c.charCodeAt(0))], { type });
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  window.URL.revokeObjectURL(url);
-};
+interface CourseDownload {
+  path: string;
+  saved: number;
+  failed: number;
+}
 
+// Downloads every file of the unit as one ZIP, from its file list (loaded first if need be).
 const handleDownload = async () => {
   const params = buildParams();
   if (!params) return;
   loading.value = true;
 
   try {
-    const res = await invoke<FileResponse>("get_file", {
-      params,
-      studentId: currentStudentId.value,
-      year: extractYearForRequest(storage.get("selectedYear")!),
+    const list = files.value ?? (files.value = await listCourseFiles(params, currentStudentId.value!));
+    if (!list.length) {
+      error(`${props.chair.text} não tem ficheiros`);
+      return;
+    }
+    const res = await invoke<CourseDownload>("download_course", {
+      sessionId: params.session_id,
+      name: props.chair.text,
+      year: params.year,
+      files: list.map((f) => ({ href: f.href, type_name: f.type_name })),
     });
-
-    if (!res.success || !res.data) {
-      error(res.error || "Failed to download file");
-    } else {
-      saveBase64(res.data, res.filename || "download.zip", "application/zip");
-      success("File downloaded successfully!");
+    success(savedMessage(res.path));
+    if (res.failed) {
+      error(`${res.failed} de ${res.saved + res.failed} ficheiros não foram descarregados`);
     }
   } catch (err: unknown) {
     console.error("Error downloading chair:", err);
-    error("Error downloading file.");
+    error(`Erro ao descarregar ${props.chair.text}: ${err}`);
   } finally {
     loading.value = false;
   }
