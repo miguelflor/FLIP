@@ -403,7 +403,6 @@ pub async fn get_file(
 #[command]
 pub async fn list_files(
     state: State<'_, AppState>,
-    cache: State<'_, CacheHandler>,
     params: FileParams,
     student_id: String,
 ) -> Result<Vec<CourseFile>, String> {
@@ -412,7 +411,7 @@ pub async fn list_files(
     let handles: VecThr<Vec<CourseFile>> = FILE_TYPES
         .iter()
         .map(|(code, name)| {
-            let (client, cache) = (client.clone(), cache.inner().clone());
+            let client = client.clone();
             let url = Url::documents(
                 &student_id,
                 &params.year,
@@ -422,8 +421,12 @@ pub async fn list_files(
                 code,
             );
             tokio::spawn(async move {
-                // CLIP file links expire with the session, so cached pages yield 404s
-                let html = cache.put(&url, &client).await.unwrap_or_default();
+                // Not cached: CLIP file links expire with the session, so links from a
+                // cached page would 404.
+                let html = fetch(&client, &url.value)
+                    .await
+                    .map(|bytes| decode_clip_text(&bytes))
+                    .unwrap_or_default();
                 parse_files(&html, name)
             })
         })

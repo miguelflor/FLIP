@@ -119,7 +119,8 @@ fn cache_duration(url_type: &UrlType) -> Duration {
     match url_type {
         StudentInfo => Duration::days(7),
         Photo => Duration::days(7),
-        Documents => Duration::hours(10),
+        // Never cached (see list_files); a cached copy would always be stale.
+        Documents => Duration::zero(),
         Schedule | Tests => Duration::days(1),
     }
 }
@@ -229,7 +230,7 @@ mod tests {
         let client = client();
         let url = Url {
             value: format!("{}/page", server.url()),
-            url_type: UrlType::Documents,
+            url_type: UrlType::Schedule,
         };
 
         let result = cache.get(&url, &client).await.unwrap();
@@ -246,7 +247,7 @@ mod tests {
         let client = client();
         let url = Url {
             value: format!("{}/page", server.url()),
-            url_type: UrlType::Documents,
+            url_type: UrlType::Schedule,
         };
 
         // First call populates cache
@@ -272,7 +273,7 @@ mod tests {
         let mut server = Server::new_async().await;
         let url = Url {
             value: format!("{}/page", server.url()),
-            url_type: UrlType::Documents,
+            url_type: UrlType::Schedule,
         };
 
         let stale_time = Utc::now() - cache_duration(&url.url_type) - Duration::minutes(1);
@@ -324,7 +325,7 @@ mod tests {
         let client = client();
         let url = Url {
             value: format!("{}/fail", server.url()),
-            url_type: UrlType::Documents,
+            url_type: UrlType::Schedule,
         };
 
         let result = cache.put(&url, &client).await;
@@ -342,7 +343,7 @@ mod tests {
         let client = client();
         let url = Url {
             value: format!("{}/page", server.url()),
-            url_type: UrlType::Documents,
+            url_type: UrlType::Schedule,
         };
 
         cache.put(&url, &client).await.unwrap();
@@ -352,7 +353,7 @@ mod tests {
         let _m2 = mock_html_endpoint(&mut server2, "/page", "<html>v2</html>");
         let url2 = Url {
             value: format!("{}/page", server2.url()),
-            url_type: UrlType::Documents,
+            url_type: UrlType::Schedule,
         };
 
         let result = cache.put(&url2, &client).await.unwrap();

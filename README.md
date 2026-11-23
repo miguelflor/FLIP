@@ -42,7 +42,8 @@
 
 ### **Cache**
 - CLIP pages are cached locally so the app loads instantly
-- Each page type has its own expiry: profile and photo 7 days, schedule and tests 1 day, course files 10 hours
+- Each page type has its own expiry: profile and photo 7 days, schedule and tests 1 day
+- Course file lists are always fetched fresh, since CLIP's file links expire with the session
 - The cache is an encrypted SQLCipher database whose key is kept in your OS keyring
 
 ### **Fast & Native**
