@@ -185,10 +185,7 @@ mod tests {
     use reqwest::Client;
 
     fn client() -> ClipClient {
-        ClipClient {
-            http: Client::new(),
-            username: String::new(),
-        }
+        ClipClient::new(Client::new(), "")
     }
 
     fn setup_cache() -> CacheHandler {

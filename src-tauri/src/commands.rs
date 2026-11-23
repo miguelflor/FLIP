@@ -121,10 +121,7 @@ async fn authenticate(
     let aluno_ids = students_from_home(&home.text().await.map_err(net_error)?)?;
 
     let session = Session {
-        client: ClipClient {
-            http: client,
-            username: username.to_string(),
-        },
+        client: ClipClient::new(client, username),
         aluno_ids: aluno_ids.clone(),
     };
 
@@ -570,10 +567,7 @@ mod tests {
     }
 
     fn test_client() -> ClipClient {
-        ClipClient {
-            http: Client::new(),
-            username: String::new(),
-        }
+        ClipClient::new(Client::new(), "")
     }
 
     #[tokio::test]

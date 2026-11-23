@@ -36,6 +36,19 @@ fn client_builder() -> ClientBuilder {
 pub struct ClipClient {
     pub http: Client,
     pub username: String,
+    /// Held while logging back in, so requests that find the session expired at the
+    /// same time log in once between them.
+    relogin: Arc<tokio::sync::Mutex<()>>,
+}
+
+impl ClipClient {
+    pub fn new(http: Client, username: &str) -> Self {
+        Self {
+            http,
+            username: username.to_string(),
+            relogin: Arc::default(),
+        }
+    }
 }
 
 /// Retrieves the HTTP client and aluno_ids for the given session.
@@ -74,11 +87,15 @@ fn check_student(aluno_ids: &HashMap<String, String>, student_id: &str) -> Resul
 
 /// GETs a CLIP url. When CLIP's session has expired it serves its login page instead,
 /// so this logs the same client back in with the saved login and retries once.
-// ponytail: parallel fetches (list_files) may each re-login at once; add a lock if CLIP minds.
 pub async fn fetch(client: &ClipClient, url: &str) -> Result<Vec<u8>, String> {
     match get(&client.http, url).await? {
         Some(bytes) => Ok(bytes),
         None => {
+            let _relogin = client.relogin.lock().await;
+            // Another request may have logged back in while this one waited
+            if let Some(bytes) = get(&client.http, url).await? {
+                return Ok(bytes);
+            }
             let password =
                 saved_password_for(&client.username, load_credentials()).ok_or(SESSION_EXPIRED)?;
             post_login(&client.http, &client.username, &password).await?;
@@ -155,19 +172,42 @@ mod tests {
             let (_socket, _) = listener.accept().await.unwrap();
             std::future::pending::<()>().await;
         });
-        let client = ClipClient {
-            http: client_builder()
-                .read_timeout(Duration::from_millis(200))
-                .build()
-                .unwrap(),
-            username: String::new(),
-        };
+        let http = client_builder()
+            .read_timeout(Duration::from_millis(200))
+            .build()
+            .unwrap();
+        let client = ClipClient::new(http, "");
         let started = std::time::Instant::now();
         let err = fetch(&client, &format!("http://{addr}/page"))
             .await
             .unwrap_err();
         assert_eq!(err, crate::errors::CLIP_TIMEOUT);
         assert!(started.elapsed() < Duration::from_secs(5));
+    }
+
+    #[tokio::test]
+    async fn fetch_waiting_on_a_relogin_retries_before_logging_in_itself() {
+        // The first answer is the login page; by the retry, another request has logged in.
+        let served = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let counter = served.clone();
+        let mut server = mockito::Server::new_async().await;
+        let _m = server
+            .mock("GET", "/page")
+            .with_header("content-type", "text/html")
+            .with_body_from_request(move |_| {
+                match counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst) {
+                    0 => br#"<form id="loginForm">"#.to_vec(),
+                    _ => b"<html>ok</html>".to_vec(),
+                }
+            })
+            .expect(2)
+            .create();
+        // No saved login for this user: had it tried to log in, it would have failed.
+        let client = ClipClient::new(Client::new(), "nobody-saved");
+        let bytes = fetch(&client, &format!("{}/page", server.url()))
+            .await
+            .unwrap();
+        assert_eq!(bytes, b"<html>ok</html>");
     }
 
     #[tokio::test]
@@ -178,10 +218,7 @@ mod tests {
             .with_header("content-type", "text/html")
             .with_body("<html>ok</html>")
             .create();
-        let client = ClipClient {
-            http: Client::new(),
-            username: String::new(),
-        };
+        let client = ClipClient::new(Client::new(), "");
         let bytes = fetch(&client, &format!("{}/page", server.url()))
             .await
             .unwrap();
