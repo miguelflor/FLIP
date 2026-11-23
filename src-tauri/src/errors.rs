@@ -22,6 +22,7 @@ pub const STUDENT_INFO_UNREADABLE: &str = "Não foi possível ler os dados do al
 pub const SCHEDULE_UNREADABLE: &str = "Não foi possível ler o horário";
 pub const INVALID_FILE_LINK: &str = "Ligação de ficheiro inválida";
 pub const NO_STUDENT: &str = "Nenhum aluno selecionado";
+pub const NO_STUDENT_DATA: &str = "Esta conta não tem dados de aluno no CLIP";
 
 /// CLIP answered `url` with an error status.
 pub fn http_error(url: &str, status: reqwest::StatusCode) -> String {

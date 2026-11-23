@@ -91,7 +91,7 @@ async fn get(client: &Client, url: &str) -> Result<Option<Vec<u8>>, String> {
     Ok((!(is_html && is_login_page(&bytes))).then_some(bytes))
 }
 
-fn is_login_page(html: &[u8]) -> bool {
+pub fn is_login_page(html: &[u8]) -> bool {
     const MARKER: &[u8] = br#"id="loginForm""#;
     html.windows(MARKER.len()).any(|w| w == MARKER)
 }

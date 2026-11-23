@@ -16,10 +16,10 @@ use crate::parser::{
     parse_files, parse_schedule, parse_tests,
 };
 use crate::errors::{
-    net_error, INVALID_CREDENTIALS, INVALID_FILE_LINK, LOGIN_FAILED, NO_STUDENT,
+    http_error, net_error, NO_STUDENT_DATA, INVALID_CREDENTIALS, INVALID_FILE_LINK, LOGIN_FAILED, NO_STUDENT,
     SCHEDULE_UNREADABLE, STUDENT_INFO_UNREADABLE,
 };
-use crate::session::{fetch, get_session, new_http_client, ClipClient};
+use crate::session::{fetch, get_session, is_login_page, new_http_client, ClipClient};
 use crate::types::{
     ChairsResponse, CourseFile, FileParams, FileResponse, LoginResponse, Schedule, StudentInfo,
     Test,
@@ -102,11 +102,10 @@ async fn authenticate(
     let session_id = Uuid::new_v4().to_string();
 
     let home = client.get(CLIP_HOME).send().await.map_err(net_error)?;
-
-    let home_html = home.text().await.map_err(net_error)?;
-
-    // Extract aluno IDs from the home page
-    let aluno_ids = extract_aluno_ids(&home_html);
+    if !home.status().is_success() {
+        return Err(http_error(CLIP_HOME, home.status()));
+    }
+    let aluno_ids = students_from_home(&home.text().await.map_err(net_error)?)?;
 
     let session = Session {
         client: ClipClient {
@@ -125,9 +124,31 @@ async fn authenticate(
     })
 }
 
+/// The student ids on CLIP's home page. Login only counts as done once they are there:
+/// a home page without them means CLIP did not really let us in.
+fn students_from_home(home_html: &str) -> Result<HashMap<String, String>, String> {
+    if is_login_page(home_html.as_bytes()) {
+        return Err(LOGIN_FAILED.to_string());
+    }
+    let aluno_ids = extract_aluno_ids(home_html);
+    if aluno_ids.is_empty() {
+        return Err(NO_STUDENT_DATA.to_string());
+    }
+    Ok(aluno_ids)
+}
+
 /// Logs `client` into CLIP; its cookie store then holds the new session.
 pub(crate) async fn post_login(
     client: &Client,
+    username: &str,
+    password: &str,
+) -> Result<(), String> {
+    post_login_to(client, CLIP_HOME, username, password).await
+}
+
+async fn post_login_to(
+    client: &Client,
+    url: &str,
     username: &str,
     password: &str,
 ) -> Result<(), String> {
@@ -136,7 +157,7 @@ pub(crate) async fn post_login(
     form_data.insert("senha", password);
 
     let response = client
-        .post(CLIP_HOME)
+        .post(url)
         .header("Content-Type", "application/x-www-form-urlencoded")
         .form(&form_data)
         .send()
@@ -149,6 +170,10 @@ pub(crate) async fn post_login(
     let html = response.text().await.map_err(net_error)?;
     if html.contains("Autenticação inválida") {
         return Err(INVALID_CREDENTIALS.to_string());
+    }
+    // Still on the login form: CLIP refused without saying why (e.g. a blocked account)
+    if is_login_page(html.as_bytes()) {
+        return Err(LOGIN_FAILED.to_string());
     }
     Ok(())
 }
@@ -479,4 +504,61 @@ pub async fn get_tests(
 #[command]
 pub async fn reset_cache(cache: State<'_, CacheHandler>) -> Result<(), String> {
     cache.reset().await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const HOME: &str = r#"<a href="/utente/eu/aluno?aluno=123">Ana Silva</a>"#;
+    const LOGIN_FORM: &str = r#"<form id="loginForm" action="/login-router" method="POST">"#;
+
+    async fn post_login_answered_with(body: &str) -> Result<(), String> {
+        let mut server = mockito::Server::new_async().await;
+        let _m = server
+            .mock("POST", "/")
+            .match_body(mockito::Matcher::UrlEncoded(
+                "identificador".into(),
+                "a.user".into(),
+            ))
+            .with_header("content-type", "text/html; charset=utf-8")
+            .with_body(body)
+            .create();
+        post_login_to(&Client::new(), &server.url(), "a.user", "pw").await
+    }
+
+    #[tokio::test]
+    async fn login_accepted_when_clip_shows_the_home_page() {
+        assert_eq!(post_login_answered_with(HOME).await, Ok(()));
+    }
+
+    #[tokio::test]
+    async fn login_rejects_wrong_credentials() {
+        let page = format!("<p>Autenticação inválida</p>{LOGIN_FORM}");
+        assert_eq!(
+            post_login_answered_with(&page).await,
+            Err(INVALID_CREDENTIALS.to_string())
+        );
+    }
+
+    #[tokio::test]
+    async fn login_fails_when_clip_keeps_showing_the_login_form() {
+        assert_eq!(
+            post_login_answered_with(LOGIN_FORM).await,
+            Err(LOGIN_FAILED.to_string())
+        );
+    }
+
+    #[test]
+    fn home_page_must_list_students() {
+        assert_eq!(students_from_home(HOME).unwrap()["Ana Silva"], "123");
+        assert_eq!(
+            students_from_home("<html>Bem-vindo</html>"),
+            Err(NO_STUDENT_DATA.to_string())
+        );
+        assert_eq!(
+            students_from_home(LOGIN_FORM),
+            Err(LOGIN_FAILED.to_string())
+        );
+    }
 }
