@@ -408,10 +408,9 @@ pub async fn list_files(
 ) -> Result<Vec<CourseFile>, String> {
     let client = get_student_session(&state, &params.session_id, &student_id)?;
 
-    let handles: VecThr<Vec<CourseFile>> = FILE_TYPES
+    let pages = FILE_TYPES
         .iter()
         .map(|(code, name)| {
-            let client = client.clone();
             let url = Url::documents(
                 &student_id,
                 &params.year,
@@ -420,21 +419,33 @@ pub async fn list_files(
                 &params.unit_id,
                 code,
             );
+            (url.value, *name)
+        })
+        .collect();
+    files_on_pages(&client, pages).await
+}
+
+/// The files on a unit's documents pages, one page per file type, fetched in parallel.
+/// Fails if any page does: a partial list would pass for the unit's complete one.
+/// Not cached, since CLIP file links expire with the session.
+async fn files_on_pages(
+    client: &ClipClient,
+    pages: Vec<(String, &'static str)>,
+) -> Result<Vec<CourseFile>, String> {
+    let handles: VecThr<Result<Vec<CourseFile>, String>> = pages
+        .into_iter()
+        .map(|(url, type_name)| {
+            let client = client.clone();
             tokio::spawn(async move {
-                // Not cached: CLIP file links expire with the session, so links from a
-                // cached page would 404.
-                let html = fetch(&client, &url.value)
-                    .await
-                    .map(|bytes| decode_clip_text(&bytes))
-                    .unwrap_or_default();
-                parse_files(&html, name)
+                let html = decode_clip_text(&fetch(&client, &url).await?);
+                Ok(parse_files(&html, type_name))
             })
         })
         .collect();
 
     let mut files = Vec::new();
     for h in handles {
-        files.extend(h.await.unwrap_or_default());
+        files.extend(h.await.map_err(|e| e.to_string())??);
     }
     Ok(files)
 }
@@ -553,6 +564,60 @@ mod tests {
         assert_eq!(
             post_login_answered_with(LOGIN_FORM).await,
             Err(LOGIN_FAILED.to_string())
+        );
+    }
+
+    fn file_page(name: &str) -> String {
+        format!(
+            r#"<table><tr><td><a href="/objecto?oid=1&oin={name}">{name}</a></td><td>2026.09.14</td><td>1 Kb</td><td>Ana</td><td></td></tr></table>"#
+        )
+    }
+
+    fn test_client() -> ClipClient {
+        ClipClient {
+            http: Client::new(),
+            username: String::new(),
+        }
+    }
+
+    #[tokio::test]
+    async fn lists_files_from_every_page_in_order() {
+        let mut server = mockito::Server::new_async().await;
+        let _a = server
+            .mock("GET", "/a")
+            .with_body(file_page("a.pdf"))
+            .create();
+        let _b = server
+            .mock("GET", "/b")
+            .with_body(file_page("b.pdf"))
+            .create();
+        let pages = vec![
+            (format!("{}/a", server.url()), "Problemas"),
+            (format!("{}/b", server.url()), "Outros"),
+        ];
+        let files = files_on_pages(&test_client(), pages).await.unwrap();
+        let got: Vec<_> = files
+            .iter()
+            .map(|f| (f.name.as_str(), f.type_name.as_str()))
+            .collect();
+        assert_eq!(got, [("a.pdf", "Problemas"), ("b.pdf", "Outros")]);
+    }
+
+    #[tokio::test]
+    async fn listing_fails_when_a_page_fails() {
+        let mut server = mockito::Server::new_async().await;
+        let _a = server
+            .mock("GET", "/a")
+            .with_body(file_page("a.pdf"))
+            .create();
+        let _b = server.mock("GET", "/b").with_status(503).create();
+        let pages = vec![
+            (format!("{}/a", server.url()), "Problemas"),
+            (format!("{}/b", server.url()), "Outros"),
+        ];
+        assert_eq!(
+            files_on_pages(&test_client(), pages).await.unwrap_err(),
+            "O CLIP respondeu com um erro (503)"
         );
     }
 

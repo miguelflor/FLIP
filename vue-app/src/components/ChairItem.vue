@@ -39,6 +39,20 @@
       >
         A carregar...
       </p>
+      <div
+        v-else-if="listError"
+        class="text-red-500"
+        role="alert"
+      >
+        <p>{{ listError }}</p>
+        <button
+          type="button"
+          class="text-blue-500 hover:underline cursor-pointer"
+          @click="loadFiles"
+        >
+          Tentar novamente
+        </button>
+      </div>
       <p
         v-else-if="files && filtered.length === 0"
         class="text-slate-500"
@@ -224,6 +238,7 @@ const handleDownload = async () => {
 
 const open = ref(false);
 const listing = ref(false);
+const listError = ref<string | null>(null);
 const files = ref<CourseFile[] | null>(null);
 const downloading = ref(new Set<string>());
 
@@ -276,14 +291,17 @@ const loadFiles = async () => {
   const params = buildParams();
   if (!params) return;
   listing.value = true;
+  listError.value = null;
   try {
     files.value = await invoke<CourseFile[]>("list_files", {
       params,
       studentId: currentStudentId.value,
     });
   } catch (err: unknown) {
+    // Shown inline when the chair is open; a failed background preload stays quiet
+    // and is retried when the chair is opened.
     console.error("Error listing files:", err);
-    error("Error listing files.");
+    listError.value = String(err);
   } finally {
     listing.value = false;
   }
