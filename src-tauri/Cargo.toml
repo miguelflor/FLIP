@@ -61,3 +61,10 @@ rand = "0.9.5"
 [dev-dependencies]
 mockito = "1"
 tokio = { version = "1", features = ["rt", "macros"] }
+
+# Smaller, faster release binaries. panic stays "unwind": a panicking download task
+# must fail on its own, not abort the app.
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
