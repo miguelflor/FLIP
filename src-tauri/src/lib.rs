@@ -1,6 +1,7 @@
 mod cache;
 mod commands;
 mod constants;
+mod errors;
 mod parser;
 mod session;
 mod types;

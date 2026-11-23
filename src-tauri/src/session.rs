@@ -1,12 +1,35 @@
 use std::collections::HashMap;
+use std::sync::Arc;
+use std::time::Duration;
 
-use reqwest::{header::CONTENT_TYPE, Client};
+use reqwest::redirect::Policy;
+use reqwest::{header::CONTENT_TYPE, Client, ClientBuilder};
+use reqwest_cookie_store::{CookieStore, CookieStoreMutex};
 use tauri::State;
 
 use crate::commands::{load_credentials, post_login};
+use crate::constants::USER_AGENT;
+use crate::errors::{net_error, SESSION_EXPIRED};
 use crate::AppState;
 
-pub const SESSION_EXPIRED: &str = "Sessão expirada, inicie sessão novamente";
+const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
+/// Longest wait for the next bytes of a response: a slow download that keeps moving is fine,
+/// a CLIP that stops answering is not.
+const READ_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// A fresh client with its own cookie jar, for one CLIP login.
+pub fn new_http_client() -> Result<Client, String> {
+    client_builder().build().map_err(|e| e.to_string())
+}
+
+fn client_builder() -> ClientBuilder {
+    Client::builder()
+        .cookie_provider(Arc::new(CookieStoreMutex::new(CookieStore::default())))
+        .user_agent(USER_AGENT)
+        .redirect(Policy::limited(10))
+        .connect_timeout(CONNECT_TIMEOUT)
+        .read_timeout(READ_TIMEOUT)
+}
 
 /// An HTTP client logged into CLIP, and the user it is logged in as.
 #[derive(Clone)]
@@ -55,7 +78,7 @@ fn saved_password_for(username: &str, saved: Option<(String, String)>) -> Option
 
 /// `None` when CLIP answered with its login page.
 async fn get(client: &Client, url: &str) -> Result<Option<Vec<u8>>, String> {
-    let response = client.get(url).send().await.map_err(|e| e.to_string())?;
+    let response = client.get(url).send().await.map_err(net_error)?;
     if !response.status().is_success() {
         return Err(format!("Failed to scrape {} ({})", url, response.status()));
     }
@@ -64,7 +87,7 @@ async fn get(client: &Client, url: &str) -> Result<Option<Vec<u8>>, String> {
         .get(CONTENT_TYPE)
         .and_then(|v| v.to_str().ok())
         .is_some_and(|v| v.starts_with("text/html"));
-    let bytes = response.bytes().await.map_err(|e| e.to_string())?.to_vec();
+    let bytes = response.bytes().await.map_err(net_error)?.to_vec();
     Ok((!(is_html && is_login_page(&bytes))).then_some(bytes))
 }
 
@@ -93,6 +116,30 @@ mod tests {
         assert_eq!(saved_password_for("a.user", saved()).as_deref(), Some("pw"));
         assert_eq!(saved_password_for("b.user", saved()), None);
         assert_eq!(saved_password_for("a.user", None), None);
+    }
+
+    #[tokio::test]
+    async fn fetch_gives_up_on_a_server_that_stops_answering() {
+        // Accepts the connection, then never sends a byte.
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move {
+            let (_socket, _) = listener.accept().await.unwrap();
+            std::future::pending::<()>().await;
+        });
+        let client = ClipClient {
+            http: client_builder()
+                .read_timeout(Duration::from_millis(200))
+                .build()
+                .unwrap(),
+            username: String::new(),
+        };
+        let started = std::time::Instant::now();
+        let err = fetch(&client, &format!("http://{addr}/page"))
+            .await
+            .unwrap_err();
+        assert_eq!(err, crate::errors::CLIP_TIMEOUT);
+        assert!(started.elapsed() < Duration::from_secs(5));
     }
 
     #[tokio::test]

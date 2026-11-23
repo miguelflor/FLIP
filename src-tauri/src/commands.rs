@@ -1,23 +1,22 @@
 use std::collections::HashMap;
 use std::io::{Cursor, Write};
-use std::sync::Arc;
 
 use base64::{engine::general_purpose::STANDARD, Engine};
 use keyring::Entry;
 use reqwest::Client;
-use reqwest_cookie_store::{CookieStore, CookieStoreMutex};
 use tauri::{command, State};
 use uuid::Uuid;
 use zip::write::SimpleFileOptions;
 use zip::ZipWriter;
 
 use crate::cache::{CacheHandler, APP_NAME};
-use crate::constants::{CLIP_BASE, CLIP_HOME, FILE_TYPES, USER_AGENT};
+use crate::constants::{CLIP_BASE, CLIP_HOME, FILE_TYPES};
 use crate::parser::{
     extract_aluno_ids, extract_student_info, file_name_from_href, parse_chairs, parse_file_urls,
     parse_files, parse_schedule, parse_tests,
 };
-use crate::session::{fetch, get_session, ClipClient};
+use crate::errors::net_error;
+use crate::session::{fetch, get_session, new_http_client, ClipClient};
 use crate::types::{
     ChairsResponse, CourseFile, FileParams, FileResponse, LoginResponse, Schedule, StudentInfo,
     Test,
@@ -95,24 +94,15 @@ async fn authenticate(
     username: &str,
     password: &str,
 ) -> Result<LoginResponse, String> {
-    let client = Client::builder()
-        .cookie_provider(Arc::new(CookieStoreMutex::new(CookieStore::default())))
-        .user_agent(USER_AGENT)
-        .redirect(reqwest::redirect::Policy::limited(10))
-        .build()
-        .map_err(|e| e.to_string())?;
+    let client = new_http_client()?;
 
     post_login(&client, username, password).await?;
 
     let session_id = Uuid::new_v4().to_string();
 
-    let home = client
-        .get(CLIP_HOME)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
+    let home = client.get(CLIP_HOME).send().await.map_err(net_error)?;
 
-    let home_html = home.text().await.map_err(|e| e.to_string())?;
+    let home_html = home.text().await.map_err(net_error)?;
 
     // Extract aluno IDs from the home page
     let aluno_ids = extract_aluno_ids(&home_html);
@@ -150,12 +140,12 @@ pub(crate) async fn post_login(
         .form(&form_data)
         .send()
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(net_error)?;
 
     if !response.status().is_success() {
         return Err("Login Failed - Clip Error".to_string());
     }
-    let html = response.text().await.map_err(|e| e.to_string())?;
+    let html = response.text().await.map_err(net_error)?;
     if html.contains("Autenticação inválida") {
         return Err(INVALID_CREDENTIALS.to_string());
     }
