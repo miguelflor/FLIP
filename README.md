@@ -22,24 +22,31 @@
 ## ✨ Features
 
 ### **Course Materials**
-- Browse all your course files by semester/trimester
-- One-click download for all materials from a course
-- Automatic file organization
-- Fast and reliable downloads
+- Browse all your course files by semester/trimester, grouped by CLIP section
+- Search files within a course or across all your courses at once
+- See each file's date, size and uploader on hover
+- Download a single file, or every file from a course as one ZIP (organized into folders by file type)
 
 ### **Weekly Schedule**
 - Clean, color-coded weekly schedule view
 - Export individual classes to Google Calendar
 - Export entire schedule with one click
-- Automatic recurring event creation
+- Automatic recurring (weekly) event creation
+- Export the schedule as a PNG image
+
+### **Evaluation Tests**
+- See all of the current semester's evaluation tests right on the dashboard
+- Date, time, course and rooms for each test at a glance
+- Upcoming tests listed first, past ones greyed out at the bottom
+- Flags tests you still need to enroll in
 
 ### **Cache**
-- All requests are cache
-- The timeout is different for each url
-- The cache is stored encrypted
+- CLIP pages are cached locally so the app loads instantly
+- Each page type has its own expiry: profile and photo 7 days, schedule and tests 1 day, course files 10 hours
+- The cache is an encrypted SQLCipher database whose key is kept in your OS keyring
 
 ### **Fast & Native**
-- Native desktop application built with Rust
+- Desktop application built with Tauri, with a Rust backend
 - Lightning-fast performance
 - Cross-platform (Windows, macOS, Linux)
 - Minimal memory footprint
@@ -47,7 +54,11 @@
 ### **Secure**
 - Direct authentication with CLIP servers
 - No data stored externally
-- Session management for seamless access
+- Optional "remember me" saves your login in the OS keyring (Windows Credential Manager, macOS Keychain, Secret Service on Linux)
+- Automatically logs back in when the CLIP session expires
+
+### **Light & Dark Theme**
+- Switch between light and dark themes with accessible contrast
 
 ---
 
@@ -76,8 +87,9 @@ Grab the latest pre-built installer for your OS from the most recent release —
 
 #### Prerequisites
 
-- [Node.js](https://nodejs.org/) (v18 or higher)
+- [Node.js](https://nodejs.org/) (v20.19+ or v22.12+, required by Vite 8)
 - [Rust](https://www.rust-lang.org/) (latest stable)
+- The Tauri system dependencies for your OS (e.g. WebKitGTK on Linux): see the [Tauri prerequisites](https://tauri.app/start/prerequisites/)
 
 #### Installation
 
@@ -87,9 +99,10 @@ Grab the latest pre-built installer for your OS from the most recent release —
    cd FLIP
    ```
 
-2. **Install dependencies**
+2. **Install dependencies** (the root and the Vue app each have their own)
    ```bash
    npm install
+   cd vue-app && npm install && cd ..
    ```
 
 3. **Run in development mode**
@@ -113,12 +126,15 @@ FLIP/
 ├── vue-app/              # Vue 3 frontend application
 │   ├── src/
 │   │   ├── components/   # Reusable Vue components
-│   │   ├── views/        # Page components (Login, Dashboard)
+│   │   ├── composables/  # Shared state and logic (student, theme, toasts, queries)
+│   │   ├── views/        # Page components (Login, Dashboard, Files, AppLayout)
 │   │   ├── lib/          # Utilities and helpers
 │   │   └── router/       # Vue Router configuration
 │   └── dist/             # Production build output
 ├── src-tauri/            # Tauri backend (Rust)
-│   ├── src/              # Rust source code
+│   ├── src/              # Rust source code (CLIP session, scraping, cache)
+│   ├── config.json       # Runtime options (e.g. enable logging)
+│   ├── tauri.conf.json   # Tauri app configuration
 │   └── Cargo.toml        # Rust dependencies
 └── package.json          # Root scripts and dependencies
 ```
@@ -130,6 +146,7 @@ FLIP/
 CLIP is slow and requires too many clicks to access basic information. FLIP solves this by:
 
 - **Instant Access** - No more navigating through endless menus
+- **Everything in One Place** - Schedule, upcoming tests and course files on one dashboard
 - **One-Click Actions** - Download files or export schedules instantly
 - **Native Performance** - Desktop app built with Rust for maximum speed
 - **Modern UI** - Clean, intuitive interface with smooth animations
@@ -149,13 +166,17 @@ CLIP is slow and requires too many clicks to access basic information. FLIP solv
 npm run tauri:dev      # Run Tauri with Vue dev server
 
 # Production
-npm run tauri:build    # Build desktop app for your OS
+npm run tauri:build          # Build desktop app for your OS
+npm run tauri:build:windows  # Cross-compile a Windows build (x86_64-pc-windows-gnu, needs MinGW)
 
 # Vue only (without Tauri)
 cd vue-app
 npm run dev           # Run Vue dev server (port 1420)
-npm run build         # Build Vue app
+npm run build         # Type-check and build Vue app
+npm run lint          # Lint with ESLint (lint:fix to auto-fix)
 ```
+
+The Vue-only dev server shows the UI, but anything that talks to CLIP needs the Tauri backend.
 
 ---
 
@@ -175,7 +196,7 @@ Contributions are welcome! Feel free to:
 
 - **Not affiliated with NOVA FCT** - This is a student-made improvement project
 - **Credentials are secure** - Authentication happens directly with CLIP servers
-- **No data storage** - All data comes from CLIP in real-time
+- **No external storage** - All data comes from CLIP; it is only cached locally (encrypted) on your machine
 - **Use responsibly** - Don't overload CLIP servers
 
 ---
