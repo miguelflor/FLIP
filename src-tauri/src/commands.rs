@@ -15,7 +15,10 @@ use crate::parser::{
     extract_aluno_ids, extract_student_info, file_name_from_href, parse_chairs, parse_file_urls,
     parse_files, parse_schedule, parse_tests,
 };
-use crate::errors::net_error;
+use crate::errors::{
+    net_error, INVALID_CREDENTIALS, INVALID_FILE_LINK, LOGIN_FAILED, NO_STUDENT,
+    SCHEDULE_UNREADABLE, STUDENT_INFO_UNREADABLE,
+};
 use crate::session::{fetch, get_session, new_http_client, ClipClient};
 use crate::types::{
     ChairsResponse, CourseFile, FileParams, FileResponse, LoginResponse, Schedule, StudentInfo,
@@ -26,8 +29,6 @@ use crate::utils::{decode_latin1, get_type_name};
 use crate::{AppState, Session};
 
 type VecThr<T> = Vec<tokio::task::JoinHandle<T>>;
-
-const INVALID_CREDENTIALS: &str = "Login Error - Invalid Credentials";
 
 fn credentials_entry() -> keyring::Result<Entry> {
     Entry::new(APP_NAME, "credentials")
@@ -143,7 +144,7 @@ pub(crate) async fn post_login(
         .map_err(net_error)?;
 
     if !response.status().is_success() {
-        return Err("Login Failed - Clip Error".to_string());
+        return Err(LOGIN_FAILED.to_string());
     }
     let html = response.text().await.map_err(net_error)?;
     if html.contains("Autenticação inválida") {
@@ -176,7 +177,7 @@ pub async fn get_student_info(
             course: parsed_info.course,
         })
     } else {
-        Err("Failed to parse student information".to_string())
+        Err(STUDENT_INFO_UNREADABLE.to_string())
     }
 }
 
@@ -349,7 +350,7 @@ pub async fn get_file(
             success: false,
             data: None,
             filename: None,
-            error: Some(format!("{} has no files", folder_name)),
+            error: Some(format!("{} não tem ficheiros", params.name)),
         });
     }
 
@@ -410,7 +411,7 @@ pub async fn download_file(
 
     // Only CLIP document links: keeps the authenticated client off arbitrary URLs
     if !href.starts_with('/') || !href.contains("/objecto?") {
-        return Err("Invalid file link".to_string());
+        return Err(INVALID_FILE_LINK.to_string());
     }
 
     let bytes = fetch(&client, &format!("{}{}", CLIP_BASE, href)).await?;
@@ -438,7 +439,7 @@ pub async fn get_schedule(
     let resolved_id = student_id
         .as_deref()
         .or_else(|| student_ids.values().next().map(|s| s.as_str()))
-        .ok_or("There is no student id")?
+        .ok_or(NO_STUDENT)?
         .to_string();
 
     let url = Url::schedule(&resolved_id, year.as_deref(), period.as_deref());
@@ -449,7 +450,10 @@ pub async fn get_schedule(
         cache.put(&url, &client).await?
     };
 
-    parse_schedule(&html)
+    parse_schedule(&html).map_err(|e| {
+        log::warn!("Unreadable schedule: {e}");
+        SCHEDULE_UNREADABLE.to_string()
+    })
 }
 
 #[command]

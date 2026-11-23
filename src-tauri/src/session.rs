@@ -9,7 +9,7 @@ use tauri::State;
 
 use crate::commands::{load_credentials, post_login};
 use crate::constants::USER_AGENT;
-use crate::errors::{net_error, SESSION_EXPIRED};
+use crate::errors::{http_error, net_error, SESSION_EXPIRED};
 use crate::AppState;
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
@@ -47,7 +47,7 @@ pub fn get_session(
     let sessions = state.sessions.lock();
     match sessions.get(session_id) {
         Some(s) => Ok((s.client.clone(), s.aluno_ids.clone())),
-        None => Err("Session not found or expired".to_string()),
+        None => Err(SESSION_EXPIRED.to_string()),
     }
 }
 
@@ -80,7 +80,7 @@ fn saved_password_for(username: &str, saved: Option<(String, String)>) -> Option
 async fn get(client: &Client, url: &str) -> Result<Option<Vec<u8>>, String> {
     let response = client.get(url).send().await.map_err(net_error)?;
     if !response.status().is_success() {
-        return Err(format!("Failed to scrape {} ({})", url, response.status()));
+        return Err(http_error(url, response.status()));
     }
     let is_html = response
         .headers()

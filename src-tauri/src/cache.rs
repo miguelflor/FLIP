@@ -1,3 +1,4 @@
+use crate::errors::CACHE_ERROR;
 use crate::session::{fetch, ClipClient};
 use crate::url::UrlType::{Documents, Photo, Schedule, StudentInfo, Tests};
 use crate::url::{Url, UrlType};
@@ -56,7 +57,10 @@ impl CacheHandler {
 
         match result {
             Ok(_) => Ok(html),
-            Err(_) => Err(format!("Failed to update cache with {}", url)),
+            Err(e) => {
+                log::warn!("Failed to update cache with {url}: {e}");
+                Err(CACHE_ERROR.to_string())
+            }
         }
     }
 
@@ -86,7 +90,10 @@ impl CacheHandler {
             .optional();
 
         match result {
-            Err(_) => Err(format!("sqlite select for {}", url)),
+            Err(e) => {
+                log::warn!("Failed to read cache for {url}: {e}");
+                Err(CACHE_ERROR.to_string())
+            }
             Ok(None) => {
                 let html = self.put(url, client).await?;
 
@@ -300,7 +307,7 @@ mod tests {
 
         let result = cache.put(&url, &client).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Failed to scrape"));
+        assert_eq!(result.unwrap_err(), "O CLIP respondeu com um erro (500)");
         mock.assert();
     }
 

@@ -15,3 +15,16 @@ pub fn net_error(e: reqwest::Error) -> String {
     }
     .to_string()
 }
+pub const INVALID_CREDENTIALS: &str = "Identificador ou senha incorretos";
+pub const LOGIN_FAILED: &str = "O CLIP não aceitou o início de sessão. Tente novamente.";
+pub const CACHE_ERROR: &str = "Erro ao aceder à cache local";
+pub const STUDENT_INFO_UNREADABLE: &str = "Não foi possível ler os dados do aluno";
+pub const SCHEDULE_UNREADABLE: &str = "Não foi possível ler o horário";
+pub const INVALID_FILE_LINK: &str = "Ligação de ficheiro inválida";
+pub const NO_STUDENT: &str = "Nenhum aluno selecionado";
+
+/// CLIP answered `url` with an error status.
+pub fn http_error(url: &str, status: reqwest::StatusCode) -> String {
+    log::warn!("CLIP answered {url} with {status}");
+    format!("O CLIP respondeu com um erro ({})", status.as_u16())
+}
