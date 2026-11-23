@@ -9,7 +9,7 @@ use tauri::State;
 
 use crate::commands::{load_credentials, post_login};
 use crate::constants::USER_AGENT;
-use crate::errors::{http_error, net_error, SESSION_EXPIRED};
+use crate::errors::{http_error, net_error, SESSION_EXPIRED, UNKNOWN_STUDENT};
 use crate::AppState;
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
@@ -48,6 +48,27 @@ pub fn get_session(
     match sessions.get(session_id) {
         Some(s) => Ok((s.client.clone(), s.aluno_ids.clone())),
         None => Err(SESSION_EXPIRED.to_string()),
+    }
+}
+
+/// The session's client, if `student_id` is one of the session's own students. The cache
+/// is shared by every login on this computer, so this keeps one account from reading pages
+/// cached for another.
+pub fn get_student_session(
+    state: &State<'_, AppState>,
+    session_id: &str,
+    student_id: &str,
+) -> Result<ClipClient, String> {
+    let (client, aluno_ids) = get_session(state, session_id)?;
+    check_student(&aluno_ids, student_id)?;
+    Ok(client)
+}
+
+fn check_student(aluno_ids: &HashMap<String, String>, student_id: &str) -> Result<(), String> {
+    if aluno_ids.values().any(|id| id == student_id) {
+        Ok(())
+    } else {
+        Err(UNKNOWN_STUDENT.to_string())
     }
 }
 
@@ -108,6 +129,13 @@ mod tests {
         assert!(!is_login_page(
             b"<html><a href=\"/utente/eu/aluno\">Aluno</a></html>"
         ));
+    }
+
+    #[test]
+    fn only_the_sessions_own_students_are_allowed() {
+        let ids = HashMap::from([("Ana Silva".to_string(), "123".to_string())]);
+        assert_eq!(check_student(&ids, "123"), Ok(()));
+        assert_eq!(check_student(&ids, "456"), Err(UNKNOWN_STUDENT.to_string()));
     }
 
     #[test]

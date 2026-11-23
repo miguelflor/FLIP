@@ -11,15 +11,17 @@ use zip::ZipWriter;
 
 use crate::cache::{CacheHandler, APP_NAME};
 use crate::constants::{CLIP_BASE, CLIP_HOME, FILE_TYPES};
+use crate::errors::{
+    http_error, net_error, INVALID_CREDENTIALS, INVALID_FILE_LINK, LOGIN_FAILED, NO_STUDENT_DATA,
+    SCHEDULE_UNREADABLE, STUDENT_INFO_UNREADABLE,
+};
 use crate::parser::{
     extract_aluno_ids, extract_student_info, file_name_from_href, parse_chairs, parse_file_urls,
     parse_files, parse_schedule, parse_tests,
 };
-use crate::errors::{
-    http_error, net_error, NO_STUDENT_DATA, INVALID_CREDENTIALS, INVALID_FILE_LINK, LOGIN_FAILED, NO_STUDENT,
-    SCHEDULE_UNREADABLE, STUDENT_INFO_UNREADABLE,
+use crate::session::{
+    fetch, get_session, get_student_session, is_login_page, new_http_client, ClipClient,
 };
-use crate::session::{fetch, get_session, is_login_page, new_http_client, ClipClient};
 use crate::types::{
     ChairsResponse, CourseFile, FileParams, FileResponse, LoginResponse, Schedule, StudentInfo,
     Test,
@@ -185,7 +187,7 @@ pub async fn get_student_info(
     session_id: String,
     student_id: String,
 ) -> Result<StudentInfo, String> {
-    let (client, _) = get_session(&state, &session_id)?;
+    let client = get_student_session(&state, &session_id, &student_id)?;
 
     let url = Url::student(&student_id);
 
@@ -215,7 +217,7 @@ pub async fn get_chairs(
     year: String,
     use_cache: Option<bool>,
 ) -> Result<ChairsResponse, String> {
-    let (client, _) = get_session(&state, &session_id)?;
+    let client = get_student_session(&state, &session_id, &student_id)?;
 
     let url = Url::year_student(&year, student_id.as_str());
 
@@ -252,7 +254,7 @@ pub async fn get_available_years(
     session_id: String,
     student_id: String,
 ) -> Result<serde_json::Value, String> {
-    let (client, _) = get_session(&state, &session_id)?;
+    let client = get_student_session(&state, &session_id, &student_id)?;
 
     let url = Url::student_years(&student_id);
 
@@ -273,7 +275,7 @@ pub async fn get_file(
     student_id: String,
     year: String,
 ) -> Result<FileResponse, String> {
-    let (client, _) = get_session(&state, &params.session_id)?;
+    let client = get_student_session(&state, &params.session_id, &student_id)?;
 
     let file_types: Vec<String> = if params.file_type == "all" {
         FILE_TYPES
@@ -397,7 +399,7 @@ pub async fn list_files(
     params: FileParams,
     student_id: String,
 ) -> Result<Vec<CourseFile>, String> {
-    let (client, _) = get_session(&state, &params.session_id)?;
+    let client = get_student_session(&state, &params.session_id, &student_id)?;
 
     let handles: VecThr<Vec<CourseFile>> = FILE_TYPES
         .iter()
@@ -454,20 +456,14 @@ pub async fn get_schedule(
     state: State<'_, AppState>,
     cache: State<'_, CacheHandler>,
     session_id: String,
-    student_id: Option<String>,
+    student_id: String,
     year: Option<String>,
     period: Option<String>,
     use_cache: Option<bool>,
 ) -> Result<Schedule, String> {
-    let (client, student_ids) = get_session(&state, &session_id)?;
+    let client = get_student_session(&state, &session_id, &student_id)?;
 
-    let resolved_id = student_id
-        .as_deref()
-        .or_else(|| student_ids.values().next().map(|s| s.as_str()))
-        .ok_or(NO_STUDENT)?
-        .to_string();
-
-    let url = Url::schedule(&resolved_id, year.as_deref(), period.as_deref());
+    let url = Url::schedule(&student_id, year.as_deref(), period.as_deref());
 
     let html = if use_cache.unwrap_or(true) {
         cache.get(&url, &client).await?
@@ -491,7 +487,7 @@ pub async fn get_tests(
     period: Option<String>,
     use_cache: Option<bool>,
 ) -> Result<Vec<Test>, String> {
-    let (client, _) = get_session(&state, &session_id)?;
+    let client = get_student_session(&state, &session_id, &student_id)?;
     let url = Url::tests(&student_id, year.as_deref(), period.as_deref());
     let html = if use_cache.unwrap_or(true) {
         cache.get(&url, &client).await?
