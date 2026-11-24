@@ -58,6 +58,8 @@
 - No data stored externally
 - Optional "remember me" saves your login in the OS keyring (Windows Credential Manager, macOS Keychain, Secret Service on Linux)
 - Automatically logs back in when the CLIP session expires
+- Logging out forgets the saved login and clears the local cache
+- Loads nothing from the internet but CLIP: fonts are bundled with the app
 
 ### **Light & Dark Theme**
 - Switch between light and dark themes with accessible contrast
@@ -176,6 +178,11 @@ cd vue-app
 npm run dev           # Run Vue dev server (port 1420)
 npm run build         # Type-check and build Vue app
 npm run lint          # Lint with ESLint (lint:fix to auto-fix)
+npm test              # Run the frontend tests (Vitest; test:watch to keep running)
+
+# Backend
+cd src-tauri
+cargo test            # Run the backend tests
 ```
 
 The Vue-only dev server shows the UI, but anything that talks to CLIP needs the Tauri backend.
