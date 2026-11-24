@@ -7,7 +7,7 @@ use tauri::{AppHandle, Manager};
 use tauri_plugin_dialog::DialogExt;
 
 use crate::errors::{DOWNLOAD_CANCELLED, SAVE_FAILED};
-use crate::settings::SettingsStore;
+use crate::settings::{SettingsStore, UiLanguage};
 
 /// The folder downloads go to: the one the user chose, or, the first time (or if that
 /// folder is gone), one they are asked for now. `Err(DOWNLOAD_CANCELLED)` if they decline.
@@ -35,7 +35,7 @@ pub async fn choose_download_dir(app: &AppHandle) -> Result<Option<PathBuf>, Str
     let mut picker = app
         .dialog()
         .file()
-        .set_title("Escolha onde guardar as transferências");
+        .set_title(picker_title(app.state::<UiLanguage>().is_portuguese()));
     if let Some(start) = start.filter(|d| d.is_dir()) {
         picker = picker.set_directory(start);
     }
@@ -48,6 +48,14 @@ pub async fn choose_download_dir(app: &AppHandle) -> Result<Option<PathBuf>, Str
     app.state::<SettingsStore>()
         .update(|s| s.download_dir = Some(dir.clone()))?;
     Ok(Some(dir))
+}
+
+fn picker_title(portuguese: bool) -> &'static str {
+    if portuguese {
+        "Escolha onde guardar as transferências"
+    } else {
+        "Choose where to save downloads"
+    }
 }
 
 /// Where the folder picker starts the first time: the OS's downloads folder, or else
@@ -183,6 +191,12 @@ mod tests {
             Some(PathBuf::from("/home/ana/Downloads"))
         );
         assert_eq!(default_downloads_dir(None, None), None);
+    }
+
+    #[test]
+    fn picker_title_follows_the_language() {
+        assert_eq!(picker_title(true), "Escolha onde guardar as transferências");
+        assert_eq!(picker_title(false), "Choose where to save downloads");
     }
 
     #[test]

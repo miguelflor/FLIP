@@ -56,7 +56,8 @@ pub fn run() {
             app.manage(settings::SettingsStore::load(settings));
             Ok(())
         })
-        .manage(AppState::default());
+        .manage(AppState::default())
+        .manage(settings::UiLanguage::default());
 
     if config.logging {
         builder = builder.plugin(tauri_plugin_log::Builder::default().build());
@@ -79,6 +80,7 @@ pub fn run() {
             commands::get_schedule,
             commands::get_tests,
             commands::reset_cache,
+            commands::set_language,
             commands::get_download_dir,
             commands::change_download_dir
         ])

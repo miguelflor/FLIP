@@ -10,6 +10,13 @@
         :options="THEME_OPTIONS"
         @update:model-value="setTheme"
       />
+      <ChoiceGroup
+        class="mt-4"
+        :model-value="language"
+        :legend="t('settings.language')"
+        :options="LANGUAGE_OPTIONS"
+        @update:model-value="setLanguage"
+      />
     </SettingsSection>
 
     <SettingsSection
@@ -134,7 +141,7 @@ import SettingsSection from './SettingsSection.vue';
 import { usePreload, type PreloadChoice } from '../composables/usePreload';
 import { useToast } from '../composables/useToast';
 import { useTheme, type ThemeChoice } from '../composables/useTheme';
-import { t, translateError } from '../lib/i18n';
+import { t, translateError, useLanguage, type LanguageChoice } from '../lib/i18n';
 
 const BUTTON =
   'shrink-0 cursor-pointer px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-md hover:shadow-sm hover:bg-slate-50 transition-all font-medium disabled:opacity-50';
@@ -147,6 +154,15 @@ const { theme, setTheme } = useTheme();
 const THEME_OPTIONS = computed<{ value: ThemeChoice; label: string; icon: Component }[]>(() => [
   { value: 'light', label: t('settings.themeLight'), icon: Sun },
   { value: 'dark', label: t('settings.themeDark'), icon: Moon },
+  { value: 'system', label: t('settings.system'), icon: Monitor },
+]);
+
+// Each language is named in itself, so it can be found whatever the current one is
+const { language, setLanguage } = useLanguage();
+
+const LANGUAGE_OPTIONS = computed<{ value: LanguageChoice; label: string; icon?: Component }[]>(() => [
+  { value: 'pt', label: 'Português' },
+  { value: 'en', label: 'English' },
   { value: 'system', label: t('settings.system'), icon: Monitor },
 ]);
 

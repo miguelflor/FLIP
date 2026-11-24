@@ -25,7 +25,7 @@ use crate::parser::{
 use crate::session::{
     fetch, get_session, get_student_session, is_login_page, new_http_client, ClipClient,
 };
-use crate::settings::SettingsStore;
+use crate::settings::{SettingsStore, UiLanguage};
 use crate::types::{
     ChairsResponse, CourseDownload, CourseFile, FileParams, FileRef, LoginResponse, Schedule,
     StudentInfo, Test,
@@ -533,6 +533,12 @@ pub async fn get_tests(
 #[command]
 pub async fn reset_cache(cache: State<'_, CacheHandler>) -> Result<(), String> {
     cache.reset().await
+}
+
+/// The language the user sees, for text the backend shows itself.
+#[command]
+pub fn set_language(language: State<'_, UiLanguage>, locale: String) {
+    *language.0.lock() = locale;
 }
 
 /// The folder downloads go to, if one has been chosen.

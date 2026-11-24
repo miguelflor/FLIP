@@ -11,6 +11,17 @@ pub struct Settings {
     pub download_dir: Option<PathBuf>,
 }
 
+/// The language the frontend shows ("pt-PT" or "en"), for the little text the backend
+/// draws itself, such as the folder picker's title.
+#[derive(Default)]
+pub struct UiLanguage(pub Mutex<String>);
+
+impl UiLanguage {
+    pub fn is_portuguese(&self) -> bool {
+        self.0.lock().starts_with("pt")
+    }
+}
+
 pub struct SettingsStore {
     path: PathBuf,
     settings: Mutex<Settings>,

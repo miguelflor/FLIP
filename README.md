@@ -65,6 +65,9 @@
 ### **Light & Dark Theme**
 - Light, dark, or follow the system theme (in Settings), with accessible contrast
 
+### **Portuguese & English**
+- The app is in European Portuguese and English, following the system language or chosen in Settings
+
 ---
 
 ## 🛠️ Tech Stack

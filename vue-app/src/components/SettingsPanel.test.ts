@@ -158,3 +158,22 @@ describe('SettingsPanel file preloading', () => {
     expect(localStorage.getItem('preload_files')).toBe('none');
   });
 });
+
+describe('SettingsPanel language', () => {
+  it('switches the language of everything on screen', async () => {
+    vi.mocked(invoke).mockResolvedValue(null);
+    const { useLanguage } = await import('../lib/i18n');
+    useLanguage().setLanguage('system');
+    const wrapper = mount(SettingsPanel);
+    await flushPromises();
+
+    const radios = choices(wrapper, 'Idioma');
+    expect(radios.map((r) => r.element.parentElement!.textContent!.trim())).toEqual(['Português', 'English', 'Sistema']);
+
+    await radios[1].setValue(true);
+    expect(wrapper.text()).toContain('Appearance');
+    expect(choices(wrapper, 'Language')).toHaveLength(3);
+    expect(document.documentElement.lang).toBe('en');
+    useLanguage().setLanguage('system');
+  });
+});
