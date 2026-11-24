@@ -20,7 +20,7 @@
       </button>
     </div>
 
-    <ul class="p-4 space-y-2 text-sm">
+    <div class="p-4 space-y-2 text-sm">
       <input
         v-if="hasAnyChairs && !loading && !error"
         v-model="query"
@@ -94,7 +94,7 @@
           Por favor, verifique se está autenticado.
         </p>
       </div>
-    </ul>
+    </div>
   </div>
 </template>
 
@@ -172,7 +172,7 @@ const chairs = computed<ChairsByPeriod>(() => {
 const error = computed(() => {
   if (queryError.value) return queryError.value;
   const res = response.value;
-  if (res && !res.success) return res.error ?? 'Failed to fetch chairs';
+  if (res && !res.success) return res.error ?? 'Não foi possível obter as cadeiras';
   return null;
 });
 
