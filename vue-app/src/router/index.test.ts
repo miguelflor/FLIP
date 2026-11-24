@@ -23,3 +23,9 @@ describe('router', () => {
     expect(router.currentRoute.value.path).toBe('/app/dashboard');
   });
 });
+
+describe('router pages', () => {
+  it('has no placeholder pages', () => {
+    expect(router.getRoutes().map((r) => r.path)).not.toContain('/app/files');
+  });
+});

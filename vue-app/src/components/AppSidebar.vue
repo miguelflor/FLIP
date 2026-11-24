@@ -44,20 +44,6 @@
           />
           <span class="font-medium">Dashboard</span>
         </RouterLink>
-
-        <RouterLink
-          to="/app/files"
-          class="flex items-center space-x-3 px-3 py-2 text-sm rounded-lg transition-all duration-200 group whitespace-nowrap"
-          :class="route.name === 'files'
-            ? 'bg-white shadow-sm text-blue-700'
-            : 'text-slate-700 hover:bg-white hover:shadow-sm'"
-        >
-          <FolderOpen
-            class="w-4 h-4 shrink-0"
-            :class="route.name === 'files' ? 'text-blue-600' : 'text-slate-500 group-hover:text-blue-600'"
-          />
-          <span class="font-medium">Ficheiros</span>
-        </RouterLink>
       </nav>
 
       <!-- Bottom actions -->
@@ -87,7 +73,7 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from "vue-router";
 import { invoke } from "@tauri-apps/api/core";
-import { FolderOpen, LayoutDashboard, LogOut, RefreshCw, X } from "lucide-vue-next";
+import { LayoutDashboard, LogOut, RefreshCw, X } from "lucide-vue-next";
 import { useToast } from "../composables/useToast";
 import { useStudent } from "../composables/useStudent";
 

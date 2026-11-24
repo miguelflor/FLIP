@@ -128,7 +128,7 @@ FLIP/
 │   ├── src/
 │   │   ├── components/   # Reusable Vue components
 │   │   ├── composables/  # Shared state and logic (student, theme, toasts, queries)
-│   │   ├── views/        # Page components (Login, Dashboard, Files, AppLayout)
+│   │   ├── views/        # Page components (Login, Dashboard, AppLayout)
 │   │   ├── lib/          # Utilities and helpers
 │   │   └── router/       # Vue Router configuration
 │   └── dist/             # Production build output
