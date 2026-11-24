@@ -9,15 +9,24 @@ use crate::errors::{DOWNLOADS_UNAVAILABLE, SAVE_FAILED};
 
 /// The user's downloads folder, where every download goes.
 pub fn downloads_dir(app: &AppHandle) -> Result<PathBuf, String> {
-    let dir = app.path().download_dir().map_err(|e| {
-        log::warn!("No downloads folder: {e}");
-        DOWNLOADS_UNAVAILABLE.to_string()
-    })?;
+    let paths = app.path();
+    let dir = choose_downloads_dir(paths.download_dir().ok(), paths.home_dir().ok()).ok_or_else(
+        || {
+            log::warn!("No downloads or home folder");
+            DOWNLOADS_UNAVAILABLE.to_string()
+        },
+    )?;
     std::fs::create_dir_all(&dir).map_err(|e| {
         log::warn!("Cannot create {}: {e}", dir.display());
         DOWNLOADS_UNAVAILABLE.to_string()
     })?;
     Ok(dir)
+}
+
+/// The OS's downloads folder, or else ~/Downloads: Linux reports none without an XDG
+/// user-dirs setup, as on WSL and minimal installs.
+fn choose_downloads_dir(download: Option<PathBuf>, home: Option<PathBuf>) -> Option<PathBuf> {
+    download.or_else(|| home.map(|h| h.join("Downloads")))
 }
 
 /// Writes `data` as a new file named after `name` in `dir`, and returns its path.
@@ -130,6 +139,23 @@ mod tests {
         assert_eq!(unique_path(&dir, "a.pdf"), dir.join("a (2).pdf"));
         assert_eq!(unique_path(&dir, "x/y"), dir.join("x_y"));
         std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn falls_back_to_downloads_in_home() {
+        let (dl, home) = (
+            PathBuf::from("/x/Transferências"),
+            PathBuf::from("/home/ana"),
+        );
+        assert_eq!(
+            choose_downloads_dir(Some(dl.clone()), Some(home.clone())),
+            Some(dl)
+        );
+        assert_eq!(
+            choose_downloads_dir(None, Some(home)),
+            Some(PathBuf::from("/home/ana/Downloads"))
+        );
+        assert_eq!(choose_downloads_dir(None, None), None);
     }
 
     #[test]
