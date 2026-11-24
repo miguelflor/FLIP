@@ -4,8 +4,16 @@ import { invoke } from '@tauri-apps/api/core';
 import SettingsView from './SettingsView.vue';
 import { useToast } from '../composables/useToast';
 import { useTheme } from '../composables/useTheme';
+import { usePreload } from '../composables/usePreload';
 
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn() }));
+
+/** The radio buttons of the choice group with this legend. */
+const choices = (wrapper: ReturnType<typeof mount>, legend: string) =>
+  wrapper
+    .findAll('fieldset')
+    .find((f) => f.get('legend').text() === legend)!
+    .findAll('input[type="radio"]');
 
 const answer = (current: string | null, chosen: string | null, login: string | null = null) =>
   vi.mocked(invoke).mockImplementation(async (cmd) => {
@@ -60,7 +68,7 @@ describe('SettingsView theme', () => {
     const wrapper = mount(SettingsView, { attachTo: document.body });
     await flushPromises();
 
-    const radios = wrapper.findAll('input[type="radio"][name="theme"]');
+    const radios = choices(wrapper, 'Tema');
     expect(radios.map((r) => r.element.parentElement!.textContent!.trim())).toEqual(['Claro', 'Escuro', 'Sistema']);
     expect((radios[2].element as HTMLInputElement).checked).toBe(true);
 
@@ -127,5 +135,26 @@ describe('SettingsView saved login', () => {
     const wrapper = mount(SettingsView);
     await flushPromises();
     expect(wrapper.get('[data-testid="saved-login"]').text()).toContain('Lembrar-me neste computador');
+  });
+});
+
+describe('SettingsView file preloading', () => {
+  it('offers the three preload choices and keeps the one picked', async () => {
+    vi.mocked(invoke).mockResolvedValue(null);
+    usePreload().setPreload('period');
+    const wrapper = mount(SettingsView);
+    await flushPromises();
+
+    const radios = choices(wrapper, 'Carregar antecipadamente');
+    expect(radios.map((r) => r.element.parentElement!.textContent!.trim())).toEqual([
+      'Período selecionado',
+      'Todos os períodos',
+      'Nenhum',
+    ]);
+    expect((radios[0].element as HTMLInputElement).checked).toBe(true);
+
+    await radios[2].setValue(true);
+    expect(usePreload().preload.value).toBe('none');
+    expect(localStorage.getItem('preload_files')).toBe('none');
   });
 });

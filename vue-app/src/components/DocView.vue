@@ -78,7 +78,7 @@
                 :key="`${chair.href}#${listingsVersion}`"
                 :chair="chair"
                 :query="query"
-                :preload="periodKey === period"
+                :preload="preloads(periodKey, period)"
               />
             </ul>
           </div>
@@ -105,11 +105,12 @@ import ChairItem from './ChairItem.vue';
 import { PeriodType } from '../lib/clipVars';
 import { useClipQuery } from '../composables/useClipQuery';
 import { forgetCourseFiles } from '../composables/useCourseFiles';
+import { usePreload } from '../composables/usePreload';
 
 const props = defineProps<{
   studentId: string | null;
   year: string | null;
-  /** The selected period: only its units' files are loaded ahead of time. */
+  /** The selected period, whose units' files load ahead of time (see usePreload). */
   period: string | null;
 }>();
 
@@ -132,6 +133,7 @@ interface ChairsResponse {
 }
 
 const query = ref('');
+const { preloads } = usePreload();
 
 // Bumped on refresh to remount the units, so they list their files anew.
 const listingsVersion = ref(0);

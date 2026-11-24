@@ -12,6 +12,7 @@ const KEYS = {
   selectedYear: 'selected_year',
   selectedPeriod: 'selected_period',
   theme: 'theme',
+  preloadFiles: 'preload_files',
 } as const;
 
 export type StorageKey = keyof typeof KEYS;
