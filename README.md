@@ -62,7 +62,7 @@
 - Loads nothing from the internet but CLIP: fonts are bundled with the app
 
 ### **Light & Dark Theme**
-- Switch between light and dark themes with accessible contrast
+- Light, dark, or follow the system theme (in Settings), with accessible contrast
 
 ---
 

@@ -3,6 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { invoke } from '@tauri-apps/api/core';
 import SettingsView from './SettingsView.vue';
 import { useToast } from '../composables/useToast';
+import { useTheme } from '../composables/useTheme';
 
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn() }));
 
@@ -48,5 +49,23 @@ describe('SettingsView download folder', () => {
     await flushPromises();
     expect(wrapper.get('[data-testid="download-folder"]').text()).toBe('/home/ana/Downloads');
     expect(useToast().toasts.value).toEqual([]);
+  });
+});
+
+describe('SettingsView theme', () => {
+  it('offers light, dark and system themes, and applies the one picked', async () => {
+    vi.mocked(invoke).mockResolvedValue(null);
+    useTheme().setTheme('system');
+    const wrapper = mount(SettingsView, { attachTo: document.body });
+    await flushPromises();
+
+    const radios = wrapper.findAll('input[type="radio"][name="theme"]');
+    expect(radios.map((r) => r.element.parentElement!.textContent!.trim())).toEqual(['Claro', 'Escuro', 'Sistema']);
+    expect((radios[2].element as HTMLInputElement).checked).toBe(true);
+
+    await radios[1].setValue(true);
+    expect(useTheme().theme.value).toBe('dark');
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+    wrapper.unmount();
   });
 });
