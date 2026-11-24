@@ -24,7 +24,7 @@ describe('SettingsView download folder', () => {
     const wrapper = mount(SettingsView);
     await flushPromises();
     expect(wrapper.get('[data-testid="download-folder"]').text()).toContain('será pedida na primeira transferência');
-    expect(wrapper.get('button').text()).toBe('Escolher pasta');
+    expect(wrapper.get('[data-testid="change-folder"]').text()).toBe('Escolher pasta');
   });
 
   it('shows the chosen folder and changes it', async () => {
@@ -33,7 +33,7 @@ describe('SettingsView download folder', () => {
     await flushPromises();
     expect(wrapper.get('[data-testid="download-folder"]').text()).toBe('/home/ana/Downloads');
 
-    await wrapper.get('button').trigger('click');
+    await wrapper.get('[data-testid="change-folder"]').trigger('click');
     await flushPromises();
 
     expect(invoke).toHaveBeenCalledWith('change_download_dir');
@@ -45,7 +45,7 @@ describe('SettingsView download folder', () => {
     answer('/home/ana/Downloads', null);
     const wrapper = mount(SettingsView);
     await flushPromises();
-    await wrapper.get('button').trigger('click');
+    await wrapper.get('[data-testid="change-folder"]').trigger('click');
     await flushPromises();
     expect(wrapper.get('[data-testid="download-folder"]').text()).toBe('/home/ana/Downloads');
     expect(useToast().toasts.value).toEqual([]);
@@ -67,5 +67,34 @@ describe('SettingsView theme', () => {
     expect(useTheme().theme.value).toBe('dark');
     expect(document.documentElement.classList.contains('dark')).toBe(true);
     wrapper.unmount();
+  });
+});
+
+describe('SettingsView cache', () => {
+  beforeEach(() => {
+    vi.mocked(invoke).mockReset().mockResolvedValue(null);
+    useToast().toasts.value = [];
+  });
+
+  it('clears the cache', async () => {
+    const wrapper = mount(SettingsView);
+    await flushPromises();
+    await wrapper.get('[data-testid="clear-cache"]').trigger('click');
+    await flushPromises();
+    expect(invoke).toHaveBeenCalledWith('reset_cache');
+    expect(useToast().toasts.value.map((t) => t.message)).toEqual(['Cache limpa com sucesso']);
+  });
+
+  it('says when clearing failed', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.mocked(invoke).mockImplementation(async (cmd) => {
+      if (cmd === 'reset_cache') throw 'Erro ao aceder à cache local';
+      return null;
+    });
+    const wrapper = mount(SettingsView);
+    await flushPromises();
+    await wrapper.get('[data-testid="clear-cache"]').trigger('click');
+    await flushPromises();
+    expect(useToast().toasts.value.map((t) => t.message)).toEqual(['Erro ao limpar cache']);
   });
 });

@@ -4,26 +4,14 @@
       Definições
     </h2>
 
-    <section
-      class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"
-      aria-labelledby="appearance-heading"
+    <SettingsSection
+      title="Aparência"
+      :icon="Palette"
     >
-      <div class="flex items-center gap-2 px-4 py-3 border-b border-slate-100">
-        <Palette class="w-5 h-5 text-slate-500 shrink-0" />
-        <h3
-          id="appearance-heading"
-          class="text-lg font-bold text-slate-900"
-        >
-          Aparência
-        </h3>
-      </div>
-      <fieldset class="p-4 text-sm">
-        <legend class="sr-only">
+      <fieldset>
+        <legend class="text-slate-500 mb-3">
           Tema
         </legend>
-        <p class="text-slate-500 mb-3">
-          Tema
-        </p>
         <div class="inline-flex flex-wrap gap-2">
           <label
             v-for="option in THEME_OPTIONS"
@@ -51,28 +39,19 @@
           </label>
         </div>
       </fieldset>
-    </section>
+    </SettingsSection>
 
-    <section
-      class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"
-      aria-labelledby="downloads-heading"
+    <SettingsSection
+      title="Transferências"
+      :icon="FolderDown"
     >
-      <div class="flex items-center gap-2 px-4 py-3 border-b border-slate-100">
-        <FolderDown class="w-5 h-5 text-slate-500 shrink-0" />
-        <h3
-          id="downloads-heading"
-          class="text-lg font-bold text-slate-900"
-        >
-          Transferências
-        </h3>
-      </div>
-      <div class="p-4 flex flex-col sm:flex-row sm:items-center gap-3 text-sm">
+      <div class="flex flex-col sm:flex-row sm:items-center gap-3">
         <div class="min-w-0 flex-1">
           <p class="text-slate-500">
             Ficheiros, horários e calendários são guardados em:
           </p>
           <p
-            v-if="loading"
+            v-if="loadingFolder"
             class="mt-1 h-4 w-48 rounded bg-slate-200 animate-pulse"
           />
           <p
@@ -92,25 +71,53 @@
         </div>
         <button
           type="button"
-          class="shrink-0 cursor-pointer px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-md hover:shadow-sm hover:bg-slate-50 transition-all font-medium disabled:opacity-50"
-          :disabled="loading || choosing"
+          :class="BUTTON"
+          :disabled="loadingFolder || choosing"
+          data-testid="change-folder"
           @click="changeFolder"
         >
           {{ folder ? 'Alterar pasta' : 'Escolher pasta' }}
         </button>
       </div>
-    </section>
+    </SettingsSection>
+
+    <SettingsSection
+      title="Cache"
+      :icon="Database"
+    >
+      <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+        <p class="min-w-0 flex-1 text-slate-500">
+          As páginas do CLIP ficam guardadas neste computador, cifradas, para o FLIP abrir
+          depressa. Limpar a cache obriga a pedi-las de novo ao CLIP.
+        </p>
+        <button
+          type="button"
+          :class="BUTTON"
+          :disabled="clearing"
+          data-testid="clear-cache"
+          @click="clearCache"
+        >
+          Limpar cache
+        </button>
+      </div>
+    </SettingsSection>
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { FolderDown, Monitor, Moon, Palette, Sun } from 'lucide-vue-next';
+import { Database, FolderDown, Monitor, Moon, Palette, Sun } from 'lucide-vue-next';
 import { invoke } from '@tauri-apps/api/core';
+import SettingsSection from '../components/SettingsSection.vue';
 import { useToast } from '../composables/useToast';
 import { useTheme, type ThemeChoice } from '../composables/useTheme';
 
+const BUTTON =
+  'shrink-0 cursor-pointer px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-md hover:shadow-sm hover:bg-slate-50 transition-all font-medium disabled:opacity-50';
+
 const { success, error } = useToast();
+
+// Appearance
 const { theme, setTheme } = useTheme();
 
 const THEME_OPTIONS: { value: ThemeChoice; label: string; icon: typeof Sun }[] = [
@@ -118,8 +125,10 @@ const THEME_OPTIONS: { value: ThemeChoice; label: string; icon: typeof Sun }[] =
   { value: 'dark', label: 'Escuro', icon: Moon },
   { value: 'system', label: 'Sistema', icon: Monitor },
 ];
+
+// Downloads
 const folder = ref<string | null>(null);
-const loading = ref(true);
+const loadingFolder = ref(true);
 const choosing = ref(false);
 
 onMounted(async () => {
@@ -128,7 +137,7 @@ onMounted(async () => {
   } catch (e) {
     console.error('Error reading download folder:', e);
   } finally {
-    loading.value = false;
+    loadingFolder.value = false;
   }
 });
 
@@ -145,6 +154,22 @@ const changeFolder = async () => {
     error(String(e));
   } finally {
     choosing.value = false;
+  }
+};
+
+// Cache
+const clearing = ref(false);
+
+const clearCache = async () => {
+  clearing.value = true;
+  try {
+    await invoke('reset_cache');
+    success('Cache limpa com sucesso');
+  } catch (e) {
+    console.error('Error resetting cache:', e);
+    error('Erro ao limpar cache');
+  } finally {
+    clearing.value = false;
   }
 };
 </script>

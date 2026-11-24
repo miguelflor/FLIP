@@ -64,15 +64,6 @@
       <div class="p-3 border-t border-slate-200 space-y-1">
         <button
           class="cursor-pointer w-full flex items-center justify-center space-x-2 px-3 py-2 text-slate-500 hover:text-slate-700 hover:bg-slate-200 rounded-lg transition-all duration-200 group whitespace-nowrap"
-          title="Limpar cache"
-          @click="handleResetCache"
-        >
-          <RefreshCw class="w-4 h-4 shrink-0" />
-          <span class="text-sm font-medium">Limpar cache</span>
-        </button>
-
-        <button
-          class="cursor-pointer w-full flex items-center justify-center space-x-2 px-3 py-2 text-slate-500 hover:text-slate-700 hover:bg-slate-200 rounded-lg transition-all duration-200 group whitespace-nowrap"
           title="Terminar sessão"
           @click="handleLogout"
         >
@@ -87,8 +78,7 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from "vue-router";
 import { invoke } from "@tauri-apps/api/core";
-import { LayoutDashboard, LogOut, RefreshCw, Settings, X } from "lucide-vue-next";
-import { useToast } from "../composables/useToast";
+import { LayoutDashboard, LogOut, Settings, X } from "lucide-vue-next";
 import { useStudent } from "../composables/useStudent";
 
 defineProps<{
@@ -101,18 +91,7 @@ const emit = defineEmits<{
 
 const route = useRoute();
 const router = useRouter();
-const { success, error } = useToast();
 const { sessionId, endSession } = useStudent();
-
-const handleResetCache = async () => {
-  try {
-    await invoke('reset_cache');
-    success('Cache limpa com sucesso');
-  } catch (e) {
-    console.error('Error resetting cache:', e);
-    error('Erro ao limpar cache');
-  }
-};
 
 // Leaves even if the backend call fails: staying logged in is worse than a stale session.
 const handleLogout = async () => {

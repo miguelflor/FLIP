@@ -51,4 +51,10 @@ describe('AppSidebar logout', () => {
     expect(useStudent().sessionId.value).toBeNull();
     expect(router.currentRoute.value.path).toBe('/');
   });
+
+  it('keeps only logging out at the bottom; the cache is cleared in Settings', async () => {
+    const router = await makeRouter();
+    const wrapper = mount(AppSidebar, { props: { open: true }, global: { plugins: [router] } });
+    expect(wrapper.find('button[title="Limpar cache"]').exists()).toBe(false);
+  });
 });
