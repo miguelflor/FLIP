@@ -327,7 +327,7 @@ mod tests {
 
         let result = cache.put(&url, &client).await;
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err(), "O CLIP respondeu com um erro (500)");
+        assert_eq!(result.unwrap_err(), "clip_http_error|500");
         mock.assert();
     }
 

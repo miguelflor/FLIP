@@ -21,6 +21,6 @@ describe('downloads', () => {
   it('recognises a cancelled folder choice, as the backend words it', () => {
     expect(errorsRs).toContain(`DOWNLOAD_CANCELLED: &str = "${DOWNLOAD_CANCELLED}"`);
     expect(isCancelled(DOWNLOAD_CANCELLED)).toBe(true);
-    expect(isCancelled('Não foi possível guardar o ficheiro')).toBe(false);
+    expect(isCancelled('save_failed')).toBe(false);
   });
 });

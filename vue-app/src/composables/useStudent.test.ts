@@ -23,11 +23,11 @@ describe('invokeClip', () => {
     await expect(invokeClip('get_schedule')).rejects.toBe(SESSION_EXPIRED);
 
     expect(useStudent().sessionId.value).toBeNull();
-    expect(useToast().toasts.value.map((t) => t.message)).toEqual([SESSION_EXPIRED]);
+    expect(useToast().toasts.value.map((t) => t.message)).toEqual(['Sessão expirada, inicie sessão novamente']);
   });
 
   it('keeps the session on any other error', async () => {
-    vi.mocked(invoke).mockRejectedValue('O CLIP respondeu com um erro (500)');
+    vi.mocked(invoke).mockRejectedValue('clip_http_error|500');
     await expect(invokeClip('get_tests')).rejects.toBeTruthy();
     expect(useStudent().sessionId.value).toBe('session-1');
   });

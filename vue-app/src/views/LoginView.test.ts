@@ -36,7 +36,7 @@ describe('LoginView', () => {
   });
 
   it('explains a failed automatic login, and retries it on request', async () => {
-    vi.mocked(invoke).mockRejectedValueOnce('Não foi possível contactar o CLIP.');
+    vi.mocked(invoke).mockRejectedValueOnce('clip_unreachable');
     const { wrapper, router } = await mountView();
 
     expect(wrapper.get('[role="alert"]').text()).toContain('Não foi possível contactar o CLIP.');

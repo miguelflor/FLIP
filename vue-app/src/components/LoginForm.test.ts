@@ -22,7 +22,7 @@ describe('LoginForm', () => {
   });
 
   it('keeps the username and clears the password after a failed login', async () => {
-    vi.mocked(invoke).mockRejectedValue('Identificador ou palavra-passe incorretos');
+    vi.mocked(invoke).mockRejectedValue('invalid_credentials');
     const wrapper = mountForm();
     await wrapper.get('#username').setValue('a.silva');
     await wrapper.get('#password').setValue('wrong');

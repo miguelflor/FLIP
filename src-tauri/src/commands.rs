@@ -15,8 +15,8 @@ use crate::cache::{CacheHandler, APP_NAME};
 use crate::constants::{CLIP_BASE, CLIP_HOME, FILE_TYPES};
 use crate::downloads::{choose_download_dir, downloads_dir, save_new_file, unique_path, ZipNames};
 use crate::errors::{
-    http_error, net_error, INVALID_CREDENTIALS, INVALID_FILE_LINK, LOGIN_FAILED, NO_STUDENT_DATA,
-    SAVE_FAILED, SCHEDULE_UNREADABLE, STUDENT_INFO_UNREADABLE, ZIP_EMPTY,
+    http_error, net_error, no_files, INVALID_CREDENTIALS, INVALID_FILE_LINK, LOGIN_FAILED,
+    NO_STUDENT_DATA, SAVE_FAILED, SCHEDULE_UNREADABLE, STUDENT_INFO_UNREADABLE, ZIP_EMPTY,
 };
 use crate::parser::{
     extract_aluno_ids, extract_student_info, file_name_from_href, parse_chairs, parse_files,
@@ -306,7 +306,7 @@ pub async fn download_course(
 ) -> Result<CourseDownload, String> {
     let (client, _) = get_session(&state, &session_id)?;
     if files.is_empty() {
-        return Err(format!("{name} não tem ficheiros"));
+        return Err(no_files(&name));
     }
     // Only CLIP document links: keeps the authenticated client off arbitrary URLs
     if !files.iter().all(|f| is_clip_file_link(&f.href)) {
@@ -639,7 +639,7 @@ mod tests {
         ];
         assert_eq!(
             files_on_pages(&test_client(), pages).await.unwrap_err(),
-            "O CLIP respondeu com um erro (503)"
+            "clip_http_error|503"
         );
     }
 
@@ -692,10 +692,7 @@ mod tests {
             .await
             .unwrap();
         assert_eq!((zipped.saved, zipped.failed), (3, 1));
-        assert_eq!(
-            zipped.first_error.as_deref(),
-            Some("O CLIP respondeu com um erro (500)")
-        );
+        assert_eq!(zipped.first_error.as_deref(), Some("clip_http_error|500"));
 
         let mut archive = zip::ZipArchive::new(out).unwrap();
         let mut entries = HashMap::new();
@@ -779,10 +776,7 @@ mod tests {
         .await
         .unwrap();
         assert_eq!((zipped.saved, zipped.failed), (0, 1));
-        assert_eq!(
-            zipped.first_error.as_deref(),
-            Some("O CLIP respondeu com um erro (404)")
-        );
+        assert_eq!(zipped.first_error.as_deref(), Some("clip_http_error|404"));
     }
 
     #[test]

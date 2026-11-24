@@ -37,7 +37,7 @@ describe('ChairItem file listing', () => {
   });
 
   it('shows a failed listing as an error with a retry, not as "no files"', async () => {
-    answer(() => Promise.reject('O CLIP respondeu com um erro (503)'));
+    answer(() => Promise.reject('clip_http_error|503'));
     const wrapper = mount(ChairItem, { props: { chair, query: '' } });
     await flushPromises();
 
@@ -195,7 +195,7 @@ describe('ChairItem cancelled download', () => {
   it('stays quiet when the user closes the folder picker', async () => {
     vi.mocked(invoke).mockImplementation(async (cmd) => {
       if (cmd === 'list_files') return [file];
-      if (cmd === 'download_file' || cmd === 'download_course') throw 'Transferência cancelada';
+      if (cmd === 'download_file' || cmd === 'download_course') throw 'download_cancelled';
     });
     const wrapper = mount(ChairItem, { props: { chair, query: '' } });
     await wrapper.get('button[aria-expanded]').trigger('click');
