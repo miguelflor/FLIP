@@ -66,3 +66,44 @@ describe('ScheduleCard calendar export', () => {
     wrapper.unmount();
   });
 });
+
+describe('ScheduleCard grid', () => {
+  beforeEach(() => {
+    vi.mocked(invoke).mockReset();
+    useStudent().startSession('session-1', { 'Ana Silva': '123' });
+  });
+
+  const events = (wrapper: Awaited<ReturnType<typeof mountWith>>) =>
+    wrapper.findAll('[title^="Redes"], [title^="Cálculo"], [title^="Sábado"]');
+
+  it('shows clashing classes side by side instead of one over the other', async () => {
+    const wrapper = await mountWith([
+      item(),
+      item({ class: 'Cálculo', time_start: { hour: 10, min: 0 }, time_end: { hour: 12, min: 0 } }),
+    ]);
+    const [a, b] = events(wrapper).map((e) => (e.element as HTMLElement).style);
+    expect(a.width).toBe('calc(50% - 8px)');
+    expect(b.width).toBe('calc(50% - 8px)');
+    expect(a.left).not.toBe(b.left);
+    wrapper.unmount();
+  });
+
+  it('adds a Saturday column only when there are Saturday classes', async () => {
+    let wrapper = await mountWith([item()]);
+    expect(wrapper.text()).not.toContain('Sábado');
+    wrapper.unmount();
+
+    wrapper = await mountWith([item(), item({ weekday: 'Saturday', class: 'Sábado lab' })]);
+    expect(wrapper.text()).toContain('Sábado');
+    expect(wrapper.text()).toContain('Sábado lab');
+    wrapper.unmount();
+  });
+
+  it('shows the per-class export button to keyboard users, and does not pretend classes are clickable', async () => {
+    const wrapper = await mountWith([item()]);
+    const [event] = events(wrapper);
+    expect(event.classes()).not.toContain('cursor-pointer');
+    expect(event.get('button').classes()).toContain('focus-visible:opacity-100');
+    wrapper.unmount();
+  });
+});

@@ -58,3 +58,63 @@ export const classSeries = (
   const until = new Date(Date.UTC(end.getFullYear(), end.getMonth(), end.getDate(), 22, 59, 59));
   return { first, until };
 };
+
+const minutes = (hm: HourMinute) => hm.hour * 60 + hm.min;
+
+/** Where a class sits within its day column: column `col` of `cols` side-by-side columns. */
+export interface Placement {
+  col: number;
+  cols: number;
+}
+
+/**
+ * Side-by-side placement for one day's classes, so classes at overlapping times (e.g. a
+ * clash between two units) both show instead of one covering the other. Classes that
+ * overlap, directly or through others, share a group; each takes the first free column, and
+ * the group is split into as many columns as it needs.
+ */
+export function layoutDay(items: ScheduleItem[]): Map<ScheduleItem, Placement> {
+  const placements = new Map<ScheduleItem, Placement>();
+  const sorted = [...items].sort((a, b) => minutes(a.time_start) - minutes(b.time_start));
+  let group: ScheduleItem[] = [];
+  let columnEnds: number[] = [];
+  let groupEnd = -1;
+
+  const closeGroup = () => {
+    for (const item of group) placements.get(item)!.cols = columnEnds.length;
+    group = [];
+    columnEnds = [];
+  };
+
+  for (const item of sorted) {
+    const start = minutes(item.time_start);
+    if (start >= groupEnd) {
+      closeGroup();
+      groupEnd = start;
+    }
+    let col = columnEnds.findIndex((end) => end <= start);
+    if (col === -1) col = columnEnds.push(0) - 1;
+    columnEnds[col] = minutes(item.time_end);
+    groupEnd = Math.max(groupEnd, columnEnds[col]);
+    placements.set(item, { col, cols: 1 });
+    group.push(item);
+  }
+  closeGroup();
+  return placements;
+}
+
+const WEEKDAY_LABELS: Record<Weekday, string> = {
+  Monday: 'Segunda',
+  Tuesday: 'Terça',
+  Wednesday: 'Quarta',
+  Thursday: 'Quinta',
+  Friday: 'Sexta',
+  Saturday: 'Sábado',
+  Sunday: 'Domingo',
+};
+
+/** The days the grid shows: Monday to Friday, plus a weekend day when it has classes. */
+export const scheduleDays = (items: ScheduleItem[]): { key: Weekday; label: string }[] =>
+  (Object.keys(WEEKDAY_LABELS) as Weekday[])
+    .filter((day) => WEEKDAY_INDEX[day] <= 5 || items.some((i) => i.weekday === day))
+    .map((key) => ({ key, label: WEEKDAY_LABELS[key] }));

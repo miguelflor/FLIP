@@ -99,7 +99,13 @@
       </div>
 
       <!-- Day columns -->
-      <div class="flex-1 grid grid-cols-5 min-w-[420px]">
+      <div
+        class="flex-1 grid"
+        :style="{
+          gridTemplateColumns: `repeat(${weekDays.length}, minmax(0, 1fr))`,
+          minWidth: `${weekDays.length * 84}px`,
+        }"
+      >
         <div
           v-for="day in weekDays"
           :key="day.key"
@@ -143,10 +149,10 @@
 
             <!-- Events -->
             <div
-              v-for="(item, idx) in getScheduleForDay(day.key)"
-              :key="idx"
+              v-for="item in getScheduleForDay(day.key)"
+              :key="`${item.class}-${item.class_type}${item.class_number}-${formatTime(item.time_start)}`"
               :class="[
-                'absolute inset-x-1.5 rounded-md overflow-hidden cursor-pointer transition-all hover:z-10 hover:shadow-lg hover:brightness-95 group',
+                'absolute rounded-md overflow-hidden transition-all hover:z-10 focus-within:z-10 hover:shadow-lg hover:brightness-95 group',
                 getTypeStyle(item.class_type),
               ]"
               :style="{
@@ -154,6 +160,7 @@
                 height:
                   Math.max(toHeight(item.time_start, item.time_end) - 4, 24) +
                   'px',
+                ...horizontalPlacement(item),
               }"
               :title="`${item.class} · ${item.class_type}.${item.class_number}\n${formatTime(item.time_start)} – ${formatTime(item.time_end)}\n${item.location}`"
             >
@@ -170,7 +177,7 @@
               </div>
               <!-- Export button on hover -->
               <button
-                class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded bg-white/60 hover:bg-white/90"
+                class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity p-0.5 rounded bg-white/60 hover:bg-white/90"
                 title="Exportar para Google Calendar"
                 @click.stop="exportToGoogleCalendar(item)"
               >
@@ -201,7 +208,10 @@ import {
   CLASS_TYPE_LABELS,
   classSeries,
   isoDay,
+  layoutDay,
+  scheduleDays,
   WEEKDAY_INDEX,
+  type Placement,
   type ClassType,
   type HourMinute,
   type ScheduleItem,
@@ -240,13 +250,7 @@ const {
 
 const schedule = computed(() => scheduleData.value ?? []);
 
-const weekDays: { key: Weekday; label: string }[] = [
-  { key: "Monday", label: "Segunda" },
-  { key: "Tuesday", label: "Terça" },
-  { key: "Wednesday", label: "Quarta" },
-  { key: "Thursday", label: "Quinta" },
-  { key: "Friday", label: "Sexta" },
-];
+const weekDays = computed(() => scheduleDays(schedule.value));
 
 const minHour = computed(() => {
   if (!schedule.value.length) return 8;
@@ -278,11 +282,11 @@ const toHeight = (start: HourMinute, end: HourMinute) =>
 const formatTime = (hm: HourMinute) =>
   `${String(hm.hour).padStart(2, "0")}:${String(hm.min).padStart(2, "0")}`;
 
-// Grouped once per schedule change rather than re-filtering the whole list for
-// each of the five day columns on every render.
+// Grouped and laid out once per schedule change rather than for each day column on
+// every render.
 const scheduleByDay = computed(() => {
   const byDay = new Map<Weekday, ScheduleItem[]>();
-  for (const day of weekDays) byDay.set(day.key, []);
+  for (const day of weekDays.value) byDay.set(day.key, []);
   for (const item of schedule.value) {
     byDay.get(item.weekday)?.push(item);
   }
@@ -290,6 +294,23 @@ const scheduleByDay = computed(() => {
 });
 
 const getScheduleForDay = (day: Weekday) => scheduleByDay.value.get(day) ?? [];
+
+const placements = computed(() => {
+  const all = new Map<ScheduleItem, Placement>();
+  for (const items of scheduleByDay.value.values()) {
+    for (const [item, placement] of layoutDay(items)) all.set(item, placement);
+  }
+  return all;
+});
+
+/** Left edge and width within the day column, sharing it with any clashing class. */
+const horizontalPlacement = (item: ScheduleItem) => {
+  const { col, cols } = placements.value.get(item) ?? { col: 0, cols: 1 };
+  return {
+    left: `calc(${(col * 100) / cols}% + 4px)`,
+    width: `calc(${100 / cols}% - 8px)`,
+  };
+};
 
 const getTypeStyle = (type: ClassType) => {
   switch (type) {
