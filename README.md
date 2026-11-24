@@ -33,7 +33,7 @@
 - Export individual classes to Google Calendar
 - Classes become weekly events that end with the semester
 - Export the schedule as a PNG image
-- Exports and downloads are saved to your downloads folder
+- Downloads and exports go to a folder you choose the first time, changeable in Settings
 
 ### **Evaluation Tests**
 - See all of the current semester's evaluation tests right on the dashboard
@@ -131,7 +131,7 @@ FLIP/
 │   ├── src/
 │   │   ├── components/   # Reusable Vue components
 │   │   ├── composables/  # Shared state and logic (student, theme, toasts, queries)
-│   │   ├── views/        # Page components (Login, Dashboard, AppLayout)
+│   │   ├── views/        # Page components (Login, Dashboard, Settings, AppLayout)
 │   │   ├── lib/          # Utilities and helpers
 │   │   └── router/       # Vue Router configuration
 │   └── dist/             # Production build output

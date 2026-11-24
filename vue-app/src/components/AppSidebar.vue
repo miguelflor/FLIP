@@ -44,6 +44,20 @@
           />
           <span class="font-medium">Dashboard</span>
         </RouterLink>
+
+        <RouterLink
+          to="/app/settings"
+          class="flex items-center space-x-3 px-3 py-2 text-sm rounded-lg transition-all duration-200 group whitespace-nowrap"
+          :class="route.name === 'settings'
+            ? 'bg-white shadow-sm text-blue-700'
+            : 'text-slate-700 hover:bg-white hover:shadow-sm'"
+        >
+          <Settings
+            class="w-4 h-4 shrink-0"
+            :class="route.name === 'settings' ? 'text-blue-600' : 'text-slate-500 group-hover:text-blue-600'"
+          />
+          <span class="font-medium">Definições</span>
+        </RouterLink>
       </nav>
 
       <!-- Bottom actions -->
@@ -73,7 +87,7 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from "vue-router";
 import { invoke } from "@tauri-apps/api/core";
-import { LayoutDashboard, LogOut, RefreshCw, X } from "lucide-vue-next";
+import { LayoutDashboard, LogOut, RefreshCw, Settings, X } from "lucide-vue-next";
 import { useToast } from "../composables/useToast";
 import { useStudent } from "../composables/useStudent";
 
