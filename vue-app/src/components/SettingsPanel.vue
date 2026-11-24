@@ -1,41 +1,40 @@
 <template>
   <div class="space-y-4">
     <SettingsSection
-      title="Aparência"
+      :title="t('settings.appearance')"
       :icon="Palette"
     >
       <ChoiceGroup
         :model-value="theme"
-        legend="Tema"
+        :legend="t('settings.theme')"
         :options="THEME_OPTIONS"
         @update:model-value="setTheme"
       />
     </SettingsSection>
 
     <SettingsSection
-      title="Ficheiros das cadeiras"
+      :title="t('settings.preloadTitle')"
       :icon="Files"
     >
       <p class="text-slate-500 mb-3">
-        As listas de ficheiros carregadas em segundo plano aparecem logo, e a pesquisa
-        encontra-as. Carregar mais faz mais pedidos ao CLIP.
+        {{ t('settings.preloadHelp') }}
       </p>
       <ChoiceGroup
         :model-value="preload"
-        legend="Carregar antecipadamente"
+        :legend="t('settings.preload')"
         :options="PRELOAD_OPTIONS"
         @update:model-value="setPreload"
       />
     </SettingsSection>
 
     <SettingsSection
-      title="Transferências"
+      :title="t('settings.downloads')"
       :icon="FolderDown"
     >
       <div class="flex flex-col sm:flex-row sm:items-center gap-3">
         <div class="min-w-0 flex-1">
           <p class="text-slate-500">
-            Ficheiros, horários e calendários são guardados em:
+            {{ t('settings.downloadsHelp') }}
           </p>
           <p
             v-if="loadingFolder"
@@ -53,7 +52,7 @@
             class="mt-1 text-slate-700"
             data-testid="download-folder"
           >
-            Ainda não escolhida: será pedida na primeira transferência.
+            {{ t('settings.downloadsUnset') }}
           </p>
         </div>
         <button
@@ -63,13 +62,13 @@
           data-testid="change-folder"
           @click="changeFolder"
         >
-          {{ folder ? 'Alterar pasta' : 'Escolher pasta' }}
+          {{ folder ? t('settings.changeFolder') : t('settings.chooseFolder') }}
         </button>
       </div>
     </SettingsSection>
 
     <SettingsSection
-      title="Sessão guardada"
+      :title="t('settings.savedLogin')"
       :icon="KeyRound"
     >
       <div class="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -82,16 +81,14 @@
           class="min-w-0 flex-1 text-slate-700"
           data-testid="saved-login"
         >
-          O início de sessão de <strong class="text-slate-900">{{ savedLogin }}</strong> está guardado
-          neste computador, no cofre do sistema, para entrar automaticamente.
+          {{ savedLoginText[0] }}<strong class="text-slate-900">{{ savedLogin }}</strong>{{ savedLoginText[1] }}
         </p>
         <p
           v-else
           class="min-w-0 flex-1 text-slate-500"
           data-testid="saved-login"
         >
-          Nenhum início de sessão guardado. Para entrar automaticamente, marque
-          «Lembrar-me neste computador» ao iniciar sessão.
+          {{ t('settings.savedLoginNone') }}
         </p>
         <button
           v-if="savedLogin"
@@ -101,19 +98,18 @@
           data-testid="forget-login"
           @click="forgetLogin"
         >
-          Esquecer
+          {{ t('settings.forget') }}
         </button>
       </div>
     </SettingsSection>
 
     <SettingsSection
-      title="Cache"
+      :title="t('settings.cache')"
       :icon="Database"
     >
       <div class="flex flex-col sm:flex-row sm:items-center gap-3">
         <p class="min-w-0 flex-1 text-slate-500">
-          As páginas do CLIP ficam guardadas neste computador, cifradas, para o FLIP abrir
-          depressa. Limpar a cache obriga a pedi-las de novo ao CLIP.
+          {{ t('settings.cacheHelp') }}
         </p>
         <button
           type="button"
@@ -122,7 +118,7 @@
           data-testid="clear-cache"
           @click="clearCache"
         >
-          Limpar cache
+          {{ t('settings.clearCache') }}
         </button>
       </div>
     </SettingsSection>
@@ -130,7 +126,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, type Component } from 'vue';
+import { computed, onMounted, ref, type Component } from 'vue';
 import { Database, Files, FolderDown, KeyRound, Monitor, Moon, Palette, Sun } from 'lucide-vue-next';
 import { invoke } from '@tauri-apps/api/core';
 import ChoiceGroup from './ChoiceGroup.vue';
@@ -138,6 +134,7 @@ import SettingsSection from './SettingsSection.vue';
 import { usePreload, type PreloadChoice } from '../composables/usePreload';
 import { useToast } from '../composables/useToast';
 import { useTheme, type ThemeChoice } from '../composables/useTheme';
+import { t, translateError } from '../lib/i18n';
 
 const BUTTON =
   'shrink-0 cursor-pointer px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-md hover:shadow-sm hover:bg-slate-50 transition-all font-medium disabled:opacity-50';
@@ -147,20 +144,20 @@ const { success, error } = useToast();
 // Appearance
 const { theme, setTheme } = useTheme();
 
-const THEME_OPTIONS: { value: ThemeChoice; label: string; icon: Component }[] = [
-  { value: 'light', label: 'Claro', icon: Sun },
-  { value: 'dark', label: 'Escuro', icon: Moon },
-  { value: 'system', label: 'Sistema', icon: Monitor },
-];
+const THEME_OPTIONS = computed<{ value: ThemeChoice; label: string; icon: Component }[]>(() => [
+  { value: 'light', label: t('settings.themeLight'), icon: Sun },
+  { value: 'dark', label: t('settings.themeDark'), icon: Moon },
+  { value: 'system', label: t('settings.system'), icon: Monitor },
+]);
 
 // Course files
 const { preload, setPreload } = usePreload();
 
-const PRELOAD_OPTIONS: { value: PreloadChoice; label: string }[] = [
-  { value: 'period', label: 'Período selecionado' },
-  { value: 'all', label: 'Todos os períodos' },
-  { value: 'none', label: 'Nenhum' },
-];
+const PRELOAD_OPTIONS = computed<{ value: PreloadChoice; label: string }[]>(() => [
+  { value: 'period', label: t('settings.preloadPeriod') },
+  { value: 'all', label: t('settings.preloadAll') },
+  { value: 'none', label: t('settings.preloadNone') },
+]);
 
 // Downloads
 const folder = ref<string | null>(null);
@@ -184,11 +181,11 @@ const changeFolder = async () => {
     const chosen = await invoke<string | null>('change_download_dir');
     if (chosen) {
       folder.value = chosen;
-      success('Pasta de transferências alterada');
+      success(t('settings.folderChanged'));
     }
   } catch (e) {
     console.error('Error changing download folder:', e);
-    error(String(e));
+    error(translateError(e));
   } finally {
     choosing.value = false;
   }
@@ -198,6 +195,9 @@ const changeFolder = async () => {
 const savedLogin = ref<string | null>(null);
 const loadingLogin = ref(true);
 const forgetting = ref(false);
+
+// The sentence around the username, which is shown in bold
+const savedLoginText = computed(() => t('settings.savedLoginIs').split('{name}'));
 
 const loadSavedLogin = async () => {
   try {
@@ -214,10 +214,10 @@ const forgetLogin = async () => {
   try {
     await invoke('forget_login');
     savedLogin.value = null;
-    success('Início de sessão esquecido');
+    success(t('settings.forgotten'));
   } catch (e) {
     console.error('Error forgetting login:', e);
-    error('Erro ao esquecer o início de sessão');
+    error(t('settings.forgetFailed'));
   } finally {
     forgetting.value = false;
   }
@@ -230,10 +230,10 @@ const clearCache = async () => {
   clearing.value = true;
   try {
     await invoke('reset_cache');
-    success('Cache limpa com sucesso');
+    success(t('settings.cacheCleared'));
   } catch (e) {
     console.error('Error resetting cache:', e);
-    error('Erro ao limpar cache');
+    error(t('settings.cacheFailed'));
   } finally {
     clearing.value = false;
   }

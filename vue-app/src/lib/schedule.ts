@@ -1,4 +1,5 @@
 import { periodDates, type Period } from './academic';
+import { t } from './i18n';
 
 export type Weekday = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
 export type ClassType = 't' | 'p' | 'tp';
@@ -19,11 +20,8 @@ export interface ScheduleItem {
   class_type: ClassType;
 }
 
-export const CLASS_TYPE_LABELS: Record<ClassType, string> = {
-  t: 'Teórica',
-  p: 'Prática',
-  tp: 'Teórico-Prática',
-};
+/** "Teórica", "Prática"… in the current language. */
+export const classTypeLabel = (type: ClassType) => t(`class.${type}`);
 
 /** ISO weekday numbers (Mon=1 … Sun=7). */
 export const WEEKDAY_INDEX: Record<Weekday, number> = {
@@ -103,18 +101,9 @@ export function layoutDay(items: ScheduleItem[]): Map<ScheduleItem, Placement> {
   return placements;
 }
 
-const WEEKDAY_LABELS: Record<Weekday, string> = {
-  Monday: 'Segunda',
-  Tuesday: 'Terça',
-  Wednesday: 'Quarta',
-  Thursday: 'Quinta',
-  Friday: 'Sexta',
-  Saturday: 'Sábado',
-  Sunday: 'Domingo',
-};
 
 /** The days the grid shows: Monday to Friday, plus a weekend day when it has classes. */
 export const scheduleDays = (items: ScheduleItem[]): { key: Weekday; label: string }[] =>
-  (Object.keys(WEEKDAY_LABELS) as Weekday[])
+  (Object.keys(WEEKDAY_INDEX) as Weekday[])
     .filter((day) => WEEKDAY_INDEX[day] <= 5 || items.some((i) => i.weekday === day))
-    .map((key) => ({ key, label: WEEKDAY_LABELS[key] }));
+    .map((key) => ({ key, label: t(`weekday.${key}`) }));

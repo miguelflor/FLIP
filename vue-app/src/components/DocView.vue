@@ -7,12 +7,12 @@
       <div class="flex items-center gap-2 min-w-0">
         <FolderOpen class="w-5 h-5 text-slate-500 shrink-0" />
         <h3 class="text-lg font-bold text-slate-900 truncate">
-          Ficheiros das cadeiras
+          {{ t('files.title') }}
         </h3>
       </div>
       <button
         :disabled="loading"
-        title="Atualizar"
+        :title="t('common.refresh')"
         class="shrink-0 p-2 bg-white border border-slate-200 text-slate-600 rounded-md hover:shadow-sm transition-all hover:bg-slate-50 disabled:opacity-50"
         @click="refreshChairs"
       >
@@ -25,8 +25,8 @@
         v-if="hasAnyChairs && !loading && !error"
         v-model="query"
         type="search"
-        placeholder="Procurar ficheiros..."
-        aria-label="Procurar ficheiros"
+        :placeholder="t('files.search')"
+        :aria-label="t('files.searchLabel')"
         class="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-md outline-none focus:border-blue-500"
       >
       <!-- Loading state -->
@@ -56,7 +56,7 @@
           class="text-blue-500 hover:underline mt-1"
           @click="refreshChairs"
         >
-          Tentar novamente
+          {{ t('common.retry') }}
         </button>
       </div>
       <!-- Data state -->
@@ -89,7 +89,7 @@
         v-else
         class="text-gray-500 py-6 text-center"
       >
-        <p>Não há cadeiras neste ano letivo.</p>
+        <p>{{ t('files.noUnits') }}</p>
       </div>
     </div>
   </div>
@@ -103,6 +103,8 @@ import { PeriodType } from '../lib/clipVars';
 import { useClipQuery } from '../composables/useClipQuery';
 import { forgetCourseFiles } from '../composables/useCourseFiles';
 import { usePreload } from '../composables/usePreload';
+import { t, translateError } from '../lib/i18n';
+import type { Period } from '../lib/academic';
 
 const props = defineProps<{
   studentId: string | null;
@@ -152,7 +154,7 @@ const {
   'get_chairs',
   toRef(props, 'studentId'),
   toRef(props, 'year'),
-  { noStudentMessage: 'Por favor, selecione um aluno.' },
+  { noStudentMessage: () => t('files.selectStudent') },
 );
 
 // Convert from Rust naming (s1, s2, t1, t2) to the period keys used in the UI.
@@ -171,7 +173,7 @@ const chairs = computed<ChairsByPeriod>(() => {
 const error = computed(() => {
   if (queryError.value) return queryError.value;
   const res = response.value;
-  if (res && !res.success) return res.error ?? 'Não foi possível obter as cadeiras';
+  if (res && !res.success) return res.error ? translateError(res.error) : t('files.unitsFailed');
   return null;
 });
 
@@ -179,11 +181,6 @@ const hasAnyChairs = computed(() =>
   Object.values(chairs.value).some(cs => cs.length > 0),
 );
 
-const getPeriodName = (periodKey: string) => {
-  if (periodKey === PeriodType.S + '1') return '1º Semestre';
-  if (periodKey === PeriodType.S + '2') return '2º Semestre';
-  if (periodKey === PeriodType.T + '1') return '1º Trimestre';
-  if (periodKey === PeriodType.T + '2') return '2º Trimestre';
-  return periodKey;
-};
+const getPeriodName = (periodKey: string) =>
+  ['s1', 's2', 't1', 't2'].includes(periodKey) ? t(`period.${periodKey as Period}`) : periodKey;
 </script>

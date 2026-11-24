@@ -22,7 +22,7 @@
           FLIP
         </h1>
         <p class="text-gray-600">
-          Acesso ao CLIP da NOVA FCT
+          {{ t('login.tagline') }}
         </p>
       </div>
 
@@ -51,7 +51,7 @@
             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
           />
         </svg>
-        A entrar...
+        {{ t('login.loggingIn') }}
       </div>
 
       <template v-else>
@@ -61,13 +61,13 @@
           class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"
           role="alert"
         >
-          <p>Não foi possível entrar automaticamente: {{ autoLoginError }}</p>
+          <p>{{ t('login.autoFailed', { error: autoLoginError }) }}</p>
           <button
             type="button"
             class="mt-2 font-semibold underline cursor-pointer"
             @click="tryAutoLogin"
           >
-            Tentar novamente
+            {{ t('common.retry') }}
           </button>
         </div>
         <LoginForm />
@@ -78,7 +78,7 @@
         v-if="!autoLoggingIn"
         class="text-center text-sm text-gray-500"
       >
-        Inicie sessão com as suas credenciais do CLIP
+        {{ t('login.hint') }}
       </p>
     </div>
   </main>
@@ -90,6 +90,7 @@ import { useRouter } from 'vue-router';
 import { invoke } from '@tauri-apps/api/core';
 import LoginForm from '../components/LoginForm.vue';
 import { useStudent } from '../composables/useStudent';
+import { t, translateError } from '../lib/i18n';
 
 type LoginResponse = {
   session_id: string;
@@ -114,7 +115,7 @@ const tryAutoLogin = async () => {
     }
   } catch (err) {
     console.error('Auto login failed:', err);
-    autoLoginError.value = String(err);
+    autoLoginError.value = translateError(err);
   }
   autoLoggingIn.value = false;
 };

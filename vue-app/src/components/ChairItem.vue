@@ -11,7 +11,7 @@
           class="text-slate-600 hover:text-slate-800 cursor-pointer flex items-center justify-center"
           :disabled="loading"
           type="button"
-          title="Descarregar tudo (zip)"
+          :title="t('files.downloadAll')"
           style="min-width: 20px; min-height: 20px"
           @click="handleDownload"
         >
@@ -37,7 +37,7 @@
         v-if="listing"
         class="text-slate-500"
       >
-        A carregar...
+        {{ t('common.loading') }}
       </p>
       <div
         v-else-if="listError"
@@ -50,14 +50,14 @@
           class="text-blue-500 hover:underline cursor-pointer"
           @click="loadFiles"
         >
-          Tentar novamente
+          {{ t('common.retry') }}
         </button>
       </div>
       <p
         v-else-if="files && filtered.length === 0"
         class="text-slate-500"
       >
-        {{ files.length ? 'Nenhum ficheiro encontrado.' : 'Esta cadeira não tem ficheiros.' }}
+        {{ files.length ? t('files.noneFound') : t('files.unitEmpty') }}
       </p>
       <div
         v-else
@@ -68,7 +68,7 @@
           :key="type"
         >
           <h5 class="font-medium text-slate-700 mb-1">
-            {{ SECTION_LABELS[type] ?? type }} ({{ group.length }})
+            {{ sectionLabel(type) }} ({{ group.length }})
           </h5>
           <ul class="space-y-1">
             <li
@@ -80,7 +80,7 @@
                 type="button"
                 class="shrink-0 text-slate-600 hover:text-slate-800 cursor-pointer disabled:opacity-50"
                 :disabled="downloading.has(f.href)"
-                :title="`Descarregar ${f.name}`"
+                :title="t('files.download', { name: f.name })"
                 @click="downloadOne(f)"
               >
                 <Download class="h-4 w-4" />
@@ -111,6 +111,7 @@ import { invokeClip, useStudent } from "../composables/useStudent";
 import { whenIdle } from "../composables/useClipQuery";
 import { listCourseFiles, type CourseFile, type UnitParams } from "../composables/useCourseFiles";
 import { isCancelled, savedMessage } from "../lib/downloads";
+import { t, translateError, type MessageKey } from "../lib/i18n";
 
 interface ChairType {
   href: string;
@@ -149,7 +150,7 @@ const parseHrefParams = (href: string) => {
 // The unit's identifiers, from its CLIP link. Null (with a toast) without a session.
 const buildParams = (): UnitParams | null => {
   if (!sessionId.value || !currentStudentId.value) {
-    error("Sessão não encontrada. Inicie sessão novamente.");
+    error(t("files.noSession"));
     return null;
   }
 
@@ -178,7 +179,7 @@ const handleDownload = async () => {
   try {
     const list = files.value ?? (files.value = await listCourseFiles(params, currentStudentId.value!));
     if (!list.length) {
-      error(`${props.chair.text} não tem ficheiros`);
+      error(t("error.no_files", { value: props.chair.text }));
       return;
     }
     const res = await invokeClip<CourseDownload>("download_course", {
@@ -189,12 +190,12 @@ const handleDownload = async () => {
     });
     success(savedMessage(res.path));
     if (res.failed) {
-      error(`${res.failed} de ${res.saved + res.failed} ficheiros não foram descarregados`);
+      error(t("files.someFailed", { failed: res.failed, total: res.saved + res.failed }));
     }
   } catch (err: unknown) {
     if (isCancelled(err)) return;
     console.error("Error downloading chair:", err);
-    error(`Erro ao descarregar ${props.chair.text}: ${err}`);
+    error(t("files.downloadFailed", { name: props.chair.text, error: translateError(err) }));
   } finally {
     loading.value = false;
   }
@@ -207,23 +208,16 @@ const files = ref<CourseFile[] | null>(null);
 const downloading = ref(new Set<string>());
 
 // CLIP's section names, keyed by the backend's type_name (FILE_TYPES in constants.rs).
-const SECTION_LABELS: Record<string, string> = {
-  Multimedia: "Material Multimédia",
-  Problemas: "Problemas",
-  Protocolos: "Protocolos",
-  Seminarios: "Seminários",
-  Exames: "Exames",
-  Testes: "Testes",
-  Textos_de_Apoio: "Textos de Apoio",
-  Outros: "Outros",
-};
+const SECTIONS = ["Multimedia", "Problemas", "Protocolos", "Seminarios", "Exames", "Testes", "Textos_de_Apoio", "Outros"];
+const sectionLabel = (type: string) =>
+  SECTIONS.includes(type) ? t(`section.${type}` as MessageKey) : type;
 
 const filtered = computed(() => {
   const q = props.query.trim().toLowerCase();
   return (files.value ?? []).filter(
     (f) =>
       f.name.toLowerCase().includes(q) ||
-      (SECTION_LABELS[f.type_name] ?? f.type_name).toLowerCase().includes(q),
+      sectionLabel(f.type_name).toLowerCase().includes(q),
   );
 });
 
@@ -237,7 +231,12 @@ const sections = computed(() => {
 });
 
 const fileDetails = (f: CourseFile) =>
-  [f.name, f.date && `Data: ${f.date}`, f.size && `Tamanho: ${f.size}`, f.uploader && `Por: ${f.uploader}`]
+  [
+    f.name,
+    f.date && t("files.date", { value: f.date }),
+    f.size && t("files.size", { value: f.size }),
+    f.uploader && t("files.uploader", { value: f.uploader }),
+  ]
     .filter(Boolean)
     .join("\n");
 
@@ -262,7 +261,7 @@ const loadFiles = async () => {
     // Shown inline when the chair is open; a failed background preload stays quiet
     // and is retried when the chair is opened.
     console.error("Error listing files:", err);
-    listError.value = String(err);
+    listError.value = translateError(err);
   } finally {
     listing.value = false;
   }
@@ -294,7 +293,7 @@ const downloadOne = async (f: CourseFile) => {
   } catch (err: unknown) {
     if (isCancelled(err)) return;
     console.error("Error downloading file:", err);
-    error(`Erro ao descarregar «${f.name}»: ${err}`);
+    error(t("files.downloadFailed", { name: `«${f.name}»`, error: translateError(err) }));
   } finally {
     downloading.value.delete(f.href);
   }

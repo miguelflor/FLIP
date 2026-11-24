@@ -10,43 +10,43 @@
         <div class="flex items-center gap-2">
           <Calendar class="w-5 h-5 text-slate-500 shrink-0" />
           <h3 class="text-lg font-bold text-slate-900 whitespace-nowrap">
-            Horário semanal
+            {{ t('schedule.title') }}
           </h3>
         </div>
         <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 whitespace-nowrap">
           <span class="flex items-center gap-1.5">
-            <span class="w-2.5 h-2.5 rounded-sm bg-blue-400 inline-block" />Teórica
+            <span class="w-2.5 h-2.5 rounded-sm bg-blue-400 inline-block" />{{ t('class.t') }}
           </span>
           <span class="flex items-center gap-1.5">
-            <span class="w-2.5 h-2.5 rounded-sm bg-emerald-400 inline-block" />Prática
+            <span class="w-2.5 h-2.5 rounded-sm bg-emerald-400 inline-block" />{{ t('class.p') }}
           </span>
           <span class="flex items-center gap-1.5">
-            <span class="w-2.5 h-2.5 rounded-sm bg-violet-400 inline-block" />Teórico-Prática
+            <span class="w-2.5 h-2.5 rounded-sm bg-violet-400 inline-block" />{{ t('class.tp') }}
           </span>
         </div>
       </div>
       <div class="flex items-center gap-2 shrink-0">
         <button
           :disabled="loading"
-          title="Atualizar"
+          :title="t('common.refresh')"
           class="flex items-center gap-1.5 p-2 xl:px-3 xl:py-1.5 bg-white border border-slate-200 text-slate-600 rounded-md hover:shadow-sm transition-all text-xs font-medium hover:bg-slate-50 disabled:opacity-50 whitespace-nowrap"
           @click="refreshSchedule"
         >
           <RefreshCw :class="['w-3.5 h-3.5', { 'animate-spin': loading }]" />
-          <span class="hidden xl:inline">Atualizar</span>
+          <span class="hidden xl:inline">{{ t('common.refresh') }}</span>
         </button>
         <button
           :disabled="loading || !!error || !schedule.length"
-          title="Exportar horário para o calendário (.ics)"
+          :title="t('schedule.exportIcs')"
           class="flex items-center gap-1.5 p-2 xl:px-3 xl:py-1.5 bg-white border border-slate-200 text-slate-600 rounded-md hover:shadow-sm transition-all text-xs font-medium hover:bg-slate-50 disabled:opacity-50 whitespace-nowrap"
           @click="exportIcs"
         >
           <CalendarArrowDown class="w-3.5 h-3.5" />
-          <span class="hidden xl:inline">Calendário</span>
+          <span class="hidden xl:inline">{{ t('schedule.calendar') }}</span>
         </button>
         <button
           :disabled="loading || !!error"
-          title="Exportar como PNG"
+          :title="t('schedule.exportPng')"
           class="flex items-center gap-1.5 p-2 xl:px-3 xl:py-1.5 bg-white border border-slate-200 text-slate-600 rounded-md hover:shadow-sm transition-all text-xs font-medium hover:bg-slate-50 disabled:opacity-50 whitespace-nowrap"
           @click="exportPng"
         >
@@ -61,7 +61,7 @@
       v-if="loading"
       class="flex justify-center py-16 text-slate-400 text-sm"
     >
-      A carregar horário...
+      {{ t('schedule.loading') }}
     </div>
 
     <!-- Error -->
@@ -178,7 +178,7 @@
               <!-- Export button on hover -->
               <button
                 class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity p-0.5 rounded bg-white/60 hover:bg-white/90"
-                title="Exportar para Google Calendar"
+                :title="t('schedule.exportGoogle')"
                 @click.stop="exportToGoogleCalendar(item)"
               >
                 <img
@@ -204,8 +204,9 @@ import { useToast } from "../composables/useToast";
 import { isCancelled, saveDownload, savedMessage } from "../lib/downloads";
 import { extractYearForRequest, type Period } from "../lib/academic";
 import { localStamp, scheduleToIcs, utcStamp } from "../lib/ics";
+import { t, translateError } from "../lib/i18n";
 import {
-  CLASS_TYPE_LABELS,
+  classTypeLabel,
   classSeries,
   isoDay,
   layoutDay,
@@ -365,7 +366,7 @@ const exportToGoogleCalendar = (item: ScheduleItem) => {
     `&text=${encodeURIComponent(item.class)}` +
     `&dates=${localStamp(first, item.time_start)}/${localStamp(first, item.time_end)}` +
     `&ctz=Europe/Lisbon` +
-    `&details=${encodeURIComponent(`${CLASS_TYPE_LABELS[item.class_type]} ${item.class_number}`)}` +
+    `&details=${encodeURIComponent(`${classTypeLabel(item.class_type)} ${item.class_number}`)}` +
     `&location=${encodeURIComponent(item.location)}` +
     `&recur=${encodeURIComponent(`RRULE:FREQ=WEEKLY;UNTIL=${utcStamp(until)}`)}`;
   window.open(url, "_blank");
@@ -392,14 +393,14 @@ const exportPng = async () => {
       pixelRatio: 2,
       backgroundColor: getComputedStyle(el.parentElement!).backgroundColor,
     });
-    if (!blob) throw new Error("imagem vazia");
+    if (!blob) throw new Error(t("schedule.emptyImage"));
     const name = `horario${props.year ? "-" + props.year.replace("/", "-") : ""}.png`;
     const path = await saveDownload(name, new Uint8Array(await blob.arrayBuffer()));
     toastSuccess(savedMessage(path));
   } catch (err) {
     if (isCancelled(err)) return;
     console.error("Error exporting schedule:", err);
-    toastError(`Erro ao exportar horário: ${err}`);
+    toastError(t("schedule.exportFailed", { error: translateError(err) }));
   } finally {
     stage.remove();
   }
@@ -416,7 +417,7 @@ const exportIcs = async () => {
   } catch (err) {
     if (isCancelled(err)) return;
     console.error("Error exporting calendar:", err);
-    toastError(`Erro ao exportar calendário: ${err}`);
+    toastError(t("schedule.icsFailed", { error: translateError(err) }));
   }
 };
 </script>

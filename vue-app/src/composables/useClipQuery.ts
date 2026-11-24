@@ -1,12 +1,11 @@
 import { ref, watch, type Ref } from 'vue';
 import { extractYearForRequest } from '../lib/academic';
+import { t, translateError } from '../lib/i18n';
 import { invokeClip, useStudent } from './useStudent';
 
 export interface ClipQueryOptions {
   /** Message shown when there is no student to query for. Defaults to no error. */
-  noStudentMessage?: string;
-  /** Message shown when there is no active session. */
-  noSessionMessage?: string;
+  noStudentMessage?: () => string;
   /**
    * Extra command arguments; the query re-runs when they change. While any is null (not
    * picked yet), the query waits, loading, instead of running without it.
@@ -83,13 +82,13 @@ export function useClipQuery<T>(
     const runId = ++latestRun;
 
     if (!studentId.value) {
-      error.value = options.noStudentMessage ?? null;
+      error.value = options.noStudentMessage?.() ?? null;
       loading.value = false;
       return;
     }
 
     if (!sessionId.value) {
-      error.value = options.noSessionMessage ?? 'Sessão não encontrada';
+      error.value = t('query.noSession');
       loading.value = false;
       return;
     }
@@ -122,7 +121,7 @@ export function useClipQuery<T>(
     } catch (e) {
       if (runId !== latestRun) return;
       console.error(`Error running "${command}":`, e);
-      error.value = String(e);
+      error.value = translateError(e);
     } finally {
       inFlight.value--;
       if (runId === latestRun) loading.value = false;

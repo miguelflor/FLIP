@@ -1,5 +1,5 @@
 import type { Period } from './academic';
-import { CLASS_TYPE_LABELS, classSeries, type HourMinute, type ScheduleItem } from './schedule';
+import { classSeries, classTypeLabel, type HourMinute, type ScheduleItem } from './schedule';
 
 /*
  * The weekly schedule as an iCalendar (RFC 5545) file, which every calendar app imports:
@@ -67,7 +67,7 @@ export function scheduleToIcs(
 ): string {
   const events = items.flatMap((item) => {
     const { first, until } = classSeries(item, lectiveYear, period, now);
-    const kind = `${CLASS_TYPE_LABELS[item.class_type]} ${item.class_number}`;
+    const kind = `${classTypeLabel(item.class_type)} ${item.class_number}`;
     return [
       'BEGIN:VEVENT',
       // Stable per class, so importing an updated schedule replaces events instead of doubling them

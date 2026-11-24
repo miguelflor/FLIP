@@ -5,14 +5,14 @@
       <BaseDropdown
         :options="availableYears"
         :selected="selectedYear"
-        placeholder="Selecionar ano"
+        :placeholder="t('dashboard.selectYear')"
         @select="selectYear"
       />
       <BaseDropdown
         :options="periodOptions"
-        :selected="selectedPeriod && PERIOD_LABELS[selectedPeriod]"
+        :selected="selectedPeriod && periodLabel(selectedPeriod)"
         :disabled="periodOptions.length <= 1"
-        placeholder="Selecionar período"
+        :placeholder="t('dashboard.selectPeriod')"
         @select="selectPeriodLabel"
       />
     </div>
@@ -50,6 +50,7 @@ import TestsCard from '../components/TestsCard.vue';
 import { useStudent } from '../composables/useStudent';
 import { useClipQuery } from '../composables/useClipQuery';
 import { storage } from '../lib/storage';
+import { t } from '../lib/i18n';
 import {
   currentLectiveYear,
   currentPeriod as todaysPeriod,
@@ -81,12 +82,8 @@ watch(availableYears, (years) => {
   }
 });
 
-const PERIOD_LABELS: Record<Period, string> = {
-  s1: '1º Semestre',
-  s2: '2º Semestre',
-  t1: '1º Trimestre',
-  t2: '2º Trimestre',
-};
+const PERIODS: Period[] = ['s1', 's2', 't1', 't2'];
+const periodLabel = (period: Period) => t(`period.${period}`);
 
 // A period exists in a year when the student has units in it.
 const { data: chairsResponse } = useClipQuery<{
@@ -97,10 +94,10 @@ const { data: chairsResponse } = useClipQuery<{
 const availablePeriods = computed(() => {
   const chairs = chairsResponse.value?.chairs;
   if (!chairs) return [];
-  return (Object.keys(PERIOD_LABELS) as Period[]).filter((p) => chairs[p]?.length);
+  return PERIODS.filter((p) => chairs[p]?.length);
 });
 
-const periodOptions = computed(() => availablePeriods.value.map((p) => PERIOD_LABELS[p]));
+const periodOptions = computed(() => availablePeriods.value.map(periodLabel));
 
 const selectedPeriod = ref(storage.get('selectedPeriod') as Period | null);
 
@@ -110,7 +107,7 @@ const selectPeriod = (period: Period) => {
 };
 
 const selectPeriodLabel = (label: string) => {
-  const period = availablePeriods.value.find((p) => PERIOD_LABELS[p] === label);
+  const period = availablePeriods.value.find((p) => periodLabel(p) === label);
   if (period) selectPeriod(period);
 };
 

@@ -37,7 +37,7 @@
                 ? 'hover:bg-red-100 text-red-600 hover:text-red-700'
                 : 'hover:bg-green-100 text-green-600 hover:text-green-700'
             ]"
-            aria-label="Fechar notificação"
+            :aria-label="t('toast.close')"
             @click="dismiss(toast.id)"
           >
             <X class="h-4 w-4" />
@@ -61,6 +61,7 @@
 <script setup lang="ts">
 import { CheckCircle, XCircle, X } from 'lucide-vue-next';
 import { useToast } from '../composables/useToast';
+import { t } from '../lib/i18n';
 
 // Lifecycle (auto-dismiss timers) is owned by useToast; this component only renders.
 const { toasts, dismiss } = useToast();

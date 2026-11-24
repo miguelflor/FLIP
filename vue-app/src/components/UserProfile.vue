@@ -13,10 +13,10 @@
     <template v-else>
       <div class="hidden sm:block text-right min-w-0 max-w-64">
         <p class="text-sm font-semibold text-slate-900 truncate">
-          {{ name || 'Estudante' }}
+          {{ name || t('profile.student') }}
         </p>
         <p class="text-xs text-slate-500 truncate">
-          {{ course ? course.split('-')[0].trim() : 'Curso' }}
+          {{ course ? course.split('-')[0].trim() : t('profile.course') }}
         </p>
       </div>
       <div
@@ -25,7 +25,7 @@
       >
         <img
           :src="photoUrl"
-          :alt="name || 'Estudante'"
+          :alt="name || t('profile.student')"
           class="w-full h-full object-cover"
         >
       </div>
@@ -40,6 +40,8 @@
 </template>
 
 <script setup lang="ts">
+import { t } from '../lib/i18n';
+
 defineProps<{
   name: string | null;
   course: string | null;

@@ -2,6 +2,7 @@ import { computed, ref } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 import { storage } from '../lib/storage';
 import { useToast } from './useToast';
+import { translateError } from '../lib/i18n';
 
 /** The backend's answer for a session it no longer has. Must match SESSION_EXPIRED in errors.rs. */
 export const SESSION_EXPIRED = 'Sessão expirada, inicie sessão novamente';
@@ -112,7 +113,7 @@ export async function invokeClip<T>(command: string, args?: Record<string, unkno
   } catch (e) {
     if (String(e) === SESSION_EXPIRED && sessionId.value) {
       endSession();
-      useToast().error(SESSION_EXPIRED);
+      useToast().error(translateError(e));
     }
     throw e;
   }

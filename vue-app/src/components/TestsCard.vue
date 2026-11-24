@@ -4,12 +4,12 @@
       <div class="flex items-center gap-2 min-w-0">
         <ClipboardList class="w-5 h-5 text-slate-500 shrink-0" />
         <h3 class="text-lg font-bold text-slate-900 truncate">
-          Testes de avaliação
+          {{ t('tests.title') }}
         </h3>
       </div>
       <button
         :disabled="loading"
-        title="Atualizar"
+        :title="t('common.refresh')"
         class="shrink-0 p-2 bg-white border border-slate-200 text-slate-600 rounded-md hover:shadow-sm transition-all hover:bg-slate-50 disabled:opacity-50"
         @click="refresh"
       >
@@ -21,7 +21,7 @@
       v-if="loading"
       class="py-10 text-center text-slate-400 text-sm"
     >
-      A carregar testes...
+      {{ t('tests.loading') }}
     </div>
     <div
       v-else-if="error"
@@ -33,45 +33,45 @@
       v-else-if="!tests?.length"
       class="py-10 text-center text-slate-400 text-sm"
     >
-      Sem testes neste período
+      {{ t('tests.empty') }}
     </div>
     <ul
       v-else
       class="divide-y divide-slate-100"
     >
       <li
-        v-for="t in ordered"
-        :key="t.unit + t.name + t.date"
-        :class="['flex items-center gap-3 px-4 py-2.5', { 'opacity-50': t.date < today }]"
+        v-for="test in ordered"
+        :key="test.unit + test.name + test.date"
+        :class="['flex items-center gap-3 px-4 py-2.5', { 'opacity-50': test.date < today }]"
       >
         <div class="w-12 shrink-0 text-center leading-tight">
           <div class="text-[10px] uppercase text-slate-400">
-            {{ fmt(t.date, { weekday: 'short' }) }}
+            {{ fmt(test.date, { weekday: 'short' }) }}
           </div>
           <div class="text-lg font-bold text-slate-800">
-            {{ t.date.slice(8) }}
+            {{ test.date.slice(8) }}
           </div>
           <div class="text-[10px] uppercase text-slate-500">
-            {{ fmt(t.date, { month: 'short' }) }}
+            {{ fmt(test.date, { month: 'short' }) }}
           </div>
         </div>
         <div class="min-w-0 flex-1">
           <div class="flex items-center gap-2">
-            <span class="text-sm font-semibold text-slate-900 truncate">{{ t.unit }}</span>
+            <span class="text-sm font-semibold text-slate-900 truncate">{{ test.unit }}</span>
             <span
-              v-if="!t.enrolled"
+              v-if="!test.enrolled"
               class="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-100 text-amber-800"
-            >Por inscrever</span>
+            >{{ t('tests.notEnrolled') }}</span>
           </div>
           <div class="text-xs text-slate-500 truncate">
-            {{ t.name }} · {{ t.time }}
+            {{ test.name }} · {{ test.time }}
           </div>
           <div
-            v-if="t.rooms.length"
+            v-if="test.rooms.length"
             class="text-xs text-slate-400 truncate flex items-center gap-1"
-            :title="t.rooms.join('\n')"
+            :title="test.rooms.join('\n')"
           >
-            <MapPin class="w-3 h-3 shrink-0" />{{ t.rooms.join(', ') }}
+            <MapPin class="w-3 h-3 shrink-0" />{{ test.rooms.join(', ') }}
           </div>
         </div>
       </li>
@@ -83,6 +83,7 @@
 import { computed, toRef } from 'vue';
 import { ClipboardList, MapPin, RefreshCw } from 'lucide-vue-next';
 import { useClipQuery } from '../composables/useClipQuery';
+import { locale, t } from '../lib/i18n';
 
 const props = defineProps<{
   studentId: string | null;
@@ -110,7 +111,7 @@ const { data: tests, loading, error, refresh } = useClipQuery<Test[]>(
 const today = new Date().toLocaleDateString('sv');
 
 const fmt = (date: string, opts: Intl.DateTimeFormatOptions) =>
-  new Date(`${date}T00:00`).toLocaleDateString('pt-PT', opts).replace('.', '');
+  new Date(`${date}T00:00`).toLocaleDateString(locale.value, opts).replace('.', '');
 
 // Upcoming first, past ones (greyed out) at the bottom; each stays in date order
 const ordered = computed(() => {

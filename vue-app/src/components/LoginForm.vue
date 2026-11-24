@@ -10,7 +10,7 @@
           for="username"
           class="block text-sm font-semibold text-gray-700 mb-2"
         >
-          Identificador de estudante
+          {{ t('login.username') }}
         </label>
         <div class="relative">
           <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -36,7 +36,7 @@
             autocomplete="username"
             :disabled="loading"
             class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-            placeholder="ex.: j.pd"
+            :placeholder="t('login.usernamePlaceholder')"
           >
         </div>
       </div>
@@ -47,7 +47,7 @@
           for="password"
           class="block text-sm font-semibold text-gray-700 mb-2"
         >
-          Palavra-passe
+          {{ t('login.password') }}
         </label>
         <div class="flex items-center bg-gray-50 border border-gray-200 rounded-xl focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all">
           <svg
@@ -76,7 +76,7 @@
           <button
             type="button"
             class="cursor-pointer self-stretch px-3 flex items-center rounded-r-xl text-gray-400 hover:text-gray-600 focus-visible:outline-none focus-visible:text-blue-500"
-            :aria-label="showPassword ? 'Ocultar palavra-passe' : 'Mostrar palavra-passe'"
+            :aria-label="showPassword ? t('login.hidePassword') : t('login.showPassword')"
             :aria-pressed="showPassword"
             @click="showPassword = !showPassword"
           >
@@ -112,7 +112,7 @@
           :disabled="loading"
           class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
         >
-        Lembrar-me neste computador
+        {{ t('login.remember') }}
       </label>
 
       <!-- Submit Button -->
@@ -144,9 +144,9 @@
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             />
           </svg>
-          A entrar...
+          {{ t('login.loggingIn') }}
         </span>
-        <span v-else>Entrar</span>
+        <span v-else>{{ t('login.submit') }}</span>
       </button>
     </form>
   </div>
@@ -158,6 +158,7 @@ import { useRouter } from 'vue-router';
 import { invoke } from '@tauri-apps/api/core';
 import { useToast } from '../composables/useToast';
 import { useStudent } from '../composables/useStudent';
+import { t, translateError } from '../lib/i18n';
 
 const router = useRouter();
 const { error } = useToast();
@@ -186,7 +187,7 @@ const handleSubmit = async () => {
     await router.push('/app/dashboard');
   } catch (err) {
     // The username stays, so a mistyped password is all there is to retype
-    error(String(err));
+    error(translateError(err));
   } finally {
     password.value = '';
     showPassword.value = false;

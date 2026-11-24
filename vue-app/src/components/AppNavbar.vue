@@ -10,7 +10,7 @@
         <BaseDropdown
           :options="Object.keys(alunoIds)"
           :selected="selectedAlunoId"
-          placeholder="Selecionar aluno"
+          :placeholder="t('nav.selectStudent')"
           @select="selectStudent"
         />
       </div>
@@ -29,7 +29,7 @@
         <button
           type="button"
           :class="ICON_BUTTON"
-          title="Definições"
+          :title="t('nav.settings')"
           aria-haspopup="dialog"
           @click="settingsOpen = true"
         >
@@ -38,7 +38,7 @@
         <button
           type="button"
           :class="ICON_BUTTON"
-          title="Terminar sessão"
+          :title="t('nav.logout')"
           @click="handleLogout"
         >
           <LogOut class="w-5 h-5" />
@@ -59,6 +59,7 @@ import BaseDropdown from './BaseDropdown.vue';
 import SettingsDialog from './SettingsDialog.vue';
 import UserProfile from './UserProfile.vue';
 import { useStudent } from '../composables/useStudent';
+import { t } from '../lib/i18n';
 
 const ICON_BUTTON =
   'shrink-0 p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer';

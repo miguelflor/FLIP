@@ -12,6 +12,7 @@ const KEYS = {
   selectedYear: 'selected_year',
   selectedPeriod: 'selected_period',
   theme: 'theme',
+  language: 'language',
   preloadFiles: 'preload_files',
 } as const;
 

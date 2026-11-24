@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import { t } from './i18n';
 
 /** The backend's answer when the user closes the folder picker. Must match errors.rs. */
 export const DOWNLOAD_CANCELLED = 'Transferência cancelada';
@@ -10,7 +11,7 @@ export const isCancelled = (err: unknown) => String(err) === DOWNLOAD_CANCELLED;
 export const fileName = (path: string) => path.split(/[\\/]/).pop() || path;
 
 /** The toast shown once a file is in the downloads folder. */
-export const savedMessage = (path: string) => `«${fileName(path)}» guardado na pasta de transferências`;
+export const savedMessage = (path: string) => t('downloads.saved', { name: fileName(path) });
 
 /** Saves a file made in the app into the downloads folder; resolves to where it went. */
 export const saveDownload = (name: string, data: Uint8Array) =>

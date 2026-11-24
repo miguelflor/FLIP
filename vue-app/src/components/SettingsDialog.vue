@@ -13,12 +13,12 @@
           id="settings-title"
           class="text-xl font-bold"
         >
-          Definições
+          {{ t('settings.title') }}
         </h2>
         <button
           type="button"
           class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-          aria-label="Fechar definições"
+          :aria-label="t('settings.close')"
           @click="open = false"
         >
           <X class="w-5 h-5" />
@@ -36,6 +36,7 @@
 import { onMounted, useTemplateRef, watch } from 'vue';
 import { X } from 'lucide-vue-next';
 import SettingsPanel from './SettingsPanel.vue';
+import { t } from '../lib/i18n';
 
 const open = defineModel<boolean>('open', { default: false });
 const dialog = useTemplateRef<HTMLDialogElement>('dialog');
