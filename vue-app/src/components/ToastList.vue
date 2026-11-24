@@ -1,5 +1,9 @@
 <template>
-  <div class="fixed top-4 right-4 z-50">
+  <!-- A live region, so screen readers announce toasts as they appear -->
+  <div
+    class="fixed top-4 right-4 z-50"
+    aria-live="polite"
+  >
     <transition-group
       name="slide-fade"
       tag="div"
@@ -7,6 +11,7 @@
       <div
         v-for="toast in toasts"
         :key="toast.id"
+        :role="toast.type === 'error' ? 'alert' : 'status'"
         :class="[
           'mb-2 max-w-sm w-full shadow-lg rounded-lg overflow-hidden transform transition-all duration-300 bg-white border',
           toast.type === 'error'
@@ -32,6 +37,7 @@
                 ? 'hover:bg-red-100 text-red-600 hover:text-red-700'
                 : 'hover:bg-green-100 text-green-600 hover:text-green-700'
             ]"
+            aria-label="Fechar notificação"
             @click="dismiss(toast.id)"
           >
             <X class="h-4 w-4" />

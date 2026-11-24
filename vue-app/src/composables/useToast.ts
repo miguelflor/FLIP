@@ -8,6 +8,8 @@ export interface Toast {
 }
 
 const DEFAULT_DURATION = 3000;
+/** Errors stay longer: they usually need reading, and acting on. */
+const ERROR_DURATION = 6000;
 
 let toastId = 0;
 const toasts = ref<Toast[]>([]);
@@ -33,7 +35,7 @@ const show = (
   timers.set(id, window.setTimeout(() => dismiss(id), duration));
 };
 
-const error = (message: string) => show(message, 'error');
+const error = (message: string) => show(message, 'error', ERROR_DURATION);
 const success = (message: string) => show(message, 'success');
 
 export function useToast() {
