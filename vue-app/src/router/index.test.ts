@@ -28,8 +28,4 @@ describe('router pages', () => {
   it('has no placeholder pages', () => {
     expect(router.getRoutes().map((r) => r.path)).not.toContain('/app/files');
   });
-
-  it('has a settings page inside the app', () => {
-    expect(router.getRoutes().map((r) => r.path)).toContain('/app/settings');
-  });
 });

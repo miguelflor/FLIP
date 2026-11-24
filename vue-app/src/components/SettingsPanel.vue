@@ -1,9 +1,5 @@
 <template>
-  <div class="max-w-2xl space-y-4 sm:space-y-6">
-    <h2 class="text-2xl font-bold text-slate-900">
-      Definições
-    </h2>
-
+  <div class="space-y-4">
     <SettingsSection
       title="Aparência"
       :icon="Palette"
@@ -137,8 +133,8 @@
 import { onMounted, ref, type Component } from 'vue';
 import { Database, Files, FolderDown, KeyRound, Monitor, Moon, Palette, Sun } from 'lucide-vue-next';
 import { invoke } from '@tauri-apps/api/core';
-import ChoiceGroup from '../components/ChoiceGroup.vue';
-import SettingsSection from '../components/SettingsSection.vue';
+import ChoiceGroup from './ChoiceGroup.vue';
+import SettingsSection from './SettingsSection.vue';
 import { usePreload, type PreloadChoice } from '../composables/usePreload';
 import { useToast } from '../composables/useToast';
 import { useTheme, type ThemeChoice } from '../composables/useTheme';
