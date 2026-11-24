@@ -25,6 +25,7 @@ pub const UNKNOWN_STUDENT: &str = "Este aluno não pertence à sessão iniciada"
 pub const DOWNLOADS_UNAVAILABLE: &str = "Não foi possível abrir a pasta de transferências";
 pub const SAVE_FAILED: &str = "Não foi possível guardar o ficheiro";
 pub const ZIP_EMPTY: &str = "Nenhum ficheiro pôde ser descarregado";
+pub const INVALID_PERIOD: &str = "Ano ou período inválido";
 pub const NO_STUDENT_DATA: &str = "Esta conta não tem dados de aluno no CLIP";
 
 /// CLIP answered `url` with an error status.

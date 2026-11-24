@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises } from '@vue/test-utils';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 import { useClipQuery } from './useClipQuery';
 import { useStudent } from './useStudent';
@@ -36,5 +36,34 @@ describe('useClipQuery', () => {
     useClipQuery('get_chairs', ref('123'), ref('2025/26'));
     await flushPromises();
     expect(callsOf('get_chairs')).toHaveLength(3);
+  });
+
+  it('waits for a year and period instead of running without them', async () => {
+    const year = ref<string | null>(null);
+    const period = ref<string | null>(null);
+    const q = useClipQuery('get_schedule', ref('123'), year, {
+      params: computed(() => ({ period: period.value })),
+    });
+    await flushPromises();
+    expect(callsOf('get_schedule')).toHaveLength(0);
+    expect(q.loading.value).toBe(true);
+
+    year.value = '2025/26';
+    await flushPromises();
+    expect(callsOf('get_schedule')).toHaveLength(0);
+
+    period.value = 's2';
+    await flushPromises();
+    expect(callsOf('get_schedule')).toEqual([
+      ['get_schedule', { sessionId: 'session-1', studentId: '123', useCache: true, year: '2026', period: 's2' }],
+    ]);
+  });
+
+  it('runs commands that take no year straight away', async () => {
+    useClipQuery('get_available_years', ref('123'), null);
+    await flushPromises();
+    expect(callsOf('get_available_years')).toEqual([
+      ['get_available_years', { sessionId: 'session-1', studentId: '123', useCache: true }],
+    ]);
   });
 });

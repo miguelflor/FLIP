@@ -33,6 +33,3 @@ pub const FILE_TYPES: &[(&str, &str)] = &[
     ("ta", "Textos_de_Apoio"),
     ("xot", "Outros"),
 ];
-
-pub const SEMESTER_URL_TYPE: &str = "s";
-pub const TRIMESTER_URL_TYPE: &str = "t";

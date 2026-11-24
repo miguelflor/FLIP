@@ -3,8 +3,7 @@ pub mod auth;
 pub mod schedule;
 
 pub use academic::{
-    Chair, ChairsByPeriod, ChairsResponse, CourseDownload, CourseFile, FileParams, FileRef,
-    Semester, Test,
+    Chair, ChairsByPeriod, ChairsResponse, CourseDownload, CourseFile, FileParams, FileRef, Test,
 };
 pub use auth::{LoginResponse, StudentInfo};
 pub use schedule::{ClassType, HourMinute, Schedule, ScheduleItem, Weekday};

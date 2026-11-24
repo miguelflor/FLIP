@@ -472,13 +472,13 @@ pub async fn get_schedule(
     cache: State<'_, CacheHandler>,
     session_id: String,
     student_id: String,
-    year: Option<String>,
-    period: Option<String>,
+    year: String,
+    period: String,
     use_cache: Option<bool>,
 ) -> Result<Schedule, String> {
     let client = get_student_session(&state, &session_id, &student_id)?;
 
-    let url = Url::schedule(&student_id, year.as_deref(), period.as_deref());
+    let url = Url::schedule(&student_id, &year, &period)?;
 
     let html = if use_cache.unwrap_or(true) {
         cache.get(&url, &client).await?
@@ -498,12 +498,12 @@ pub async fn get_tests(
     cache: State<'_, CacheHandler>,
     session_id: String,
     student_id: String,
-    year: Option<String>,
-    period: Option<String>,
+    year: String,
+    period: String,
     use_cache: Option<bool>,
 ) -> Result<Vec<Test>, String> {
     let client = get_student_session(&state, &session_id, &student_id)?;
-    let url = Url::tests(&student_id, year.as_deref(), period.as_deref());
+    let url = Url::tests(&student_id, &year, &period)?;
     let html = if use_cache.unwrap_or(true) {
         cache.get(&url, &client).await?
     } else {

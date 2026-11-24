@@ -50,19 +50,23 @@ import TestsCard from '../components/TestsCard.vue';
 import { useStudent } from '../composables/useStudent';
 import { useClipQuery } from '../composables/useClipQuery';
 import { storage } from '../lib/storage';
-import { extractYearForRequest } from '../lib/academic';
+import {
+  currentLectiveYear,
+  currentPeriod as todaysPeriod,
+  extractYearForRequest,
+  type Period,
+} from '../lib/academic';
 
 const { currentStudentId } = useStudent();
 
 const selectedYear = ref<string | null>(storage.get('selectedYear'));
 
-// This command takes no year, so a constant ref keeps the query keyed on the
-// student alone — defaulting selectedYear below therefore can't retrigger it.
-const noYear = ref<string | null>(null);
+// This command takes no year, so it is keyed on the student alone: defaulting
+// selectedYear below can't retrigger it.
 const { data: yearsResponse } = useClipQuery<{ success: boolean; years: string[] }>(
   'get_available_years',
   currentStudentId,
-  noYear,
+  null,
 );
 
 const availableYears = computed(() => {
@@ -77,13 +81,12 @@ watch(availableYears, (years) => {
   }
 });
 
-const PERIOD_LABELS = {
+const PERIOD_LABELS: Record<Period, string> = {
   s1: '1º Semestre',
   s2: '2º Semestre',
   t1: '1º Trimestre',
   t2: '2º Trimestre',
-} as const;
-type Period = keyof typeof PERIOD_LABELS;
+};
 
 // A period exists in a year when the student has units in it.
 const { data: chairsResponse } = useClipQuery<{
@@ -111,11 +114,8 @@ const selectPeriodLabel = (label: string) => {
   if (period) selectPeriod(period);
 };
 
-// Today's semester (23 Feb – 1 Sep is the 2nd) and lective year (rolls over on 2 Sep, e.g. "2027" for 2026/27)
-const today = new Date();
-const md = (today.getMonth() + 1) * 100 + today.getDate();
-const currentPeriod: Period = md >= 223 && md < 902 ? 's2' : 's1';
-const currentYear = String(today.getFullYear() + (md >= 902 ? 1 : 0));
+const currentPeriod = todaysPeriod();
+const currentYear = currentLectiveYear();
 
 // CLIP's tests page only lists the current semester
 const isCurrentPeriod = computed(

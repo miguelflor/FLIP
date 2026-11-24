@@ -7,7 +7,10 @@ export interface ClipQueryOptions {
   noStudentMessage?: string;
   /** Message shown when there is no active session. */
   noSessionMessage?: string;
-  /** Extra command arguments; the query re-runs when they change. Null values are omitted. */
+  /**
+   * Extra command arguments; the query re-runs when they change. While any is null (not
+   * picked yet), the query waits, loading, instead of running without it.
+   */
   params?: Ref<Record<string, string | null>>;
 }
 
@@ -54,7 +57,8 @@ function sharedInvoke<T>(command: string, params: Record<string, string | boolea
 
 /**
  * Runs a Tauri command that is scoped to a student and academic year, and
- * re-runs it whenever either changes.
+ * re-runs it whenever either changes. `year` is null for commands that take none; a year
+ * ref holding null makes the query wait for one.
  *
  * Handles the shell every CLIP-backed panel needs: loading/error state, the
  * session guard, year normalisation and cache busting on manual refresh.
@@ -62,7 +66,7 @@ function sharedInvoke<T>(command: string, params: Record<string, string | boolea
 export function useClipQuery<T>(
   command: string,
   studentId: Ref<string | null>,
-  year: Ref<string | null>,
+  year: Ref<string | null> | null,
   options: ClipQueryOptions = {},
 ) {
   const { sessionId } = useStudent();
@@ -92,6 +96,11 @@ export function useClipQuery<T>(
 
     loading.value = true;
     error.value = null;
+
+    // The year or period isn't picked yet: wait for it rather than ask CLIP for a guess
+    const extra = options.params?.value ?? {};
+    if ((year && !year.value) || Object.values(extra).some((v) => v === null)) return;
+
     inFlight.value++;
     try {
       await profileFirst();
@@ -102,8 +111,8 @@ export function useClipQuery<T>(
         studentId: studentId.value,
         useCache,
       };
-      if (year.value) params.year = extractYearForRequest(year.value);
-      for (const [k, v] of Object.entries(options.params?.value ?? {})) {
+      if (year?.value) params.year = extractYearForRequest(year.value);
+      for (const [k, v] of Object.entries(extra)) {
         if (v !== null) params[k] = v;
       }
 
@@ -120,7 +129,7 @@ export function useClipQuery<T>(
     }
   };
 
-  watch([studentId, year, () => options.params?.value], () => run(), { immediate: true });
+  watch([studentId, () => year?.value, () => options.params?.value], () => run(), { immediate: true });
 
   return {
     data,
