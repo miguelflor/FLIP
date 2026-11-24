@@ -54,7 +54,24 @@
         Entrando...
       </div>
 
-      <LoginForm v-else />
+      <template v-else>
+        <!-- The saved login couldn't be tried (e.g. no internet): say so, offer a retry -->
+        <div
+          v-if="autoLoginError"
+          class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"
+          role="alert"
+        >
+          <p>Não foi possível entrar automaticamente: {{ autoLoginError }}</p>
+          <button
+            type="button"
+            class="mt-2 font-semibold underline cursor-pointer"
+            @click="tryAutoLogin"
+          >
+            Tentar novamente
+          </button>
+        </div>
+        <LoginForm />
+      </template>
 
       <!-- Footer -->
       <p
@@ -82,9 +99,12 @@ type LoginResponse = {
 const router = useRouter();
 const { startSession } = useStudent();
 const autoLoggingIn = ref(true);
+const autoLoginError = ref<string | null>(null);
 
 // On success we navigate away with the spinner still up, so the form never flashes.
-onMounted(async () => {
+const tryAutoLogin = async () => {
+  autoLoggingIn.value = true;
+  autoLoginError.value = null;
   try {
     const saved = await invoke<LoginResponse | null>('auto_login');
     if (saved) {
@@ -94,7 +114,10 @@ onMounted(async () => {
     }
   } catch (err) {
     console.error('Auto login failed:', err);
+    autoLoginError.value = String(err);
   }
   autoLoggingIn.value = false;
-});
+};
+
+onMounted(tryAutoLogin);
 </script>

@@ -89,6 +89,17 @@
   --color-emerald-800: oklch(90.5% 0.093 164.15);
   --color-emerald-900: oklch(95% 0.052 163.051);
   --color-emerald-950: oklch(97.9% 0.021 166.113);
+  --color-amber-50: color-mix(in oklab, oklch(76.9% 0.188 70.08) 10%, transparent);
+  --color-amber-100: color-mix(in oklab, oklch(76.9% 0.188 70.08) 18%, transparent);
+  --color-amber-200: color-mix(in oklab, oklch(76.9% 0.188 70.08) 30%, transparent);
+  --color-amber-300: oklch(66.6% 0.179 58.318);
+  --color-amber-400: oklch(82.8% 0.189 84.429);
+  --color-amber-500: oklch(82.8% 0.189 84.429);
+  --color-amber-600: oklch(82.8% 0.189 84.429);
+  --color-amber-700: oklch(87.9% 0.169 91.605);
+  --color-amber-800: oklch(92.4% 0.12 95.746);
+  --color-amber-900: oklch(96.2% 0.059 95.617);
+  --color-amber-950: oklch(98.7% 0.022 95.277);
   --color-violet-50: color-mix(in oklab, oklch(60.6% 0.25 292.717) 10%, transparent);
   --color-violet-100: color-mix(in oklab, oklch(60.6% 0.25 292.717) 18%, transparent);
   --color-violet-200: color-mix(in oklab, oklch(60.6% 0.25 292.717) 30%, transparent);
