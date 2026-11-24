@@ -15,7 +15,7 @@ pub fn net_error(e: reqwest::Error) -> String {
     }
     .to_string()
 }
-pub const INVALID_CREDENTIALS: &str = "Identificador ou senha incorretos";
+pub const INVALID_CREDENTIALS: &str = "Identificador ou palavra-passe incorretos";
 pub const LOGIN_FAILED: &str = "O CLIP não aceitou o início de sessão. Tente novamente.";
 pub const CACHE_ERROR: &str = "Erro ao aceder à cache local";
 pub const STUDENT_INFO_UNREADABLE: &str = "Não foi possível ler os dados do aluno";

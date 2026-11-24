@@ -7,7 +7,7 @@
       <div class="flex items-center gap-2 min-w-0">
         <FolderOpen class="w-5 h-5 text-slate-500 shrink-0" />
         <h3 class="text-lg font-bold text-slate-900 truncate">
-          Ficheiros das Cadeiras
+          Ficheiros das cadeiras
         </h3>
       </div>
       <button
@@ -89,10 +89,7 @@
         v-else
         class="text-gray-500 py-6 text-center"
       >
-        <p>Não foram encontrados ficheiros recentes.</p>
-        <p class="text-sm mt-1">
-          Por favor, verifique se está autenticado.
-        </p>
+        <p>Não há cadeiras neste ano letivo.</p>
       </div>
     </div>
   </div>

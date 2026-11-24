@@ -36,7 +36,7 @@
             autocomplete="username"
             :disabled="loading"
             class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-            placeholder="ex: j.pd"
+            placeholder="ex.: j.pd"
           >
         </div>
       </div>
@@ -47,7 +47,7 @@
           for="password"
           class="block text-sm font-semibold text-gray-700 mb-2"
         >
-          Senha
+          Palavra-passe
         </label>
         <div class="flex items-center bg-gray-50 border border-gray-200 rounded-xl focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all">
           <svg
@@ -76,7 +76,7 @@
           <button
             type="button"
             class="cursor-pointer self-stretch px-3 flex items-center rounded-r-xl text-gray-400 hover:text-gray-600 focus-visible:outline-none focus-visible:text-blue-500"
-            :aria-label="showPassword ? 'Ocultar senha' : 'Mostrar senha'"
+            :aria-label="showPassword ? 'Ocultar palavra-passe' : 'Mostrar palavra-passe'"
             :aria-pressed="showPassword"
             @click="showPassword = !showPassword"
           >
@@ -144,7 +144,7 @@
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             />
           </svg>
-          Entrando...
+          A entrar...
         </span>
         <span v-else>Entrar</span>
       </button>

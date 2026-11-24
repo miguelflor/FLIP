@@ -5,14 +5,14 @@
       <BaseDropdown
         :options="availableYears"
         :selected="selectedYear"
-        placeholder="Selecionar Ano"
+        placeholder="Selecionar ano"
         @select="selectYear"
       />
       <BaseDropdown
         :options="periodOptions"
         :selected="selectedPeriod && PERIOD_LABELS[selectedPeriod]"
         :disabled="periodOptions.length <= 1"
-        placeholder="Selecionar Período"
+        placeholder="Selecionar período"
         @select="selectPeriodLabel"
       />
     </div>

@@ -4,7 +4,7 @@
       <div class="flex items-center gap-2 min-w-0">
         <ClipboardList class="w-5 h-5 text-slate-500 shrink-0" />
         <h3 class="text-lg font-bold text-slate-900 truncate">
-          Testes de Avaliação
+          Testes de avaliação
         </h3>
       </div>
       <button

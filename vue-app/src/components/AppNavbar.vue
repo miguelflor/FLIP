@@ -10,7 +10,7 @@
         <BaseDropdown
           :options="Object.keys(alunoIds)"
           :selected="selectedAlunoId"
-          placeholder="Selecionar Aluno"
+          placeholder="Selecionar aluno"
           @select="selectStudent"
         />
       </div>

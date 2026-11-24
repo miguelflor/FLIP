@@ -10,7 +10,7 @@
         <div class="flex items-center gap-2">
           <Calendar class="w-5 h-5 text-slate-500 shrink-0" />
           <h3 class="text-lg font-bold text-slate-900 whitespace-nowrap">
-            Horário Semanal
+            Horário semanal
           </h3>
         </div>
         <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 whitespace-nowrap">

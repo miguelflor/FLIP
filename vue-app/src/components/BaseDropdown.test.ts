@@ -4,7 +4,7 @@ import BaseDropdown from './BaseDropdown.vue';
 
 const mountDropdown = (selected: string | null = '2024/25') =>
   mount(BaseDropdown, {
-    props: { options: ['2025/26', '2024/25', '2023/24'], selected, placeholder: 'Selecionar Ano' },
+    props: { options: ['2025/26', '2024/25', '2023/24'], selected, placeholder: 'Selecionar ano' },
     attachTo: document.body,
   });
 

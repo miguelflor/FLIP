@@ -22,7 +22,7 @@ describe('LoginForm', () => {
   });
 
   it('keeps the username and clears the password after a failed login', async () => {
-    vi.mocked(invoke).mockRejectedValue('Identificador ou senha incorretos');
+    vi.mocked(invoke).mockRejectedValue('Identificador ou palavra-passe incorretos');
     const wrapper = mountForm();
     await wrapper.get('#username').setValue('a.silva');
     await wrapper.get('#password').setValue('wrong');
@@ -32,7 +32,7 @@ describe('LoginForm', () => {
 
     expect((wrapper.get('#username').element as HTMLInputElement).value).toBe('a.silva');
     expect((wrapper.get('#password').element as HTMLInputElement).value).toBe('');
-    expect(useToast().toasts.value.map((t) => t.message)).toEqual(['Identificador ou senha incorretos']);
+    expect(useToast().toasts.value.map((t) => t.message)).toEqual(['Identificador ou palavra-passe incorretos']);
   });
 
   it('lets password managers recognise the fields, and locks them while logging in', async () => {
