@@ -33,6 +33,8 @@
             v-model="username"
             type="text"
             required
+            autocomplete="username"
+            :disabled="loading"
             class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
             placeholder="ex: j.pd"
           >
@@ -66,6 +68,7 @@
             v-model="password"
             :type="showPassword ? 'text' : 'password'"
             required
+            :disabled="loading"
             autocomplete="current-password"
             class="flex-1 min-w-0 pl-3 py-3 bg-transparent outline-none [&::-ms-reveal]:hidden"
             placeholder="••••••••"
@@ -106,6 +109,7 @@
         <input
           v-model="remember"
           type="checkbox"
+          :disabled="loading"
           class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
         >
         Lembrar-me neste computador
@@ -181,9 +185,9 @@ const handleSubmit = async () => {
     startSession(loginResponse.session_id, loginResponse.aluno_ids);
     await router.push('/app/dashboard');
   } catch (err) {
+    // The username stays, so a mistyped password is all there is to retype
     error(String(err));
   } finally {
-    username.value = '';
     password.value = '';
     showPassword.value = false;
     loading.value = false;
