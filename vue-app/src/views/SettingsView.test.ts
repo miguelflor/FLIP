@@ -7,10 +7,11 @@ import { useTheme } from '../composables/useTheme';
 
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn() }));
 
-const answer = (current: string | null, chosen: string | null) =>
+const answer = (current: string | null, chosen: string | null, login: string | null = null) =>
   vi.mocked(invoke).mockImplementation(async (cmd) => {
     if (cmd === 'get_download_dir') return current;
     if (cmd === 'change_download_dir') return chosen;
+    if (cmd === 'saved_login') return login;
   });
 
 describe('SettingsView download folder', () => {
@@ -96,5 +97,35 @@ describe('SettingsView cache', () => {
     await wrapper.get('[data-testid="clear-cache"]').trigger('click');
     await flushPromises();
     expect(useToast().toasts.value.map((t) => t.message)).toEqual(['Erro ao limpar cache']);
+  });
+});
+
+describe('SettingsView saved login', () => {
+  beforeEach(() => {
+    vi.mocked(invoke).mockReset();
+    useToast().toasts.value = [];
+  });
+
+  it('shows whose login is saved and forgets it without logging out', async () => {
+    answer(null, null, 'a.silva');
+    const wrapper = mount(SettingsView);
+    await flushPromises();
+    expect(wrapper.get('[data-testid="saved-login"]').text()).toContain('a.silva');
+
+    await wrapper.get('[data-testid="forget-login"]').trigger('click');
+    await flushPromises();
+
+    expect(invoke).toHaveBeenCalledWith('forget_login');
+    expect(vi.mocked(invoke).mock.calls.map(([c]) => c)).not.toContain('logout');
+    expect(wrapper.get('[data-testid="saved-login"]').text()).toContain('Nenhum início de sessão guardado');
+    expect(wrapper.find('[data-testid="forget-login"]').exists()).toBe(false);
+    expect(useToast().toasts.value.map((t) => t.message)).toEqual(['Início de sessão esquecido']);
+  });
+
+  it('explains how to save a login when none is', async () => {
+    answer(null, null, null);
+    const wrapper = mount(SettingsView);
+    await flushPromises();
+    expect(wrapper.get('[data-testid="saved-login"]').text()).toContain('Lembrar-me neste computador');
   });
 });

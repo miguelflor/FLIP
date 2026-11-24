@@ -67,6 +67,8 @@ pub fn run() {
             commands::login,
             commands::auto_login,
             commands::logout,
+            commands::saved_login,
+            commands::forget_login,
             commands::get_student_info,
             commands::get_chairs,
             commands::get_available_years,

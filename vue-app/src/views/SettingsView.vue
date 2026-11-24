@@ -82,6 +82,44 @@
     </SettingsSection>
 
     <SettingsSection
+      title="Sessão guardada"
+      :icon="KeyRound"
+    >
+      <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+        <p
+          v-if="loadingLogin"
+          class="flex-1 h-4 w-48 rounded bg-slate-200 animate-pulse"
+        />
+        <p
+          v-else-if="savedLogin"
+          class="min-w-0 flex-1 text-slate-700"
+          data-testid="saved-login"
+        >
+          O início de sessão de <strong class="text-slate-900">{{ savedLogin }}</strong> está guardado
+          neste computador, no cofre do sistema, para entrar automaticamente.
+        </p>
+        <p
+          v-else
+          class="min-w-0 flex-1 text-slate-500"
+          data-testid="saved-login"
+        >
+          Nenhum início de sessão guardado. Para entrar automaticamente, marque
+          «Lembrar-me neste computador» ao iniciar sessão.
+        </p>
+        <button
+          v-if="savedLogin"
+          type="button"
+          :class="BUTTON"
+          :disabled="forgetting"
+          data-testid="forget-login"
+          @click="forgetLogin"
+        >
+          Esquecer
+        </button>
+      </div>
+    </SettingsSection>
+
+    <SettingsSection
       title="Cache"
       :icon="Database"
     >
@@ -106,7 +144,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { Database, FolderDown, Monitor, Moon, Palette, Sun } from 'lucide-vue-next';
+import { Database, FolderDown, KeyRound, Monitor, Moon, Palette, Sun } from 'lucide-vue-next';
 import { invoke } from '@tauri-apps/api/core';
 import SettingsSection from '../components/SettingsSection.vue';
 import { useToast } from '../composables/useToast';
@@ -132,6 +170,7 @@ const loadingFolder = ref(true);
 const choosing = ref(false);
 
 onMounted(async () => {
+  loadSavedLogin();
   try {
     folder.value = await invoke<string | null>('get_download_dir');
   } catch (e) {
@@ -154,6 +193,35 @@ const changeFolder = async () => {
     error(String(e));
   } finally {
     choosing.value = false;
+  }
+};
+
+// Saved login
+const savedLogin = ref<string | null>(null);
+const loadingLogin = ref(true);
+const forgetting = ref(false);
+
+const loadSavedLogin = async () => {
+  try {
+    savedLogin.value = await invoke<string | null>('saved_login');
+  } catch (e) {
+    console.error('Error reading saved login:', e);
+  } finally {
+    loadingLogin.value = false;
+  }
+};
+
+const forgetLogin = async () => {
+  forgetting.value = true;
+  try {
+    await invoke('forget_login');
+    savedLogin.value = null;
+    success('Início de sessão esquecido');
+  } catch (e) {
+    console.error('Error forgetting login:', e);
+    error('Erro ao esquecer o início de sessão');
+  } finally {
+    forgetting.value = false;
   }
 };
 

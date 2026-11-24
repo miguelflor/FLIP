@@ -91,6 +91,19 @@ pub async fn auto_login(state: State<'_, AppState>) -> Result<Option<LoginRespon
     }
 }
 
+/// The username whose login is saved on this computer ("Lembrar-me"), if any.
+/// Only the name: the password never leaves the backend.
+#[command]
+pub fn saved_login() -> Option<String> {
+    load_credentials().map(|(username, _)| username)
+}
+
+/// Forgets the saved login, without logging out.
+#[command]
+pub fn forget_login() {
+    forget_credentials();
+}
+
 /// Ends the session: drops its logged-in client, forgets the saved login and clears the
 /// cache, so nothing of this account's is left on the computer.
 #[command]
