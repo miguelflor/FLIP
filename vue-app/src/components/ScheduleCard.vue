@@ -36,16 +36,13 @@
           <span class="hidden xl:inline">Atualizar</span>
         </button>
         <button
-          title="Exportar tudo para Google Calendar"
-          class="flex items-center gap-1.5 p-2 xl:px-3 xl:py-1.5 bg-white border border-slate-200 text-slate-600 rounded-md hover:shadow-sm transition-all text-xs font-medium hover:bg-slate-50 whitespace-nowrap"
-          @click="exportAllToGoogleCalendar"
+          :disabled="loading || !!error || !schedule.length"
+          title="Exportar horário para o calendário (.ics)"
+          class="flex items-center gap-1.5 p-2 xl:px-3 xl:py-1.5 bg-white border border-slate-200 text-slate-600 rounded-md hover:shadow-sm transition-all text-xs font-medium hover:bg-slate-50 disabled:opacity-50 whitespace-nowrap"
+          @click="exportIcs"
         >
-          <img
-            src="/google-logo.svg"
-            alt="Google"
-            class="w-3.5 h-3.5"
-          >
-          <span class="hidden xl:inline">Exportar tudo</span>
+          <CalendarArrowDown class="w-3.5 h-3.5" />
+          <span class="hidden xl:inline">Calendário</span>
         </button>
         <button
           :disabled="loading || !!error"
@@ -193,11 +190,23 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, toRef } from "vue";
-import { Calendar, ImageDown, MapPin, RefreshCw } from "lucide-vue-next";
+import { Calendar, CalendarArrowDown, ImageDown, MapPin, RefreshCw } from "lucide-vue-next";
 import { toBlob } from "html-to-image";
 import { useClipQuery } from "../composables/useClipQuery";
 import { useToast } from "../composables/useToast";
 import { saveDownload, savedMessage } from "../lib/downloads";
+import { extractYearForRequest, type Period } from "../lib/academic";
+import { localStamp, scheduleToIcs, utcStamp } from "../lib/ics";
+import {
+  CLASS_TYPE_LABELS,
+  classSeries,
+  isoDay,
+  WEEKDAY_INDEX,
+  type ClassType,
+  type HourMinute,
+  type ScheduleItem,
+  type Weekday,
+} from "../lib/schedule";
 
 const props = defineProps<{
   studentId: string | null;
@@ -205,47 +214,8 @@ const props = defineProps<{
   period: string | null;
 }>();
 
-type Weekday =
-  | "Monday"
-  | "Tuesday"
-  | "Wednesday"
-  | "Thursday"
-  | "Friday"
-  | "Saturday"
-  | "Sunday";
-type ClassType = "t" | "p" | "tp";
-
-interface HourMinute {
-  hour: number;
-  min: number;
-}
-
-interface ScheduleItem {
-  weekday: Weekday;
-  time_start: HourMinute;
-  time_end: HourMinute;
-  class: string;
-  class_number: number;
-  location: string;
-  class_type: ClassType;
-}
-
 const HOUR_PX = 52;
 const EXPORT_WIDTH = 960;
-
-/** ISO weekday numbers (Mon=1 … Sun=7), as used by both the grid and the export. */
-const WEEKDAY_INDEX: Record<Weekday, number> = {
-  Monday: 1,
-  Tuesday: 2,
-  Wednesday: 3,
-  Thursday: 4,
-  Friday: 5,
-  Saturday: 6,
-  Sunday: 7,
-};
-
-/** `Date#getDay` uses Sun=0, so it is remapped onto the ISO numbering above. */
-const isoDay = (date: Date) => (date.getDay() === 0 ? 7 : date.getDay());
 
 const weekdayFromDate = (date: Date): Weekday | null => {
   const iso = isoDay(date);
@@ -357,28 +327,26 @@ onUnmounted(() => clearTimeout(midnightTimer));
 
 const isToday = (day: Weekday) => todayKey.value === day;
 
-const getNextOccurrence = (day: Weekday, hm: HourMinute) => {
-  const today = new Date();
-  const diff = WEEKDAY_INDEX[day] - isoDay(today);
-  const next = new Date(today);
-  next.setDate(today.getDate() + (diff >= 0 ? diff : diff + 7));
-  next.setHours(hm.hour, hm.min, 0, 0);
-  return next;
-};
+/** The schedule's lective year and period, once both are known. */
+const series = computed(() =>
+  props.year && props.period
+    ? { year: extractYearForRequest(props.year), period: props.period as Period }
+    : null,
+);
 
-const formatDateForGoogle = (date: Date) =>
-  date.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
-
+/** Opens Google Calendar with one class as a weekly event, until the period ends. */
 const exportToGoogleCalendar = (item: ScheduleItem) => {
-  const start = getNextOccurrence(item.weekday, item.time_start);
-  const end = getNextOccurrence(item.weekday, item.time_end);
+  if (!series.value) return;
+  const { first, until } = classSeries(item, series.value.year, series.value.period);
+  // Class times are Lisbon times: given without "Z", ctz tells Google which zone they are in
   const url =
     `https://calendar.google.com/calendar/render?action=TEMPLATE` +
     `&text=${encodeURIComponent(item.class)}` +
-    `&dates=${formatDateForGoogle(start)}/${formatDateForGoogle(end)}` +
-    `&details=${encodeURIComponent(`Tipo: ${item.class_type}.${item.class_number}`)}` +
+    `&dates=${localStamp(first, item.time_start)}/${localStamp(first, item.time_end)}` +
+    `&ctz=Europe/Lisbon` +
+    `&details=${encodeURIComponent(`${CLASS_TYPE_LABELS[item.class_type]} ${item.class_number}`)}` +
     `&location=${encodeURIComponent(item.location)}` +
-    `&recur=RRULE:FREQ=WEEKLY`;
+    `&recur=${encodeURIComponent(`RRULE:FREQ=WEEKLY;UNTIL=${utcStamp(until)}`)}`;
   window.open(url, "_blank");
 };
 
@@ -415,9 +383,17 @@ const exportPng = async () => {
   }
 };
 
-const exportAllToGoogleCalendar = () => {
-  schedule.value.forEach((item, i) =>
-    setTimeout(() => exportToGoogleCalendar(item), i * 1000),
-  );
+/** Saves the whole schedule as one calendar file, for any calendar app to import. */
+const exportIcs = async () => {
+  if (!series.value) return;
+  const { year, period } = series.value;
+  try {
+    const ics = scheduleToIcs(schedule.value, year, period);
+    const path = await saveDownload(`horario-${year}-${period}.ics`, new TextEncoder().encode(ics));
+    toastSuccess(savedMessage(path));
+  } catch (err) {
+    console.error("Error exporting calendar:", err);
+    toastError(`Erro ao exportar calendário: ${err}`);
+  }
 };
 </script>

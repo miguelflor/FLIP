@@ -29,10 +29,11 @@
 
 ### **Weekly Schedule**
 - Clean, color-coded weekly schedule view
+- Export the whole schedule as one calendar file (.ics) for Google Calendar, Outlook or Apple Calendar
 - Export individual classes to Google Calendar
-- Export entire schedule with one click
-- Automatic recurring (weekly) event creation
+- Classes become weekly events that end with the semester
 - Export the schedule as a PNG image
+- Exports and downloads are saved to your downloads folder
 
 ### **Evaluation Tests**
 - See all of the current semester's evaluation tests right on the dashboard
