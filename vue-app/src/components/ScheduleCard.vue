@@ -201,7 +201,7 @@ import { Calendar, CalendarArrowDown, ImageDown, MapPin, RefreshCw } from "lucid
 import { toBlob } from "html-to-image";
 import { useClipQuery } from "../composables/useClipQuery";
 import { useToast } from "../composables/useToast";
-import { saveDownload, savedMessage } from "../lib/downloads";
+import { isCancelled, saveDownload, savedMessage } from "../lib/downloads";
 import { extractYearForRequest, type Period } from "../lib/academic";
 import { localStamp, scheduleToIcs, utcStamp } from "../lib/ics";
 import {
@@ -397,6 +397,7 @@ const exportPng = async () => {
     const path = await saveDownload(name, new Uint8Array(await blob.arrayBuffer()));
     toastSuccess(savedMessage(path));
   } catch (err) {
+    if (isCancelled(err)) return;
     console.error("Error exporting schedule:", err);
     toastError(`Erro ao exportar horário: ${err}`);
   } finally {
@@ -413,6 +414,7 @@ const exportIcs = async () => {
     const path = await saveDownload(`horario-${year}-${period}.ics`, new TextEncoder().encode(ics));
     toastSuccess(savedMessage(path));
   } catch (err) {
+    if (isCancelled(err)) return;
     console.error("Error exporting calendar:", err);
     toastError(`Erro ao exportar calendário: ${err}`);
   }

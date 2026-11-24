@@ -110,7 +110,7 @@ import { useToast } from "../composables/useToast";
 import { invokeClip, useStudent } from "../composables/useStudent";
 import { whenIdle } from "../composables/useClipQuery";
 import { listCourseFiles, type CourseFile, type UnitParams } from "../composables/useCourseFiles";
-import { savedMessage } from "../lib/downloads";
+import { isCancelled, savedMessage } from "../lib/downloads";
 
 interface ChairType {
   href: string;
@@ -192,6 +192,7 @@ const handleDownload = async () => {
       error(`${res.failed} de ${res.saved + res.failed} ficheiros não foram descarregados`);
     }
   } catch (err: unknown) {
+    if (isCancelled(err)) return;
     console.error("Error downloading chair:", err);
     error(`Erro ao descarregar ${props.chair.text}: ${err}`);
   } finally {
@@ -291,6 +292,7 @@ const downloadOne = async (f: CourseFile) => {
     });
     success(savedMessage(path));
   } catch (err: unknown) {
+    if (isCancelled(err)) return;
     console.error("Error downloading file:", err);
     error(`Erro ao descarregar «${f.name}»: ${err}`);
   } finally {

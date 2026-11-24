@@ -4,28 +4,55 @@ use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 use tauri::{AppHandle, Manager};
+use tauri_plugin_dialog::DialogExt;
 
-use crate::errors::{DOWNLOADS_UNAVAILABLE, SAVE_FAILED};
+use crate::errors::{DOWNLOAD_CANCELLED, SAVE_FAILED};
+use crate::settings::SettingsStore;
 
-/// The user's downloads folder, where every download goes.
-pub fn downloads_dir(app: &AppHandle) -> Result<PathBuf, String> {
-    let paths = app.path();
-    let dir = choose_downloads_dir(paths.download_dir().ok(), paths.home_dir().ok()).ok_or_else(
-        || {
-            log::warn!("No downloads or home folder");
-            DOWNLOADS_UNAVAILABLE.to_string()
-        },
-    )?;
-    std::fs::create_dir_all(&dir).map_err(|e| {
-        log::warn!("Cannot create {}: {e}", dir.display());
-        DOWNLOADS_UNAVAILABLE.to_string()
-    })?;
-    Ok(dir)
+/// The folder downloads go to: the one the user chose, or, the first time (or if that
+/// folder is gone), one they are asked for now. `Err(DOWNLOAD_CANCELLED)` if they decline.
+pub async fn downloads_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    let store = app.state::<SettingsStore>();
+    if let Some(dir) = store.get().download_dir {
+        if std::fs::create_dir_all(&dir).is_ok() {
+            return Ok(dir);
+        }
+        log::warn!("Download folder {} is unavailable", dir.display());
+    }
+    choose_download_dir(app)
+        .await?
+        .ok_or_else(|| DOWNLOAD_CANCELLED.to_string())
 }
 
-/// The OS's downloads folder, or else ~/Downloads: Linux reports none without an XDG
-/// user-dirs setup, as on WSL and minimal installs.
-fn choose_downloads_dir(download: Option<PathBuf>, home: Option<PathBuf>) -> Option<PathBuf> {
+/// Asks the user for a download folder and remembers it. `None` if they cancel.
+pub async fn choose_download_dir(app: &AppHandle) -> Result<Option<PathBuf>, String> {
+    let paths = app.path();
+    let current = app.state::<SettingsStore>().get().download_dir;
+    let start =
+        current.or_else(|| default_downloads_dir(paths.download_dir().ok(), paths.home_dir().ok()));
+
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    let mut picker = app
+        .dialog()
+        .file()
+        .set_title("Escolha onde guardar as transferências");
+    if let Some(start) = start.filter(|d| d.is_dir()) {
+        picker = picker.set_directory(start);
+    }
+    picker.pick_folder(move |folder| {
+        let _ = tx.send(folder.and_then(|f| f.into_path().ok()));
+    });
+    let Some(dir) = rx.await.ok().flatten() else {
+        return Ok(None);
+    };
+    app.state::<SettingsStore>()
+        .update(|s| s.download_dir = Some(dir.clone()))?;
+    Ok(Some(dir))
+}
+
+/// Where the folder picker starts the first time: the OS's downloads folder, or else
+/// ~/Downloads, as Linux names none without an XDG user-dirs setup (WSL, minimal installs).
+fn default_downloads_dir(download: Option<PathBuf>, home: Option<PathBuf>) -> Option<PathBuf> {
     download.or_else(|| home.map(|h| h.join("Downloads")))
 }
 
@@ -142,20 +169,20 @@ mod tests {
     }
 
     #[test]
-    fn falls_back_to_downloads_in_home() {
+    fn picker_starts_in_the_downloads_folder_or_home_downloads() {
         let (dl, home) = (
             PathBuf::from("/x/Transferências"),
             PathBuf::from("/home/ana"),
         );
         assert_eq!(
-            choose_downloads_dir(Some(dl.clone()), Some(home.clone())),
+            default_downloads_dir(Some(dl.clone()), Some(home.clone())),
             Some(dl)
         );
         assert_eq!(
-            choose_downloads_dir(None, Some(home)),
+            default_downloads_dir(None, Some(home)),
             Some(PathBuf::from("/home/ana/Downloads"))
         );
-        assert_eq!(choose_downloads_dir(None, None), None);
+        assert_eq!(default_downloads_dir(None, None), None);
     }
 
     #[test]

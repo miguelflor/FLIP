@@ -1,5 +1,11 @@
 import { invoke } from '@tauri-apps/api/core';
 
+/** The backend's answer when the user closes the folder picker. Must match errors.rs. */
+export const DOWNLOAD_CANCELLED = 'Transferência cancelada';
+
+/** True when a download failed only because the user cancelled choosing a folder. */
+export const isCancelled = (err: unknown) => String(err) === DOWNLOAD_CANCELLED;
+
 /** The file name at the end of a path, on any OS. */
 export const fileName = (path: string) => path.split(/[\\/]/).pop() || path;
 

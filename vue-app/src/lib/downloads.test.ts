@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { invoke } from '@tauri-apps/api/core';
-import { fileName, saveDownload, savedMessage } from './downloads';
+import errorsRs from '../../../src-tauri/src/errors.rs?raw';
+import { DOWNLOAD_CANCELLED, fileName, isCancelled, saveDownload, savedMessage } from './downloads';
 
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn() }));
 
@@ -15,5 +16,11 @@ describe('downloads', () => {
     vi.mocked(invoke).mockResolvedValue('/x/horario.png');
     await expect(saveDownload('horario.png', new Uint8Array([1, 2, 255]))).resolves.toBe('/x/horario.png');
     expect(invoke).toHaveBeenCalledWith('save_download', { name: 'horario.png', data: [1, 2, 255] });
+  });
+
+  it('recognises a cancelled folder choice, as the backend words it', () => {
+    expect(errorsRs).toContain(`DOWNLOAD_CANCELLED: &str = "${DOWNLOAD_CANCELLED}"`);
+    expect(isCancelled(DOWNLOAD_CANCELLED)).toBe(true);
+    expect(isCancelled('Não foi possível guardar o ficheiro')).toBe(false);
   });
 });

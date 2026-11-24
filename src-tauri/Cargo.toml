@@ -57,6 +57,7 @@ const_format = "0.2.36"
 strum = { version = "0.28.0", features = ["derive"] }
 keyring = { version = "3.6.3", features = ["sync-secret-service", "crypto-rust", "windows-native", "apple-native"] }
 rand = "0.9.5"
+tauri-plugin-dialog = "2"
 
 [dev-dependencies]
 mockito = "1"

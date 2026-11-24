@@ -13,7 +13,7 @@ use zip::{CompressionMethod, ZipWriter};
 
 use crate::cache::{CacheHandler, APP_NAME};
 use crate::constants::{CLIP_BASE, CLIP_HOME, FILE_TYPES};
-use crate::downloads::{downloads_dir, save_new_file, unique_path, ZipNames};
+use crate::downloads::{choose_download_dir, downloads_dir, save_new_file, unique_path, ZipNames};
 use crate::errors::{
     http_error, net_error, INVALID_CREDENTIALS, INVALID_FILE_LINK, LOGIN_FAILED, NO_STUDENT_DATA,
     SAVE_FAILED, SCHEDULE_UNREADABLE, STUDENT_INFO_UNREADABLE, ZIP_EMPTY,
@@ -25,6 +25,7 @@ use crate::parser::{
 use crate::session::{
     fetch, get_session, get_student_session, is_login_page, new_http_client, ClipClient,
 };
+use crate::settings::SettingsStore;
 use crate::types::{
     ChairsResponse, CourseDownload, CourseFile, FileParams, FileRef, LoginResponse, Schedule,
     StudentInfo, Test,
@@ -300,7 +301,7 @@ pub async fn download_course(
     }
 
     let folder = format!("{year}-{name}");
-    let path = unique_path(&downloads_dir(&app)?, &format!("{folder}.zip"));
+    let path = unique_path(&downloads_dir(&app).await?, &format!("{folder}.zip"));
     let file = std::fs::File::create(&path).map_err(|e| {
         log::warn!("Cannot create {}: {e}", path.display());
         SAVE_FAILED.to_string()
@@ -450,7 +451,11 @@ pub async fn download_file(
     }
 
     let bytes = fetch(&client, &format!("{}{}", CLIP_BASE, href)).await?;
-    let path = save_new_file(&downloads_dir(&app)?, &file_name_from_href(&href), &bytes)?;
+    let path = save_new_file(
+        &downloads_dir(&app).await?,
+        &file_name_from_href(&href),
+        &bytes,
+    )?;
     Ok(path.display().to_string())
 }
 
@@ -461,8 +466,8 @@ fn is_clip_file_link(href: &str) -> bool {
 /// Saves a file the app made itself (a schedule image or calendar) into the downloads folder,
 /// and returns where it was saved.
 #[command]
-pub fn save_download(app: AppHandle, name: String, data: Vec<u8>) -> Result<String, String> {
-    let path = save_new_file(&downloads_dir(&app)?, &name, &data)?;
+pub async fn save_download(app: AppHandle, name: String, data: Vec<u8>) -> Result<String, String> {
+    let path = save_new_file(&downloads_dir(&app).await?, &name, &data)?;
     Ok(path.display().to_string())
 }
 
@@ -515,6 +520,20 @@ pub async fn get_tests(
 #[command]
 pub async fn reset_cache(cache: State<'_, CacheHandler>) -> Result<(), String> {
     cache.reset().await
+}
+
+/// The folder downloads go to, if one has been chosen.
+#[command]
+pub fn get_download_dir(settings: State<'_, SettingsStore>) -> Option<String> {
+    settings.get().download_dir.map(|d| d.display().to_string())
+}
+
+/// Asks for a new download folder; the one now in use, or `None` if the user cancelled.
+#[command]
+pub async fn change_download_dir(app: AppHandle) -> Result<Option<String>, String> {
+    Ok(choose_download_dir(&app)
+        .await?
+        .map(|d| d.display().to_string()))
 }
 
 #[cfg(test)]

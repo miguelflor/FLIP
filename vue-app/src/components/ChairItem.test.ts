@@ -183,3 +183,28 @@ describe('ChairItem ZIP download', () => {
     expect(messages()).toEqual(['Redes de Computadores não tem ficheiros']);
   });
 });
+
+describe('ChairItem cancelled download', () => {
+  beforeEach(() => {
+    vi.mocked(invoke).mockReset();
+    forgetCourseFiles();
+    useToast().toasts.value = [];
+    useStudent().startSession('session-1', { 'Ana Silva': '123' });
+  });
+
+  it('stays quiet when the user closes the folder picker', async () => {
+    vi.mocked(invoke).mockImplementation(async (cmd) => {
+      if (cmd === 'list_files') return [file];
+      if (cmd === 'download_file' || cmd === 'download_course') throw 'Transferência cancelada';
+    });
+    const wrapper = mount(ChairItem, { props: { chair, query: '' } });
+    await wrapper.get('button[aria-expanded]').trigger('click');
+    await flushPromises();
+
+    await wrapper.get('button[title="Descarregar Aula 1.pdf"]').trigger('click');
+    await wrapper.get('button[title="Descarregar tudo (zip)"]').trigger('click');
+    await flushPromises();
+
+    expect(useToast().toasts.value).toEqual([]);
+  });
+});

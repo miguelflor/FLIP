@@ -5,6 +5,7 @@ mod downloads;
 mod errors;
 mod parser;
 mod session;
+mod settings;
 mod types;
 mod url;
 mod utils;
@@ -15,6 +16,7 @@ use cache::setup_cache;
 use parking_lot::Mutex;
 use serde::Deserialize;
 use session::ClipClient;
+use tauri::Manager;
 
 #[derive(Deserialize)]
 struct Config {
@@ -47,8 +49,11 @@ pub fn run() {
         .unwrap_or(Config { logging: false });
 
     let mut builder = tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             setup_cache(app)?;
+            let settings = app.path().app_config_dir()?.join("settings.json");
+            app.manage(settings::SettingsStore::load(settings));
             Ok(())
         })
         .manage(AppState::default());
@@ -71,7 +76,9 @@ pub fn run() {
             commands::save_download,
             commands::get_schedule,
             commands::get_tests,
-            commands::reset_cache
+            commands::reset_cache,
+            commands::get_download_dir,
+            commands::change_download_dir
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
