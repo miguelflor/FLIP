@@ -2,7 +2,12 @@
   <header class="h-16 shrink-0 w-full bg-white border-b border-slate-200">
     <div class="h-full flex justify-between items-center gap-3 px-4 sm:px-6">
       <div class="flex items-center gap-2 sm:gap-4 min-w-0">
-        <h1 class="text-xl font-bold text-slate-900 shrink-0">
+        <h1 class="flex items-center gap-2 text-xl font-bold text-slate-900 shrink-0">
+          <img
+            :src="isDark ? '/flip-mark-dark.svg' : '/flip-mark-light.svg'"
+            alt=""
+            class="w-8 h-8"
+          >
           FLIP
         </h1>
 
@@ -12,6 +17,12 @@
           :selected="selectedAlunoId"
           :placeholder="t('nav.selectStudent')"
           @select="selectStudent"
+        />
+
+        <!-- The dashboard teleports its year/period filters here -->
+        <div
+          id="nav-filters"
+          class="contents"
         />
       </div>
 
@@ -59,6 +70,7 @@ import BaseDropdown from './BaseDropdown.vue';
 import SettingsDialog from './SettingsDialog.vue';
 import UserProfile from './UserProfile.vue';
 import { useStudent } from '../composables/useStudent';
+import { useTheme } from '../composables/useTheme';
 import { t } from '../lib/i18n';
 
 const ICON_BUTTON =
@@ -77,6 +89,7 @@ const {
   endSession,
 } = useStudent();
 
+const { isDark } = useTheme();
 const settingsOpen = ref(false);
 
 // Leaves even if the backend call fails: staying logged in is worse than a stale session.

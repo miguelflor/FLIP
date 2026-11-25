@@ -1,5 +1,44 @@
 @import "tailwindcss";
 
+@theme {
+  /* Brand: the logo's strokes, raspberry -> orange -> yellow. 600/700 carry white text (>= 4.5:1). */
+  --color-brand-50: oklch(97.5% 0.02 60);
+  --color-brand-100: oklch(94.5% 0.045 58);
+  --color-brand-200: oklch(89.5% 0.08 55);
+  --color-brand-300: oklch(83% 0.11 52);
+  --color-brand-400: oklch(77.9% 0.123 52.5);
+  --color-brand-500: oklch(70.9% 0.161 47.4); /* #F07D3C */
+  --color-brand-600: oklch(57% 0.18 30);
+  --color-brand-700: oklch(56.2% 0.166 12.4); /* #C2405A */
+  --color-brand-800: oklch(48% 0.15 12);
+  --color-brand-900: oklch(38% 0.11 12);
+  --color-brand-950: oklch(27% 0.08 12);
+
+  /* Neutrals tinted toward the logo's navy (#161A33, hue 275). */
+  --color-slate-50: oklch(98.4% 0.003 275);
+  --color-slate-100: oklch(96.8% 0.007 275);
+  --color-slate-200: oklch(92.9% 0.013 275);
+  --color-slate-300: oklch(86.9% 0.022 275);
+  --color-slate-400: oklch(70.4% 0.04 275);
+  --color-slate-500: oklch(55.4% 0.046 275);
+  --color-slate-600: oklch(44.6% 0.043 275);
+  --color-slate-700: oklch(37.2% 0.044 275);
+  --color-slate-800: oklch(27.9% 0.041 275);
+  --color-slate-900: oklch(20.8% 0.042 275);
+  --color-slate-950: oklch(12.9% 0.042 275);
+  --color-gray-50: oklch(98.5% 0.002 275);
+  --color-gray-100: oklch(96.7% 0.003 275);
+  --color-gray-200: oklch(92.8% 0.006 275);
+  --color-gray-300: oklch(87.2% 0.01 275);
+  --color-gray-400: oklch(70.7% 0.022 275);
+  --color-gray-500: oklch(55.1% 0.027 275);
+  --color-gray-600: oklch(44.6% 0.03 275);
+  --color-gray-700: oklch(37.3% 0.034 275);
+  --color-gray-800: oklch(27.8% 0.033 275);
+  --color-gray-900: oklch(21% 0.034 275);
+  --color-gray-950: oklch(13% 0.028 275);
+}
+
 /*
  * Dark theme: the palettes the UI uses are redefined, so components need no
  * dark: variants. Neutrals follow a ladder where surfaces lighten as they rise
@@ -10,30 +49,40 @@
  */
 .dark {
   color-scheme: dark;
-  --color-white: oklch(21% 0.03 262); /* cards, navbar */
-  --color-slate-50: oklch(23.5% 0.03 262);
-  --color-slate-100: oklch(26.5% 0.03 262);
-  --color-slate-200: oklch(31% 0.03 262);
-  --color-slate-300: oklch(38% 0.03 262);
-  --color-slate-400: oklch(58% 0.03 262);
-  --color-slate-500: oklch(71% 0.03 262);
-  --color-slate-600: oklch(80% 0.03 262);
-  --color-slate-700: oklch(88% 0.03 262);
-  --color-slate-800: oklch(93% 0.03 262);
-  --color-slate-900: oklch(97% 0.03 262);
-  --color-slate-950: oklch(98.5% 0.03 262);
-  --color-gray-50: oklch(23.5% 0.012 265);
-  --color-gray-100: oklch(26.5% 0.012 265);
-  --color-gray-200: oklch(31% 0.012 265);
-  --color-gray-300: oklch(38% 0.012 265);
-  --color-gray-400: oklch(58% 0.012 265);
-  --color-gray-500: oklch(71% 0.012 265);
-  --color-gray-600: oklch(80% 0.012 265);
-  --color-gray-700: oklch(88% 0.012 265);
-  --color-gray-800: oklch(93% 0.012 265);
-  --color-gray-900: oklch(97% 0.012 265);
-  --color-gray-950: oklch(98.5% 0.012 265);
-  --color-gray-50: oklch(15% 0.012 265); /* page background */
+  --color-white: oklch(22.8% 0.049 275); /* #161A33 */ /* cards, navbar */
+  --color-slate-50: oklch(23.5% 0.03 275);
+  --color-slate-100: oklch(26.5% 0.03 275);
+  --color-slate-200: oklch(31% 0.03 275);
+  --color-slate-300: oklch(38% 0.03 275);
+  --color-slate-400: oklch(58% 0.03 275);
+  --color-slate-500: oklch(71% 0.03 275);
+  --color-slate-600: oklch(80% 0.03 275);
+  --color-slate-700: oklch(88% 0.03 275);
+  --color-slate-800: oklch(93% 0.03 275);
+  --color-slate-900: oklch(97% 0.03 275);
+  --color-slate-950: oklch(98.5% 0.03 275);
+  --color-gray-100: oklch(26.5% 0.012 275);
+  --color-gray-200: oklch(31% 0.012 275);
+  --color-gray-300: oklch(38% 0.012 275);
+  --color-gray-400: oklch(58% 0.012 275);
+  --color-gray-500: oklch(71% 0.012 275);
+  --color-gray-600: oklch(80% 0.012 275);
+  --color-gray-700: oklch(88% 0.012 275);
+  --color-gray-800: oklch(93% 0.012 275);
+  --color-gray-900: oklch(97% 0.012 275);
+  --color-gray-950: oklch(98.5% 0.012 275);
+  --color-gray-50: oklch(17% 0.035 275); /* page background */
+  --color-brand-50: color-mix(in oklab, oklch(70.9% 0.161 47.4) 10%, transparent);
+  --color-brand-100: color-mix(in oklab, oklch(70.9% 0.161 47.4) 18%, transparent);
+  --color-brand-200: color-mix(in oklab, oklch(70.9% 0.161 47.4) 30%, transparent);
+  --color-brand-300: oklch(56.2% 0.166 12.4);
+  --color-brand-400: oklch(70.9% 0.161 47.4);
+  --color-brand-500: oklch(70.9% 0.161 47.4);
+  --color-brand-600: oklch(70.9% 0.161 47.4);
+  --color-brand-700: oklch(77.9% 0.123 52.5);
+  --color-brand-800: oklch(87% 0.08 60);
+  --color-brand-900: oklch(93% 0.04 65);
+  --color-brand-950: oklch(97% 0.02 70);
   --color-blue-50: color-mix(in oklab, oklch(62.3% 0.214 259.815) 10%, transparent);
   --color-blue-100: color-mix(in oklab, oklch(62.3% 0.214 259.815) 18%, transparent);
   --color-blue-200: color-mix(in oklab, oklch(62.3% 0.214 259.815) 30%, transparent);
@@ -45,17 +94,6 @@
   --color-blue-800: oklch(88.2% 0.059 254.128);
   --color-blue-900: oklch(93.2% 0.032 255.585);
   --color-blue-950: oklch(97% 0.014 254.604);
-  --color-indigo-50: color-mix(in oklab, oklch(58.5% 0.233 277.117) 10%, transparent);
-  --color-indigo-100: color-mix(in oklab, oklch(58.5% 0.233 277.117) 18%, transparent);
-  --color-indigo-200: color-mix(in oklab, oklch(58.5% 0.233 277.117) 30%, transparent);
-  --color-indigo-300: oklch(51.1% 0.262 276.966);
-  --color-indigo-400: oklch(67.3% 0.182 276.935);
-  --color-indigo-500: oklch(67.3% 0.182 276.935);
-  --color-indigo-600: oklch(67.3% 0.182 276.935);
-  --color-indigo-700: oklch(78.5% 0.115 274.713);
-  --color-indigo-800: oklch(87% 0.065 274.039);
-  --color-indigo-900: oklch(93% 0.034 272.788);
-  --color-indigo-950: oklch(96.2% 0.018 272.314);
   --color-red-50: color-mix(in oklab, oklch(63.7% 0.237 25.331) 10%, transparent);
   --color-red-100: color-mix(in oklab, oklch(63.7% 0.237 25.331) 18%, transparent);
   --color-red-200: color-mix(in oklab, oklch(63.7% 0.237 25.331) 30%, transparent);
@@ -124,4 +162,20 @@ body {
 #app {
   width: 100%;
   min-height: 100vh;
+}
+
+/* Tailwind v4 dropped the pointer cursor on buttons; give it back to everything clickable. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  a[href],
+  summary,
+  select,
+  label:has(input:not(:disabled)),
+  input:is([type="checkbox"], [type="radio"], [type="file"]):not(:disabled) {
+    cursor: pointer;
+  }
+  :disabled {
+    cursor: not-allowed;
+  }
 }

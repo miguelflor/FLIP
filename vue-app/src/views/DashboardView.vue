@@ -1,7 +1,10 @@
 <template>
   <div>
-    <!-- Year filter -->
-    <div class="flex flex-wrap items-center gap-2 sm:gap-4 mb-4 sm:mb-6">
+    <!-- Year filter, shown in the navbar -->
+    <Teleport
+      to="#nav-filters"
+      defer
+    >
       <BaseDropdown
         :options="availableYears"
         :selected="selectedYear"
@@ -15,7 +18,7 @@
         :placeholder="t('dashboard.selectPeriod')"
         @select="selectPeriodLabel"
       />
-    </div>
+    </Teleport>
 
     <!-- Panels -->
     <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] items-start gap-4 sm:gap-6">

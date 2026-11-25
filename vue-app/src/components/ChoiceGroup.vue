@@ -8,9 +8,9 @@
         v-for="option in options"
         :key="option.value"
         :class="[
-          'flex items-center gap-2 px-3 py-2 rounded-md border cursor-pointer transition-all font-medium has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-blue-500',
+          'flex items-center gap-2 px-3 py-2 rounded-md border cursor-pointer transition-all font-medium has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand-500',
           model === option.value
-            ? 'border-blue-500 bg-blue-50 text-blue-700'
+            ? 'border-brand-500 bg-brand-50 text-brand-700'
             : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
         ]"
       >

@@ -21,7 +21,7 @@
       </div>
       <div
         v-if="photoUrl"
-        class="shrink-0 w-10 h-10 rounded-full overflow-hidden ring-2 ring-slate-200 shadow-sm hover:ring-blue-400 transition-all duration-200"
+        class="shrink-0 w-10 h-10 rounded-full overflow-hidden ring-2 ring-slate-200 shadow-sm hover:ring-brand-400 transition-all duration-200"
       >
         <img
           :src="photoUrl"
@@ -31,7 +31,7 @@
       </div>
       <div
         v-else
-        class="shrink-0 w-10 h-10 rounded-full overflow-hidden ring-2 ring-slate-200 bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center"
+        class="shrink-0 w-10 h-10 rounded-full overflow-hidden ring-2 ring-slate-200 bg-linear-to-br from-brand-700 to-brand-600 flex items-center justify-center"
       >
         <span class="text-white font-bold text-sm">{{ (name ? name[0] : 'E').toUpperCase() }}</span>
       </div>

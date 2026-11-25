@@ -20,7 +20,7 @@
       </span>
       <button
         type="button"
-        class="flex items-center gap-1 min-w-0 cursor-pointer text-left hover:text-blue-700"
+        class="flex items-center gap-1 min-w-0 cursor-pointer text-left hover:text-brand-700"
         :aria-expanded="expanded"
         @click="toggleOpen"
       >
@@ -47,7 +47,7 @@
         <p>{{ listError }}</p>
         <button
           type="button"
-          class="text-blue-500 hover:underline cursor-pointer"
+          class="text-brand-700 hover:underline cursor-pointer"
           @click="loadFiles"
         >
           {{ t('common.retry') }}

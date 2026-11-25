@@ -27,7 +27,7 @@
         type="search"
         :placeholder="t('files.search')"
         :aria-label="t('files.searchLabel')"
-        class="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-md outline-none focus:border-blue-500"
+        class="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-md outline-none focus:border-brand-500"
       >
       <!-- Loading state -->
       <div
@@ -53,7 +53,7 @@
       >
         <p>{{ error }}</p>
         <button
-          class="text-blue-500 hover:underline mt-1"
+          class="text-brand-700 hover:underline mt-1"
           @click="refreshChairs"
         >
           {{ t('common.retry') }}

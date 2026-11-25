@@ -35,7 +35,7 @@
             required
             autocomplete="username"
             :disabled="loading"
-            class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+            class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all"
             :placeholder="t('login.usernamePlaceholder')"
           >
         </div>
@@ -49,7 +49,7 @@
         >
           {{ t('login.password') }}
         </label>
-        <div class="flex items-center bg-gray-50 border border-gray-200 rounded-xl focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all">
+        <div class="flex items-center bg-gray-50 border border-gray-200 rounded-xl focus-within:ring-2 focus-within:ring-brand-500 focus-within:border-transparent transition-all">
           <svg
             class="ml-3 h-5 w-5 shrink-0 text-gray-400 pointer-events-none"
             fill="none"
@@ -75,7 +75,7 @@
           >
           <button
             type="button"
-            class="cursor-pointer self-stretch px-3 flex items-center rounded-r-xl text-gray-400 hover:text-gray-600 focus-visible:outline-none focus-visible:text-blue-500"
+            class="cursor-pointer self-stretch px-3 flex items-center rounded-r-xl text-gray-400 hover:text-gray-600 focus-visible:outline-none focus-visible:text-brand-600"
             :aria-label="showPassword ? t('login.hidePassword') : t('login.showPassword')"
             :aria-pressed="showPassword"
             @click="showPassword = !showPassword"
@@ -110,7 +110,7 @@
           v-model="remember"
           type="checkbox"
           :disabled="loading"
-          class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          class="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
         >
         {{ t('login.remember') }}
       </label>
@@ -119,7 +119,7 @@
       <button
         type="submit"
         :disabled="loading"
-        class="cursor-pointer w-full bg-linear-to-r from-blue-600 to-indigo-600 text-white font-semibold py-3 px-4 rounded-xl hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-blue-500/30"
+        class="cursor-pointer w-full bg-linear-to-r from-brand-700 to-brand-600 text-white font-semibold py-3 px-4 rounded-xl hover:from-brand-800 hover:to-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-brand-600/30"
       >
         <span
           v-if="loading"

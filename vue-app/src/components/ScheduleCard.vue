@@ -116,14 +116,14 @@
             :class="[
               'h-12 flex items-center justify-center border-b border-slate-100 text-sm font-semibold gap-1.5',
               isToday(day.key)
-                ? 'text-blue-600 bg-blue-50/60 in-[.exporting]:text-slate-500 in-[.exporting]:bg-white'
+                ? 'text-brand-700 bg-brand-50/60 in-[.exporting]:text-slate-500 in-[.exporting]:bg-white'
                 : 'text-slate-500 bg-white',
             ]"
           >
             {{ day.label }}
             <span
               v-if="isToday(day.key)"
-              class="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block in-[.exporting]:hidden"
+              class="w-1.5 h-1.5 rounded-full bg-brand-500 inline-block in-[.exporting]:hidden"
             />
           </div>
 
